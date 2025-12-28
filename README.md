@@ -332,6 +332,11 @@ results/
 │   └── [visualization plots]
 ```
 
+## Required Reference Files (not included)
+- hg38.fa: Download from [UCSC](http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/)
+- Homo_sapiens.GRCh38.98.gtf: Download from [Ensembl](http://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/)
+
+
 ---
 
 ## Key Decisions and Rationale
