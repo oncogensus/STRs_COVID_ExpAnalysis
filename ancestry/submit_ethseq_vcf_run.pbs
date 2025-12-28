@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -N ethseq_gVCF
+#PBS -q fatq
+#PBS -j oe
+#PBS -o ethseq_gVCF.log
+#PBS -V
+
+cd "$PBS_O_WORKDIR"
+
+# Define micromamba root
+export MAMBA_ROOT_PREFIX=/storage2/matheusbomfim/projects/micromamba
+
+# Add micromamba to PATH
+export PATH=/storage2/matheusbomfim/projects/micromamba/bin:$PATH
+
+# Initialize the shell for micromamba
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+
+# Activate the micromamba environment ethseq_env
+micromamba activate ethseq_env
+
+# Run ethSEQ
+Rscript ethseq_vcf_run.r
