@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N desc_analysis_strs
+#PBS -q workq
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -j oe
+#PBS -o desc_analysis_strs.log
+
+cd "$PBS_O_WORKDIR"
+
+# Micromamba root
+export MAMBA_ROOT_PREFIX=/storage2/matheusbomfim/projects/micromamba
+
+# Path to the R script
+R_SCRIPT="desc_analysis_submit.r"
+
+# Run the Rscript within the 'r_env' environment
+/storage2/matheusbomfim/projects/micromamba/bin/micromamba run -n r_env Rscript "$R_SCRIPT"
+
+echo "Execution finished"

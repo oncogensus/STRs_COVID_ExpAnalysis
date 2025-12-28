@@ -1,0 +1,39 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Rows: 168 Columns: 2
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (2): sample, group
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 14961441 Columns: 17
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (8): region, gene_id, gene_name, gene_chrom, annotation, sample, chrom, ...
+dbl (9): key, priority, gene_start, gene_end, start, end, allele1_est, allel...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+All samples successfully mapped to groups!
+
+Group distribution:
+# A tibble: 2 × 2
+  group          n
+  <chr>      <int>
+1 case     2849848
+2 control 12111593
+
+Analysis completed successfully!
+Results saved in: results/ 
+Execution finished
