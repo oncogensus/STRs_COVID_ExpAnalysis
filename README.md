@@ -40,7 +40,6 @@ The analysis pipeline is organized as follows:
 ├── gtf_annot/
 ├── ancestry/
 ├── desc_analysis/
-├── results/
 ├── data_viz/
 └── enrich_analysis/
 
