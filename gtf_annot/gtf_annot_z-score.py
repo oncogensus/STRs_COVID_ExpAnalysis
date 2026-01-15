@@ -1,5 +1,5 @@
 """
-OUTLIERS Annotation Pipeline - Python Version
+STR Annotation Pipeline - Python Version
 """
 
 import os
@@ -13,7 +13,7 @@ import polars as pl
 from pybedtools import BedTool
 
 # ==============================
-# CONFIGURATION FOR OUTLIERS
+# CONFIGURATION
 # ==============================
 
 class Config:
@@ -48,7 +48,7 @@ class Config:
 Path(Config.OUTDIR).mkdir(parents=True, exist_ok=True)
 
 # ==============================
-# HELPER FUNCTIONS (UNCHANGED)
+# HELPER FUNCTIONS
 # ==============================
 
 def add_chr(chrom: str) -> str:
@@ -87,6 +87,7 @@ def read_gtf_features(gtf_path: str) -> pl.DataFrame:
     """Read GTF file and extract attributes"""
     print(f"Reading GTF: {gtf_path}")
 
+    # Correct schema with 9 columns
     schema = {
         "chrom": pl.Utf8,
         "source": pl.Utf8,
@@ -99,6 +100,7 @@ def read_gtf_features(gtf_path: str) -> pl.DataFrame:
         "attribute": pl.Utf8
     }
 
+    # Read GTF
     df = pl.read_csv(
         gtf_path,
         separator="\t",
@@ -115,6 +117,7 @@ def read_gtf_features(gtf_path: str) -> pl.DataFrame:
         pl.col("attribute").str.extract(r'gene_name\s+"([^"]+)"', 1).alias("gene_name")
     ])
 
+    # Use gene_id as fallback for gene_name
     df = df.with_columns(
         pl.when(pl.col("gene_name").is_null())
         .then(pl.col("gene_id"))
@@ -122,6 +125,7 @@ def read_gtf_features(gtf_path: str) -> pl.DataFrame:
         .alias("gene_name")
     )
 
+    # Add 'chr' and select columns
     df = df.with_columns(
         pl.col("chrom").map_elements(add_chr, return_dtype=pl.Utf8).alias("chrom")
     ).select([
@@ -158,14 +162,17 @@ def save_bedtool(df: pl.DataFrame, filename: str, name_col: str = None) -> BedTo
     """Save DataFrame as BED file and return BedTool - 4 COLUMNS ONLY"""
     path = Path(Config.OUTDIR) / filename
 
+    # Use default column if not specified
     if name_col is None:
         name_col = Config.GENE_ID_COLUMN
 
+    # Check if column exists
     if name_col not in df.columns:
         print(f"Warning: Column {name_col} not found. Using '.'")
         df = df.with_columns(pl.lit(".").alias("name"))
         name_col = "name"
 
+    # Convert coordinates 1-based → 0-based
     bed_df = df.with_columns([
         (pl.col("start") - 1).alias("start"),
         pl.col("end").alias("end")
@@ -174,6 +181,7 @@ def save_bedtool(df: pl.DataFrame, filename: str, name_col: str = None) -> BedTo
         pl.col(name_col).alias("name")
     ])
 
+    # Save
     bed_df.write_csv(path, separator="\t", include_header=False)
     print(f"Saved: {path} ({bed_df.shape[0]} records)")
 
@@ -214,6 +222,7 @@ def create_promoters(genes_bed: BedTool) -> BedTool:
         print("Warning: No genes for promoter creation")
         return BedTool("", from_string=True)
 
+    # Create TSS (Transcription Start Site)
     tss_records = []
     for gene in genes_bed:
         tss_start = gene.start
@@ -229,6 +238,7 @@ def create_promoters(genes_bed: BedTool) -> BedTool:
 
     tss_bed = BedTool("\n".join("\t".join(map(str, r)) for r in tss_records), from_string=True)
 
+    # Expand to promoter region
     promoters = tss_bed.slop(
         g=Config.GENOME_FILE,
         l=Config.PROMOTER_DIST,
@@ -236,6 +246,7 @@ def create_promoters(genes_bed: BedTool) -> BedTool:
         s=False
     )
 
+    # Save
     promoters.saveas(str(Path(Config.OUTDIR) / "promoters.bed"))
     print(f"Promoters created: {len(promoters)}")
     return promoters
@@ -248,10 +259,12 @@ def create_introns(genes_bed: BedTool, exons_bed: BedTool) -> BedTool:
         print("Warning: No genes for intron creation")
         return BedTool("", from_string=True)
 
+    # Group exons by gene
     exons_by_gene = defaultdict(list)
     for exon in exons_bed:
         exons_by_gene[exon.name].append(exon)
 
+    # Process each gene
     intron_records = []
     for gene in genes_bed:
         gene_id = gene.name
@@ -260,6 +273,7 @@ def create_introns(genes_bed: BedTool, exons_bed: BedTool) -> BedTool:
             gene_exons = BedTool(exons_by_gene[gene_id]).sort()
             gene_bed = BedTool(f"{gene.chrom}\t{gene.start}\t{gene.end}\t{gene.name}", from_string=True)
             
+            # Subtract exons to get introns
             introns = gene_bed.subtract(gene_exons)
 
             for intron in introns:
@@ -268,11 +282,13 @@ def create_introns(genes_bed: BedTool, exons_bed: BedTool) -> BedTool:
                     gene_id
                 ])
         else:
+            # Gene without annotated exons
             intron_records.append([
                 gene.chrom, gene.start, gene.end,
                 gene_id
             ])
 
+    # Create BedTool
     if intron_records:
         introns_bed = BedTool("\n".join("\t".join(map(str, r)) for r in intron_records), from_string=True).sort()
         print(f"Introns created: {len(intron_records)}")
@@ -280,6 +296,7 @@ def create_introns(genes_bed: BedTool, exons_bed: BedTool) -> BedTool:
         introns_bed = BedTool("", from_string=True)
         print("Warning: No introns created")
 
+    # Save
     introns_bed.saveas(str(Path(Config.OUTDIR) / "introns.bed"))
     return introns_bed
 
@@ -291,9 +308,13 @@ def create_intergenic_regions(genes_bed: BedTool) -> BedTool:
         print("Warning: No genes for intergenic region creation")
         return BedTool("", from_string=True)
 
+    # Merge genes
     genes_merged = genes_bed.sort().merge()
+
+    # Complement to get intergenic regions
     intergenic = genes_merged.complement(g=Config.GENOME_FILE)
 
+    # Add metadata
     intergenic_records = []
     for region in intergenic:
         intergenic_records.append([
@@ -303,12 +324,13 @@ def create_intergenic_regions(genes_bed: BedTool) -> BedTool:
 
     intergenic_bed = BedTool("\n".join("\t".join(map(str, r)) for r in intergenic_records), from_string=True)
 
+    # Save
     intergenic_bed.saveas(str(Path(Config.OUTDIR) / "intergenic.bed"))
     print(f"Intergenic regions: {len(intergenic)}")
     return intergenic_bed
 
 def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
-    """Process outliers TSV file - ADAPTED FOR OUTLIERS"""
+    """Process consolidated TSV file"""
     print(f"Processing TSV: {tsv_path}")
     
     try:
@@ -331,8 +353,8 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         traceback.print_exc()
         raise
 
-    # Check required columns for outliers file
-    required_cols = ["chrom", "start", "end", "repeat_unit", "outlier"]
+    # Check required columns
+    required_cols = ["chrom", "start", "end", "repeat_unit"]
     for col in required_cols:
         if col not in df_tsv.columns:
             raise ValueError(f"Column {col} not found. Available: {df_tsv.columns}")
@@ -342,8 +364,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         pl.col("chrom").is_not_null() &
         pl.col("start").is_not_null() &
         pl.col("end").is_not_null() &
-        pl.col("repeat_unit").is_not_null() &
-        pl.col("outlier").is_not_null()
+        pl.col("repeat_unit").is_not_null()
     )
     
     if df_filtered.shape[0] == 0:
@@ -355,7 +376,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
             print(f"  {col}: {null_count} nulls")
         return BedTool("", from_string=True), pl.DataFrame()
     
-    # Add unique ID and process coordinates
+    # Add unique ID and process coordinates - SEM DUPLICATAS
     df = df_filtered.with_row_index("row_id").with_columns([
         # Add 'chr' if necessary
         pl.when(pl.col("chrom").str.starts_with("chr"))
@@ -369,7 +390,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         # End remains the same (BED is exclusive)
         pl.col("end").alias("var_end"),
         
-        # Create unique key
+        # Create unique key (temporário para junções)
         pl.col("row_id").cast(pl.Utf8).alias("key"),
         
         # Calculate length
@@ -380,9 +401,24 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         else pl.lit("unknown").alias("sample_id")
     ])
     
+    # Calculate repeat count (assuming region_length is multiple of repeat_unit length)
+    df = df.with_columns([
+        (pl.col("region_length") / pl.col("repeat_unit").str.len_bytes()).alias("repeat_count")
+    ])
+    
+    # Create STRs_ID column
+    df = df.with_columns([
+        (
+            pl.col("var_chrom") + ":" + 
+            pl.col("start").cast(pl.Utf8) + ":" + 
+            pl.col("repeat_unit") + ":" + 
+            pl.col("repeat_count").cast(pl.Int64).cast(pl.Utf8)
+        ).alias("STRs_ID")
+    ])
+    
     # Create BED file
     if df.shape[0] > 0:
-        bed_path = Path(Config.OUTDIR) / "outliers_regions_temp.bed"
+        bed_path = Path(Config.OUTDIR) / "str_regions_temp.bed"
         
         # Create BED DataFrame - only 4 columns needed for bedtools
         bed_df = df.select([
@@ -400,7 +436,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         if not Config.KEEP_TEMP_FILES:
             bed_path.unlink()
         
-        print(f"\nCreated BED with {bed.count()} outlier regions")
+        print(f"\nCreated BED with {bed.count()} STR regions")
         print(f"  Format: 4 columns (chrom, start, end, name)")
         print(f"  Sample chromosomes: {df['var_chrom'].head(3).to_list()}")
     else:
@@ -411,7 +447,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
 def intersect_with_hierarchy(strs_bed: BedTool, region_beds: Dict[str, BedTool]) -> pl.DataFrame:
     """Perform intersections with priority hierarchy"""
     print("Performing intersections...")
-    print(f"Total outlier regions: {strs_bed.count()}")
+    print(f"Total STR regions: {strs_bed.count()}")
     
     all_intersections = []
 
@@ -421,7 +457,7 @@ def intersect_with_hierarchy(strs_bed: BedTool, region_beds: Dict[str, BedTool])
             continue
 
         print(f"  Intersecting with {region_name}...")
-        print(f"    Outlier regions: {strs_bed.count()}")
+        print(f"    STR regions: {strs_bed.count()}")
         print(f"    {region_name} regions: {region_bed.count()}")
 
         try:
@@ -430,6 +466,7 @@ def intersect_with_hierarchy(strs_bed: BedTool, region_beds: Dict[str, BedTool])
             print(f"    Error in intersection: {e}")
             continue
 
+        # Process results
         intersection_count = 0
         for interval in intersected:
             str_key = interval.fields[3]
@@ -448,6 +485,7 @@ def intersect_with_hierarchy(strs_bed: BedTool, region_beds: Dict[str, BedTool])
         
         print(f"    Found {intersection_count} intersections")
 
+    # Return DataFrame with proper schema
     if not all_intersections:
         return pl.DataFrame({
             "key": pl.Series([], dtype=pl.Utf8),
@@ -458,6 +496,7 @@ def intersect_with_hierarchy(strs_bed: BedTool, region_beds: Dict[str, BedTool])
 
     df = pl.DataFrame(all_intersections)
     
+    # Apply hierarchy
     df = df.sort(["key", "priority"]).unique(subset=["key"], keep="first")
 
     print(f"\nIntersections completed: {df.shape[0]} annotated variants")
@@ -467,6 +506,7 @@ def add_gene_information(df_annotations: pl.DataFrame, df_gtf: pl.DataFrame) -> 
     """Add complete gene information"""
     print("Adding gene information...")
 
+    # Create gene index
     gene_index = df_gtf.filter(
         pl.col("feature").str.to_lowercase() == "gene"
     ).select([
@@ -477,8 +517,10 @@ def add_gene_information(df_annotations: pl.DataFrame, df_gtf: pl.DataFrame) -> 
         "end": "gene_end"
     })
 
+    # Combine with annotations
     df_enriched = df_annotations.join(gene_index, on="gene_id", how="left")
     
+    # Fill null values
     df_enriched = df_enriched.with_columns([
         pl.col("gene_id").fill_null("."),
         pl.col("gene_name").fill_null("."),
@@ -487,6 +529,7 @@ def add_gene_information(df_annotations: pl.DataFrame, df_gtf: pl.DataFrame) -> 
         pl.col("gene_end").fill_null(-1)
     ])
 
+    # Create combined annotation
     df_enriched = df_enriched.with_columns(
         pl.when(pl.col("gene_name") == ".")
         .then(pl.col("region"))
@@ -546,16 +589,16 @@ def calculate_statistics(df_annotations: pl.DataFrame, df_strs: pl.DataFrame) ->
     return stats
 
 def save_results(df_final: pl.DataFrame, stats: Dict):
-    """Save results - MODIFIED FOR OUTLIERS"""
+    """Save results"""
     print("Saving results...")
 
-    # Main file for outliers
-    output_file = Path(Config.OUTDIR) / "outliers_annotated_complete.tsv"  
+    # Main file
+    output_file = Path(Config.OUTDIR) / "outliers_annotated_complete.tsv"
     df_final.write_csv(output_file, separator="\t")
     print(f"Main annotations: {output_file}")
 
     # Statistics
-    stats_file = Path(Config.OUTDIR) / "outliers_annotation_statistics.tsv"  
+    stats_file = Path(Config.OUTDIR) / "outliers_annotation_statistics.tsv"
     stats_rows = [
         {"category": "summary", "metric": "total_variants", "value": stats["summary"]["total_variants"]},
         {"category": "summary", "metric": "total_annotated", "value": stats["summary"]["total_annotated"]}
@@ -573,10 +616,10 @@ def save_results(df_final: pl.DataFrame, stats: Dict):
     print(f"Statistics: {stats_file}")
 
 def main():
-    """Main function for outliers annotation"""
+    """Main function"""
     start_time = datetime.now()
     print("=" * 60)
-    print("OUTLIERS ANNOTATION PIPELINE")  # CHANGED
+    print("STR ANNOTATION PIPELINE")
     print("=" * 60)
 
     try:
@@ -606,12 +649,12 @@ def main():
         introns = create_introns(basic_regions["gene"], basic_regions["exon"])
         intergenic = create_intergenic_regions(basic_regions["gene"])
 
-        # 4. Process TSV (OUTLIERS)
-        print("\n[Step 4] Processing outliers TSV...")
+        # 4. Process TSV
+        print("\n[Step 4] Processing TSV...")
         strs_bed, df_strs = process_tsv_to_bed(Config.TSV_PATH)
 
         if strs_bed.count() == 0:
-            print("No outlier variants found!")
+            print("No variants found!")
             return
 
         # 5. Prepare regions for intersection
@@ -637,27 +680,32 @@ def main():
         print("\n[Step 8] Adding gene information...")
         df_enriched = add_gene_information(df_all, df_gtf)
 
+        # Keep only necessary columns from df_strs
+        cols_to_keep = [
+            "key", "STRs_ID", "sample_id", "chrom", "start", "end", "repeat_unit",
+            "allele1_est", "allele2_est", "depth", "p", "p_adj"
+        ]
+
+        df_strs_clean = df_strs.select(cols_to_keep)
+
         # 9. Combine with original information
         print("\n[Step 9] Combining with original data...")
-        
-        # Keep ALL original columns from outliers file (they're all important)
-        cols_to_keep = [
-            "key", "sample", "chrom", "start", "end", "repeat_unit",
-            "allele1_est", "allele2_est", "spanning_reads", "spanning_pairs",
-            "left_clips", "right_clips", "unplaced_pairs", "sum_str_counts",
-            "depth", "outlier", "p", "p_adj", "region_length", "sample_id"
-        ]
-        
-        # Filter only columns that exist
-        available_cols = [col for col in cols_to_keep if col in df_strs.columns]
-        df_strs_clean = df_strs.select(available_cols)
-        
         df_final = df_enriched.join(
             df_strs_clean,
             on="key",
             how="left"
         )
-
+        
+        # Remove 'key' column and reorder columns
+        df_final = df_final.drop("key")
+        
+        # Reorder columns to put STRs_ID first
+        cols = df_final.columns
+        if "STRs_ID" in cols:
+            # Move STRs_ID to the beginning
+            cols = ["STRs_ID"] + [col for col in cols if col != "STRs_ID"]
+            df_final = df_final.select(cols)
+        
         # 10. Calculate statistics and save
         print("\n[Step 10] Calculating statistics...")
         stats = calculate_statistics(df_all, df_strs)
@@ -668,10 +716,10 @@ def main():
         # Final summary
         elapsed = datetime.now() - start_time
         print("\n" + "=" * 60)
-        print("OUTLIERS ANNOTATION PIPELINE COMPLETED SUCCESSFULLY!")  # CHANGED
+        print("PIPELINE COMPLETED SUCCESSFULLY!")
         print(f"Total time: {elapsed}")
-        print(f"Outlier variants processed: {stats['summary']['total_variants']}")
-        print(f"Outlier variants annotated: {stats['summary']['total_annotated']}")
+        print(f"Variants processed: {stats['summary']['total_variants']}")
+        print(f"Variants annotated: {stats['summary']['total_annotated']}")
 
         if "distribution" in stats:
             print("\nDistribution by region:")

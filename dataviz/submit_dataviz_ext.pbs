@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N dataviz_strs
+#PBS -q workq
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -j oe
+#PBS -o dataviz.log
+
+cd "$PBS_O_WORKDIR"
+
+# Raiz do micromamba
+export MAMBA_ROOT_PREFIX=/storage2/matheusbomfim/projects/micromamba
+
+# Caminho para o script R
+R_SCRIPT="/home/matheusbomfim/projects/strling/STRling/covid-19/script_covid-19/r_scripts/dataviz_ext.r"
+
+# Executa o Rscript dentro do ambiente 'str'
+/storage2/matheusbomfim/projects/micromamba/bin/micromamba run -n r_env Rscript "$R_SCRIPT"
+
+echo "Execução finalizada"

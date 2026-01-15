@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N GO_Zscore_import
+#PBS -q workq
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -j oe
+#PBS -o GO_df_import.log
+
+cd "$PBS_O_WORKDIR"
+
+# Micromamba root prefix
+export MAMBA_ROOT_PREFIX=/storage2/matheusbomfim/projects/micromamba
+
+# Path to the R script to be executed
+R_SCRIPT="GO_df_import.r"
+
+# Execute the Rscript within the environment
+/storage2/matheusbomfim/projects/micromamba/bin/micromamba run -n r_enrich_env Rscript "$R_SCRIPT"
+
+echo "Execution finished"

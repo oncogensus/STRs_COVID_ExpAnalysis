@@ -390,7 +390,7 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         # End remains the same (BED is exclusive)
         pl.col("end").alias("var_end"),
         
-        # Create unique key
+        # Create unique key (temporário para junções)
         pl.col("row_id").cast(pl.Utf8).alias("key"),
         
         # Calculate length
@@ -399,6 +399,21 @@ def process_tsv_to_bed(tsv_path: str) -> Tuple[BedTool, pl.DataFrame]:
         # Keep sample if exists
         pl.col("sample").alias("sample_id") if "sample" in df_filtered.columns
         else pl.lit("unknown").alias("sample_id")
+    ])
+    
+    # Calculate repeat count (assuming region_length is multiple of repeat_unit length)
+    df = df.with_columns([
+        (pl.col("region_length") / pl.col("repeat_unit").str.len_bytes()).alias("repeat_count")
+    ])
+    
+    # Create STRs_ID column
+    df = df.with_columns([
+        (
+            pl.col("var_chrom") + ":" + 
+            pl.col("start").cast(pl.Utf8) + ":" + 
+            pl.col("repeat_unit") + ":" + 
+            pl.col("repeat_count").cast(pl.Int64).cast(pl.Utf8)
+        ).alias("STRs_ID")
     ])
     
     # Create BED file
@@ -583,7 +598,7 @@ def save_results(df_final: pl.DataFrame, stats: Dict):
     print(f"Main annotations: {output_file}")
 
     # Statistics
-    stats_file = Path(Config.OUTDIR) / "annotation_statistics.tsv"
+    stats_file = Path(Config.OUTDIR) / "global_annotation_statistics.tsv"
     stats_rows = [
         {"category": "summary", "metric": "total_variants", "value": stats["summary"]["total_variants"]},
         {"category": "summary", "metric": "total_annotated", "value": stats["summary"]["total_annotated"]}
@@ -667,7 +682,7 @@ def main():
 
         # Keep only necessary columns from df_strs
         cols_to_keep = [
-            "key", "sample", "chrom", "start", "end", "repeat_unit",
+            "key", "STRs_ID", "sample_id", "chrom", "start", "end", "repeat_unit",
             "allele1_est", "allele2_est", "depth"
         ]
 
@@ -680,6 +695,16 @@ def main():
             on="key",
             how="left"
         )
+        
+        # Remove 'key' column and reorder columns
+        df_final = df_final.drop("key")
+        
+        # Reorder columns to put STRs_ID first
+        cols = df_final.columns
+        if "STRs_ID" in cols:
+            # Move STRs_ID to the beginning
+            cols = ["STRs_ID"] + [col for col in cols if col != "STRs_ID"]
+            df_final = df_final.select(cols)
         
         # 10. Calculate statistics and save
         print("\n[Step 10] Calculating statistics...")

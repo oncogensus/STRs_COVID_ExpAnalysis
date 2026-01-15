@@ -1,0 +1,134 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: AnnotationDbi
+Loading required package: stats4
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: IRanges
+Loading required package: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+The following object is masked from ‘package:utils’:
+
+    findMatches
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+
+Attaching package: ‘IRanges’
+
+The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+
+Attaching package: ‘AnnotationDbi’
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+
+
+clusterProfiler v4.14.0 Learn more at https://yulab-smu.top/contribution-knowledge-mining/
+
+Please cite:
+
+G Yu. Thirteen years of clusterProfiler. The Innovation. 2024,
+5(6):100722
+
+Attaching package: ‘clusterProfiler’
+
+The following object is masked from ‘package:AnnotationDbi’:
+
+    select
+
+The following object is masked from ‘package:IRanges’:
+
+    slice
+
+The following object is masked from ‘package:S4Vectors’:
+
+    rename
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+Rows: 3333995 Columns: 19
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr  (9): STRs_ID, region, gene_id, gene_name, gene_chrom, annotation, sampl...
+dbl (10): priority, gene_start, gene_end, start, end, allele1_est, allele2_e...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Lines in df_strs_outliers: 3333995 
+Rows: 2154 Columns: 8
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (6): Gene Symbol, Ensembl ID, Dataset, Accession, Tissue, origem
+dbl (2): Pvalue, LogFC
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Lines in df_genes: 2154 
+df_strs_outliers after cleaning: 3333995 
+df_genes after cleaning: 2154 
+'select()' returned 1:many mapping between keys and columns
+df_strs_outliers after Ensembl mapping: 1721695 
+'select()' returned 1:many mapping between keys and columns
+df_genes after mapping: 1893 
+Number of background genes (ALL lung-expressed genes): 629 
+Number of foreground genes (p_adj < 0.05 in background): 369 
+Proportion foreground/background: 0.587 
+Reading KEGG annotation online: "https://rest.kegg.jp/link/hsa/pathway"...
+Reading KEGG annotation online: "https://rest.kegg.jp/list/pathway/hsa"...
+Reading KEGG annotation online: "https://rest.kegg.jp/conv/ncbi-geneid/hsa"...
+Directory 'results' created
+
+✅ KEGG enrichment completed successfully!
+Number of enriched pathways: 1 
+Execution finished

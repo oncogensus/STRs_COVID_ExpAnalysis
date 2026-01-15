@@ -1,6 +1,6 @@
 ==========================================
 STR Annotation Pipeline Job
-Start time: Fri Dec 26 17:16:51 -03 2025
+Start time: Tue Jan  6 11:08:59 -03 2026
 Working directory: /home/matheusbomfim/projects/strs_paper/gtf_annot
 ==========================================
 Executing annotation pipeline...
@@ -93,21 +93,21 @@ Statistics: ../samples/gp_global/merged/annotation_statistics.tsv
 
 ============================================================
 PIPELINE COMPLETED SUCCESSFULLY!
-Total time: 0:19:43.760267
+Total time: 0:17:20.516987
 Variants processed: 14961441
 Variants annotated: 14961441
 
 Distribution by region:
-  three_prime_utr: 158090 (1.1%)
-  CDS: 36290 (0.2%)
-  others: 131278 (0.9%)
-  intron: 8185887 (54.7%)
-  five_prime_utr: 61998 (0.4%)
   intergenic: 5427454 (36.3%)
+  three_prime_utr: 158090 (1.1%)
+  others: 131278 (0.9%)
   promoter: 960444 (6.4%)
+  five_prime_utr: 61998 (0.4%)
+  CDS: 36290 (0.2%)
+  intron: 8185887 (54.7%)
 ============================================================
 ==========================================
-SUCCESS: Pipeline completed at Fri Dec 26 17:36:45 -03 2025
+SUCCESS: Pipeline completed at Tue Jan  6 11:26:33 -03 2026
 Output files location: ../samples/gp_global/merged/
  - STRs_annotated_complete.tsv
  - annotation_statistics.tsv

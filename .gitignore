@@ -1,5 +1,5 @@
 # Ignore sample data
-samples/
+samples/*
 
 # Ignore large genomic files
 *.bam
@@ -15,18 +15,21 @@ samples/
 results/*.bam
 results/*.vcf.gz
 
+# Ancestry results
+ancestry/EthSEQ_Results_3D/
+
+# Results from desc_analysis
+desc_analysis/results/
+
 # Large reference files
 strs_call/hg38.fa
 strs_call/hg38.fa.*
 gtf_annot/*.gtf
 gtf_annot/Homo_sapiens*.gtf
 
-# Large data files
-ancestry/EthSEQ_Results_3D/*.gds
-desc_analysis/results/*.csv
+# Results dataviz
+dataviz/results/
 
-# Keep only summary files
-!desc_analysis/results/stats_*.csv
-!desc_analysis/results/strs_by_gene_combo.csv
-!desc_analysis/results/strs_by_region_combo.csv
-!desc_analysis/results/strs_by_repeatunit_combo.csv
+# Results enrichment by Z-score filtering
+enrich_analysis/GO_analysis/results/
+enrich_analysis/KEEG_analysis/results/

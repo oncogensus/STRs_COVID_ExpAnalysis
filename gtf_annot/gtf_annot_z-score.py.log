@@ -1,11 +1,11 @@
 ==========================================
 STR Annotation Pipeline Job
-Start time: Fri Dec 26 17:58:35 -03 2025
+Start time: Wed Jan  7 14:59:15 -03 2026
 Working directory: /home/matheusbomfim/projects/strs_paper/gtf_annot
 ==========================================
 Executing annotation pipeline...
 ============================================================
-OUTLIERS ANNOTATION PIPELINE
+STR ANNOTATION PIPELINE
 ============================================================
 
 [Step 0] Validating input files...
@@ -32,12 +32,12 @@ Introns created: 288264
 Creating intergenic regions...
 Intergenic regions: 33244
 
-[Step 4] Processing outliers TSV...
+[Step 4] Processing TSV...
 Processing TSV: ../samples/gp_global/merged/outliers_consolidated.tsv
 TSV rows: 3333995
 Columns: ['sample', 'chrom', 'start', 'end', 'repeat_unit', 'allele1_est', 'allele2_est', 'spanning_reads', 'spanning_pairs', 'left_clips', 'right_clips', 'unplaced_pairs', 'sum_str_counts', 'depth', 'outlier', 'p', 'p_adj']
 
-Created BED with 3333995 outlier regions
+Created BED with 3333995 STR regions
   Format: 4 columns (chrom, start, end, name)
   Sample chromosomes: ['chr18', 'chr1', 'chr4']
 
@@ -45,29 +45,29 @@ Created BED with 3333995 outlier regions
 
 [Step 6] Performing intersections...
 Performing intersections...
-Total outlier regions: 3333995
+Total STR regions: 3333995
   Intersecting with CDS...
-    Outlier regions: 3333995
+    STR regions: 3333995
     CDS regions: 761046
     Found 45330 intersections
   Intersecting with five_prime_utr...
-    Outlier regions: 3333995
+    STR regions: 3333995
     five_prime_utr regions: 152662
     Found 41750 intersections
   Intersecting with three_prime_utr...
-    Outlier regions: 3333995
+    STR regions: 3333995
     three_prime_utr regions: 153939
     Found 87797 intersections
   Intersecting with promoter...
-    Outlier regions: 3333995
+    STR regions: 3333995
     promoter regions: 60527
     Found 269120 intersections
   Intersecting with intron...
-    Outlier regions: 3333995
+    STR regions: 3333995
     intron regions: 288264
     Found 2135910 intersections
   Intersecting with intergenic...
-    Outlier regions: 3333995
+    STR regions: 3333995
     intergenic regions: 33244
     Found 1314450 intersections
 
@@ -92,22 +92,22 @@ Main annotations: ../samples/gp_global/merged/outliers_annotated_complete.tsv
 Statistics: ../samples/gp_global/merged/outliers_annotation_statistics.tsv
 
 ============================================================
-OUTLIERS ANNOTATION PIPELINE COMPLETED SUCCESSFULLY!
-Total time: 0:09:03.934049
-Outlier variants processed: 3333995
-Outlier variants annotated: 3333995
+PIPELINE COMPLETED SUCCESSFULLY!
+Total time: 0:07:38.111108
+Variants processed: 3333995
+Variants annotated: 3333995
 
 Distribution by region:
-  CDS: 16073 (0.5%)
-  five_prime_utr: 23859 (0.7%)
   three_prime_utr: 42747 (1.3%)
   promoter: 231676 (6.9%)
-  intergenic: 1187014 (35.6%)
-  intron: 1789098 (53.7%)
   others: 43528 (1.3%)
+  five_prime_utr: 23859 (0.7%)
+  intron: 1789098 (53.7%)
+  intergenic: 1187014 (35.6%)
+  CDS: 16073 (0.5%)
 ============================================================
 ==========================================
-SUCCESS: Pipeline completed at Fri Dec 26 18:07:54 -03 2025
+SUCCESS: Pipeline completed at Wed Jan  7 15:07:08 -03 2026
 Output files location: ../samples/gp_global/merged/
  - outliers_annotated_complete.tsv
  - outliers_annotation_statistics.tsv
