@@ -40,7 +40,10 @@ The analysis pipeline is organized as follows:
 ├── gtf_annot/
 ├── ancestry/
 ├── desc_analysis/
-└── results/
+├── results/
+├── data_viz/
+└── enrich_analysis/
+
 ```
 
 ---
@@ -258,6 +261,128 @@ Generate visualizations and descriptive statistics of STR distribution across ge
 - `strs_by_repeatunit_combo.csv`: STRs aggregated by repeat unit motif showing total counts and group-stratified counts (n_case, n_control) for each motif
 
 ---
+
+## Stage 7: Genome-Wide STR Visualization (`dataviz`)
+
+### Purpose
+Generate comprehensive visualizations of STR distribution across the genome, facilitating identification of genomic patterns and local enrichment.
+
+### 7.1: Data Summarization for Visualization
+
+**Purpose**: Create a summary file optimized for genome-wide visualization.
+
+**Script**: `dataviz_ext.r`
+
+**Required Files**
+- `STRs_annotated_complete.tsv`: Annotated STRs file
+
+**Parameters**
+- `merged_summary_dataViz.tsv`: Output location for summary file 
+
+**Environment**
+- R packages installed (micromamba environment: `r_env`)
+
+### 7.2: Genome Visualization Generation
+
+**Purpose**: Generate publication-quality plots of STR distribution across chromosomes and genomic features.
+
+**Script**: `genome_viz.ipynb` (Jupyter Notebook)
+
+**Required Files**
+- `STRs_annotated_complete.tsv`: Annotated STRs file
+
+**Environment**
+- R packages installed (micromamba environment: `r_env`)
+
+---
+
+## Stage 8: Z-Score Analysis with Lung Expression Filter (`z-score_analysis`)
+
+### Purpose
+Use of Z-score to filter outliers by genes expressed in lung tissue using single-cell RNA-seq data, aiming to identify COVID-19-associated STRs variation in relevant biological contexts.
+
+**Script**: `strs_filt+analysis.ipynb` (Jupyter Notebook)
+
+**Required Input Files**
+- `outliers_annotated_complete.tsv`: STRs annotated for genomic location after Z-score filtering
+- `merged_scovid.csv`: Genes expressed in lung tissue from single-cell RNA-seq (control and COVID-19 samples)
+- `grupos.csv`: Sample-to-group assignment file
+
+**Environment**
+- Required libraries installed (micromamba environment: `r_env`)
+
+---
+
+## Stage 9: Functional Enrichment Analysis (`enrich_analysis`)
+
+### Purpose
+Perform Gene Ontology (GO) and KEGG pathway enrichment analysis comparing genes with outlier STRs (Z-score p < 0.05) expressed in lung tissue versus all lung-expressed genes.
+
+### 9.1: Gene Ontology Enrichment
+
+**Purpose**: Execute GO enrichment analysis using ClusterProfiler and export results.
+
+**Script**: `GO_df_import.r`
+
+**Required Input Files**
+- `outliers_annotated_complete.tsv`: STRs annotated for genomic location after Z-score filtering
+- `merged_scovid.csv`: Lung-expressed genes from single-cell RNA-seq data
+- `grupos.csv`: Sample-to-group assignment file
+
+**Output Files**
+- `GOenrich_p-value0.05_allSTRs.csv`: GO enrichment results in CSV format
+- `simp_resultsGO.rds`: R object containing enrichment analysis results
+
+**Environment**
+- Enrichment analysis packages installed (micromamba environment: `r_enrich_env`)
+
+### 9.2: GO Results Visualization
+
+**Purpose**: Process and visualize GO enrichment results with publication-ready plots.
+
+**Script**: `Enrich_analysisGO.ipynb` (Jupyter Notebook)
+
+**Required Input Files**
+- `outliers_annotated_complete.tsv`: Z-score filtered STRs with genomic annotations
+- `merged_scovid.csv`: Lung-expressed genes from scRNA-seq
+- `grupos.csv`: Sample-to-group assignment
+- `simp_resultsGO.rds`: GO enrichment object from Stage 9.1
+- `GOenrich_p-value0.05_allSTRs.csv`: GO enrichment results table
+
+**Environment**
+- Visualization and analysis packages (micromamba environment: `r_enrich_env`)
+
+### 9.3: KEGG Pathway Enrichment
+
+**Purpose**: Perform KEGG pathway enrichment analysis to identify biological pathways enriched in STR-containing genes.
+
+**Script**: `KEEG_df_import.r`
+
+**Required Input Files**
+- `outliers_annotated_complete.tsv`: Z-score filtered STRs with annotations
+- `merged_scovid.csv`: Lung-expressed genes from scRNA-seq
+- `grupos.csv`: Sample-to-group assignment
+
+**Output Files**
+- `KEGGenrich_p-value0.05_allSTRs.csv`: KEGG enrichment results
+- `enrich_resultsKEGG.rds`: R object with pathway enrichment data
+
+**Environment**
+- Enrichment analysis environment (micromamba environment: `r_enrich_env`)
+
+### 9.4: KEGG Results Visualization
+
+**Purpose**: Generate visualizations of KEGG pathway enrichment results.
+
+**Script**: `Enrich_analysisKEEG.ipynb` (Jupyter Notebook)
+
+**Required Input Files**
+- `enrich_resultsKEGG.rds`: KEGG enrichment object from Stage 9.3
+- `KEGGenrich_p-value0.05_allSTRs.csv`: KEGG enrichment table
+
+**Environment**
+- Visualization packages (micromamba environment: `r_enrich_env`)
+
 
 ## Workflow Execution
 

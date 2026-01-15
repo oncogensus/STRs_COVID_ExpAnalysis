@@ -33,3 +33,6 @@ dataviz/results/
 # Results enrichment by Z-score filtering
 enrich_analysis/GO_analysis/results/
 enrich_analysis/KEEG_analysis/results/
+
+# Results
+z-score_analysis/results/
