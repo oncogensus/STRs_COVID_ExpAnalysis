@@ -1,5 +1,0 @@
-=== ENVIRONMENT OK ===
-Python 3.12.11
--rw------- 1 matheusbomfim matheusbomfim 5819554 Dec 22 17:31 ../samples/gp_global/BEL-1012-1.bam-genotype.txt
--rw-rw-r-- 1 matheusbomfim matheusbomfim 3668 Dec 22 17:30 ../data_split/grupos.csv
--rw-rw-r-- 1 matheusbomfim matheusbomfim 23703 Dec 22 19:02 ./strling-outliers_perGroup.py

@@ -10,6 +10,18 @@ samples/*
 *.fasta
 *.str
 *.fai
+*.pdf
+*.tsv
+*.gds
+*.pbs
+*.gtf
+
+# Ignore scovid_data
+6_scovid_data/*
+!6_scovid_data/integrate_cell.py
+
+# Ignore results generated
+**/results/
 
 # Keep results but ignore large output files
 results/*.bam
@@ -27,13 +39,4 @@ strs_call/hg38.fa.*
 gtf_annot/*.gtf
 gtf_annot/Homo_sapiens*.gtf
 
-# Results dataviz
-dataviz/results/
 
-# Results enrichment by Z-score filtering
-enrich_analysis/GO_analysis/results/
-enrich_analysis/KEEG_analysis/results/
-
-# Results
-z-score_analysis/results/
-z-score_analysis/STRs_COVID_Grouped.csv
