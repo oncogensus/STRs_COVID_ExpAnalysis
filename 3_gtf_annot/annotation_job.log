@@ -1,0 +1,33 @@
+==========================================
+STR Annotation Pipeline Job
+Start time: Fri May 15 16:06:47 -03 2026
+Working directory: /home/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/3_gtf_annot
+==========================================
+Executing annotation pipeline...
+============================================================
+STR ANNOTATION PIPELINE (Coding vs Non-coding)
+============================================================
+
+[Step 0] Validating input files...
+
+[Step 1] Reading GTF...
+Reading GTF: Homo_sapiens.GRCh38.98.gtf
+
+[Step 2] Splitting Coding vs Non-Coding genes...
+Features: 2549042 coding, 345407 non-coding
+
+[Step 3] Generating genomic region files...
+
+[Step 4] Processing TSV...
+
+[Step 5] Preparing regions for intersection...
+
+[Step 6] Performing intersections...
+
+PIPELINE COMPLETED SUCCESSFULLY in 0:00:38.312380
+==========================================
+SUCCESS: Pipeline completed at Fri May 15 16:07:26 -03 2026
+Output files location: ../samples/
+ - STRs_annotated_region.tsv
+ - code_regions_statistics.tsv
+==========================================

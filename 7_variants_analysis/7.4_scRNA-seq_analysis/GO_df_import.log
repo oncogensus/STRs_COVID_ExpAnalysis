@@ -1,0 +1,63 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+--- Loading Datasets ---
+Rows: 991408 Columns: 33
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (13): STRs_ID, sample_id_clean, group, sex, repeat_unit, annotation, gen...
+dbl (20): age, allele1_est, allele2_est, depth, anchored_reads, spanning_rea...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Warning message:
+One or more parsing issues, call `problems()` on your data frame for details,
+e.g.:
+  dat <- vroom(...)
+  problems(dat) 
+Rows: 4294 Columns: 6
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (4): Gene Symbol, Ensembl ID, cell_type, GEO
+dbl (2): Pvalue, LogFC
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+--- Filtering STR Outliers (Noise <= 0.10) ---
+--- Crossing STR Outliers with Single-Cell DEGs ---
+
+=== ANALYSIS SUMMARY ===
+Total STR-affected genes found in scRNA-seq data: 18 
+Total cell-type specific interactions found: 62 
+# A tibble: 15 × 14
+   gene_name cell_type         LogFC    Pvalue abs_res STRs_ID   sample_id_clean
+   <chr>     <chr>             <dbl>     <dbl>   <dbl> <chr>     <chr>          
+ 1 ARHGAP15  cell_T           -18.5  0           140.  chr2:143… GIG-MT-171     
+ 2 ARHGAP15  cell_T           -18.5  0           140.  chr2:143… GIG-MT-171     
+ 3 ADGRE5    cell_T            -8.24 1.59e-  5   102.  chr19:14… GIG-MT-85      
+ 4 ADGRE5    cell_T            -8.24 1.59e-  5   102.  chr19:14… GIG-MT-85      
+ 5 INSR      cell_Endothelial -20.5  4.48e- 12    95.6 chr19:72… GIG-MT-92      
+ 6 INSR      cell_Endothelial -20.5  4.48e- 12    95.6 chr19:72… GIG-MT-92      
+ 7 LPP       cell_Monocytes   -34.1  1.85e- 10    78.8 chr3:188… GIG-MT-159     
+ 8 LPP       cell_Monocytes   -34.1  1.85e- 10    78.8 chr3:188… GIG-MT-159     
+ 9 LPP       cell_B           -39.5  3.26e-105    78.8 chr3:188… GIG-MT-159     
+10 LPP       cell_B           -39.5  3.26e-105    78.8 chr3:188… GIG-MT-159     
+11 LPP       cell_B           -53.8  7.13e- 16    78.8 chr3:188… GIG-MT-159     
+12 LPP       cell_B           -53.8  7.13e- 16    78.8 chr3:188… GIG-MT-159     
+13 LPP       cell_Macrophages -28.0  0            78.8 chr3:188… GIG-MT-159     
+14 LPP       cell_T           -55.0  0            78.8 chr3:188… GIG-MT-159     
+15 LPP       cell_Macrophages -28.0  0            78.8 chr3:188… GIG-MT-159     
+# ℹ 7 more variables: noise_ratio <dbl>, outlier_residuals <chr>,
+#   n_clusters <dbl>, depth <dbl>, allele1_est <dbl>, allele2_est <dbl>,
+#   anchored_reads <dbl>
+
+✓ Results saved to 'results/STR_vs_scRNA_overlap.csv'
+Execution finished

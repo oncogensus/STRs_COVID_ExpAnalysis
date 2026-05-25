@@ -1,0 +1,31 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+
+ ========================================== 
+STEP 1: Loading Data
+========================================== 
+
+Group distribution:
+     group      n
+    <char>  <int>
+1:    case  88501
+2: control 407343
+
+Generating Detailed Summaries...
+Calculating Publication Stats...
+
+Analysis completed successfully! Results in: results/ 
+Execution finished

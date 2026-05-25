@@ -1,0 +1,49 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+
+STEP 1: Reading STRs...
+Sample ID example (Original): REC-54-1.bam REC-97-1.bam 
+Sample ID example (Cleaned):  REC-54 REC-97 
+
+STEP 2: Reading PCA coordinates...
+PCA ID example (Cleaned):  BEL-1002 BEL-1012 
+
+STEP 3: Reading phenotypes...
+Pheno ID example (Cleaned): REC-54 REC-95 
+
+STEP 4: Merging all data sources...
+Samples common to all files: 168 / 168 expected
+Final row count for regression: 495844 
+
+STEP 5: Running regression-based normalization...
+Warning message:
+There was 1 warning in `mutate()`.
+ℹ In argument: `allele2_residuals = if (...) NULL`.
+ℹ In group 2: `STRs_ID = "chr10:100092114:ACCTCC:0"`.
+Caused by warning:
+! `cur_data()` was deprecated in dplyr 1.1.0.
+ℹ Please use `pick()` instead. 
+
+STEP 6: Saving normalized residuals...
+✔ Success! File saved: STRs_normalized_residuals.tsv
+
+=== FINAL STATISTICS ===
+Unique STRs processed:  38429 
+Unique Patients processed:  168 
+Normalization Summary (Residuals):
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+-418.9952   -3.9535   -0.3647    0.0000    3.1317  745.1742 
+Execution finished

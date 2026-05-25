@@ -1,0 +1,35 @@
+
+========================================
+LOADING LIBRARIES
+========================================
+
+Attaching package: ‘rstatix’
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Directory created: results/categorical_data 
+Rows: 495844 
+Columns: 33 
+STRs passing DBSCAN QC: 7141 
+There were 50 or more warnings (use warnings() to see the first 50)
+
+========================================
+ANALYSIS COMPLETED: DATA SAVED FOR PLOTTING
+========================================

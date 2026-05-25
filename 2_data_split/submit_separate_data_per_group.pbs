@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR_Integrated_Workflow
+#PBS -o str_workflow.out
+#PBS -e str_workflow.err
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+# --- QUALITY PARAMETER DEFINITIONS ---
+# Minimum local read depth (Updated to match your new default)
+MIN_DEPTH=15
+# Minimum sum of Left + Right clips (Set to 1 to satisfy: sum > 0)
+MIN_CLIPS=1
+# Homopolymer Exclusion
+EXCLUDE_HP="--exclude_homopolymers"
+# -------------------------------------
+
+# Micromamba environment setup
+export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate str
+
+# Path definitions
+INPUT_DIR="/home/matheusbomfim/projects/strling/STRling/cbgm_2025/cbgm_output"
+OUTPUT_DIR="/home/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/samples"
+GROUPS_CSV="grupos.csv"
+SCRIPT="2.1_strling_unify_workflow.py"
+
+echo "=== STARTING INTEGRATED STR WORKFLOW (NEW DEFAULTS) ==="
+echo "Filter Thresholds:"
+echo "  - Minimum Depth: >= ${MIN_DEPTH}"
+echo "  - Minimum Total Clips (L+R): >= ${MIN_CLIPS} (Logic: > 0)"
+echo "  - Exclude Homopolymers: ${EXCLUDE_HP}"
+echo "---------------------------------------------------------------"
+
+# Execute Python script
+python "$SCRIPT" \
+    --input_dir "$INPUT_DIR" \
+    --groups "$GROUPS_CSV" \
+    --out_dir "$OUTPUT_DIR" \
+    --min_depth "$MIN_DEPTH" \
+    --min_clips_sum "$MIN_CLIPS" \
+    $EXCLUDE_HP
+
+echo "=== WORKFLOW FINISHED SUCCESSFULLY ==="

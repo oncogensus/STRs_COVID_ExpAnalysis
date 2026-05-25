@@ -1,0 +1,60 @@
+==========================================
+STR Data Integration Pipeline (Merge)
+Start time: Fri May 15 18:17:41 -03 2026
+Working directory: /home/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/7_variants_analysis/7.1_merge_datasets
+==========================================
+Executing R merge script...
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+
+ ========================================== 
+STEP 1: Loading Datasets
+========================================== 
+✔ All files loaded successfully.
+
+ ========================================== 
+STEP 2: Standardizing IDs
+========================================== 
+
+ ========================================== 
+STEP 3: Debugging Data Coverage
+========================================== 
+--- Sample Coverage (Patient Level) ---
+Total Patients in Annotation:    168
+Total Patients in Group Mapping: 168
+Total Patients in EthSEQ:        207
+
+✔ Match Annotation x Groups: 168/168 (100.0%)
+✔ Match Annotation x EthSEQ: 168/168 (100.0%)
+
+--- Variant Coverage (Locus Level) ---
+Total STRs in Annotation: 38429
+Total STRs in DBSCAN:     38429
+✔ Match Annotation x DBSCAN: 38429/38429 (100.0%)
+
+ ========================================== 
+STEP 4: Integrating Data (Merging)
+========================================== 
+
+ ========================================== 
+PROCESS COMPLETE!
+Final dataset generated with 495844 rows.
+Output path:  ../../samples/STRs_analysis_dataset.tsv 
+========================================== 
+==========================================
+SUCCESS: Integration completed at Fri May 15 18:17:46 -03 2026
+Output file generated: STRs_analysis_dataset.tsv
+==========================================
