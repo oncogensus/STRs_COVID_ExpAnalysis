@@ -18,42 +18,23 @@ dbl  (9): age, allele1_est, allele2_est, depth, start, end, n_outliers, n_cl...
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
 ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-Rows: 8349 Columns: 12
-── Column specification ────────────────────────────────────────────────────────
-Delimiter: ","
-chr (7): Gene Symbol, Ensembl ID, cell_type, source_tissue, GEO_ID, origin_f...
-dbl (2): Pvalue, LogFC
-lgl (3): Dataset, Accession, Tissue
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 --- Filtering STR Outliers (Noise <= 0.10) ---
---- Crossing STR Outliers with Single-Cell DEGs ---
+--- Crossing STR Outliers with Single-Cell DEGs per GSE ---
 
-=== ANALYSIS SUMMARY ===
-Total STR-affected genes found in scRNA-seq data: 20 
-Total cell-type specific interactions found: 93 
-# A tibble: 15 × 16
-   gene_name cell_type         LogFC    Pvalue abs_res STRs_ID   outlier_samples
-   <chr>     <chr>             <dbl>     <dbl>   <dbl> <chr>     <chr>          
- 1 CDH12     cell_Neuronal      36.5 1.34e- 58    61.1 chr5:221… GIG-MT-171-1.b…
- 2 CDH12     cell_Epithelial  -243.  1.64e- 31    61.1 chr5:221… GIG-MT-171-1.b…
- 3 CDH12     cell_Neuronal    -152.  7.17e-  6    61.1 chr5:221… GIG-MT-171-1.b…
- 4 CDH12     cell_Glial        -65.7 1.36e- 12    61.1 chr5:221… GIG-MT-171-1.b…
- 5 CDH12     cell_Neuronal    -284.  1.59e-  3    61.1 chr5:221… GIG-MT-171-1.b…
- 6 CERS6     cell_Macrophages  -13.5 4.28e-  2    58.5 chr2:168… PNZ-502-1.bam  
- 7 CERS6     cell_Monocytes     31.6 1.18e-  2    58.5 chr2:168… PNZ-502-1.bam  
- 8 R3HDM1    cell_Epithelial   328.  3.49e-  8    47.6 chr2:135… PNZ-502-1.bam  
- 9 NKAIN2    cell_Glial         77.8 3.17e-  2    43.7 chr6:123… GIG-RJ-3628-1.…
-10 NKAIN2    cell_Neuronal     147.  8.65e-197    43.7 chr6:123… GIG-RJ-3628-1.…
-11 NKAIN2    cell_Neuronal    -167.  0            43.7 chr6:123… GIG-RJ-3628-1.…
-12 NKAIN2    cell_Epithelial   249.  2.55e-  8    43.7 chr6:123… GIG-RJ-3628-1.…
-13 NKAIN2    cell_Fibroblast  -427.  1.06e-  5    43.7 chr6:123… GIG-RJ-3628-1.…
-14 NKAIN2    cell_Neuronal    -295.  4.09e-  3    43.7 chr6:123… GIG-RJ-3628-1.…
-15 NKAIN2    cell_T            -40.6 4.25e-  3    43.7 chr6:123… GIG-RJ-3628-1.…
-# ℹ 9 more variables: noise_ratio <dbl>, outlier_residuals <chr>,
-#   n_clusters <dbl>, depth <dbl>, allele1_est <dbl>, allele2_est <dbl>,
-#   GEO <chr>, source_tissue <chr>, group <chr>
+=== Processing GSE157344 ===
+  Found 11 CSV files
+  Genes found: 2
+  Interactions: 12
+  Saved: results/STR_vs_scRNA_overlap_GSE157344.csv
 
-✓ Results saved to 'results/STR_vs_scRNA_overlap.csv'
+=== Processing GSE159812 ===
+  Found 5 CSV files
+  Genes found: 7
+  Interactions: 9
+  Saved: results/STR_vs_scRNA_overlap_GSE159812.csv
+
+--- Generating unified output ---
+Unified: results/STR_vs_scRNA_overlap_unified.csv (21 rows)
+
+=== All done ===
 Execution finished
