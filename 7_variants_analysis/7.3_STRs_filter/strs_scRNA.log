@@ -1,0 +1,40 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+--- Loading Datasets ---
+Rows: 495844 Columns: 23
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (14): STRs_ID, group, sex, repeat_unit, gene_id, gene_name, region, chro...
+dbl  (9): age, allele1_est, allele2_est, depth, start, end, n_outliers, n_cl...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+--- Filtering STR Outliers (Noise <= 0.10) ---
+--- Crossing STR Outliers with Single-Cell DEGs per GSE ---
+
+=== Processing GSE157344 ===
+  Found 11 CSV files
+  Genes found: 2
+  Interactions: 12
+  Saved: results/STR_vs_scRNA_overlap_GSE157344.csv
+
+=== Processing GSE159812 ===
+  Found 5 CSV files
+  Genes found: 7
+  Interactions: 9
+  Saved: results/STR_vs_scRNA_overlap_GSE159812.csv
+
+--- Generating unified output ---
+Unified: results/STR_vs_scRNA_overlap_unified.csv (21 rows)
+
+=== All done ===
+Execution finished
