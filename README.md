@@ -158,8 +158,6 @@ Required Files
 - model_pop: Populations for evaluation
 - out_dir: Output directory (EthSEQ_Results_3D)
 
-**Output**
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ### Environment: micromamba - ethseq_vcf_run
 
 ### Stage 5: DBSCAN Analysis (dbscan)
