@@ -24,7 +24,11 @@ The following objects are masked from ‘package:base’:
 
     intersect, setdiff, setequal, union
 
-Error in setnames(merged_dt, old = c("sample_id_clean", "pop"), new = c("sample_id",  : 
-  Items of 'old' not found in column names: [sample_id_clean]. Consider skip_absent=TRUE.
-Calls: setnames -> stopf -> raise_condition -> signal
-Execution halted
+Rows: 495844 
+Columns: 23 
+STRs passing DBSCAN QC: 7141 
+There were 50 or more warnings (use warnings() to see the first 50)
+
+========================================
+ANALYSIS COMPLETED: DATA SAVED FOR PLOTTING
+========================================
