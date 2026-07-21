@@ -77,7 +77,7 @@ parse_contribution <- function(contrib_string, ancestries) {
 }
 
 ancestry_dt <- unique(merged_dt[, .(
-  sample_id_clean,
+  sample_id,
   type = type,
   pop = pop,
   contribution = contribution
@@ -101,20 +101,20 @@ if (length(closest_idx) > 0) {
 # =========================
 
 cat("\nConsolidating one row per sample...\n")
-samples_with_inside <- unique(ancestry_dt[type == "INSIDE", sample_id_clean])
+samples_with_inside <- unique(ancestry_dt[type == "INSIDE", sample_id])
 
-final_ancestry <- data.table(sample_id_clean = character())
+final_ancestry <- data.table(sample_id = character())
 for (anc in all_ancestries) set(final_ancestry, j = anc, value = numeric())
 
 if (length(samples_with_inside) > 0) {
-  inside_part <- ancestry_dt[type == "INSIDE" & sample_id_clean %in% samples_with_inside, .SD[1], by = sample_id_clean]
-  final_ancestry <- rbind(final_ancestry, inside_part[, c("sample_id_clean", all_ancestries), with = FALSE])
+  inside_part <- ancestry_dt[type == "INSIDE" & sample_id %in% samples_with_inside, .SD[1], by = sample_id]
+  final_ancestry <- rbind(final_ancestry, inside_part[, c("sample_id", all_ancestries), with = FALSE])
 }
 
-samples_without_inside <- setdiff(unique(ancestry_dt$sample_id_clean), samples_with_inside)
+samples_without_inside <- setdiff(unique(ancestry_dt$sample_id), samples_with_inside)
 if (length(samples_without_inside) > 0) {
-  closest_part <- ancestry_dt[type == "CLOSEST" & sample_id_clean %in% samples_without_inside, .SD[1], by = sample_id_clean]
-  final_ancestry <- rbind(final_ancestry, closest_part[, c("sample_id_clean", all_ancestries), with = FALSE])
+  closest_part <- ancestry_dt[type == "CLOSEST" & sample_id %in% samples_without_inside, .SD[1], by = sample_id]
+  final_ancestry <- rbind(final_ancestry, closest_part[, c("sample_id", all_ancestries), with = FALSE])
 }
 
 # =========================
@@ -124,7 +124,7 @@ if (length(samples_without_inside) > 0) {
 cat("\nMerging ancestry back to main dataset...\n")
 cols_to_remove <- intersect(colnames(merged_dt), all_ancestries)
 if(length(cols_to_remove) > 0) merged_dt[, (cols_to_remove) := NULL]
-merged_dt <- merge(merged_dt, final_ancestry, by = "sample_id_clean", all.x = TRUE)
+merged_dt <- merge(merged_dt, final_ancestry, by = "sample_id", all.x = TRUE)
 
 # =========================
 # 6. OUTLIERS & STRENGTH (Residuals)
@@ -132,7 +132,7 @@ merged_dt <- merge(merged_dt, final_ancestry, by = "sample_id_clean", all.x = TR
 
 cat("\nFlagging outliers and extracting residuals (strength)...\n")
 
-merged_dt[, is_outlier := str_detect(outlier_samples, fixed(sample_id_clean))]
+merged_dt[, is_outlier := str_detect(outlier_samples, fixed(sample_id))]
 merged_dt[is.na(is_outlier) | outlier_samples == "", is_outlier := FALSE]
 
 merged_dt[, outlier_strength_val := as.numeric(outlier_residuals)]
@@ -152,10 +152,10 @@ region_sample_dt <- merged_dt[, .(
   n_outliers = sum(is_outlier & dbscan_pass),
   outlier_prop = sum(is_outlier & dbscan_pass) / max(1, sum(dbscan_pass)),
   outlier_strength = sum(abs(outlier_strength_val[dbscan_pass]), na.rm = TRUE) / max(1, sum(is_outlier & dbscan_pass))
-), by = c("sample_id_clean", "region")]
+), by = c("sample_id", "region")]
 
 region_sample_dt[is.nan(outlier_strength), outlier_strength := 0]
-region_sample_dt <- merge(region_sample_dt, final_ancestry, by = "sample_id_clean", all.x = TRUE)
+region_sample_dt <- merge(region_sample_dt, final_ancestry, by = "sample_id", all.x = TRUE)
 
 
 cat("\nAggregating by Region and Sample (Unfiltered - ONLY for Correlation/Debug)...\n")
@@ -167,10 +167,10 @@ region_sample_dt_unfiltered <- merged_dt[, .(
   n_outliers = sum(is_outlier, na.rm = TRUE),
   outlier_prop = mean(is_outlier, na.rm = TRUE),
   outlier_strength = sum(abs(outlier_strength_val), na.rm = TRUE) / max(1, sum(is_outlier, na.rm = TRUE))
-), by = c("sample_id_clean", "region")]
+), by = c("sample_id", "region")]
 
 region_sample_dt_unfiltered[is.nan(outlier_strength), outlier_strength := 0]
-region_sample_dt_unfiltered <- merge(region_sample_dt_unfiltered, final_ancestry, by = "sample_id_clean", all.x = TRUE)
+region_sample_dt_unfiltered <- merge(region_sample_dt_unfiltered, final_ancestry, by = "sample_id", all.x = TRUE)
 
 # ==========================================
 # DEBUG: INVESTIGATING MISSING REGIONS (USING UNFILTERED DATA)

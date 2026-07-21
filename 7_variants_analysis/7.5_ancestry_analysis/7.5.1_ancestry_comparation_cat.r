@@ -33,8 +33,8 @@ merged_dt <- fread(input_file)
 # Standardize column names for consistency throughout the analysis
 setnames(
   merged_dt,
-  old = c("sample_id_clean", "pop"),
-  new = c("sample_id", "pop_ancestry"),
+  old = c("pop"),
+  new = c("pop_ancestry"),
 )
 
 # Calculate the raw total of STRs per sample before any filtering
