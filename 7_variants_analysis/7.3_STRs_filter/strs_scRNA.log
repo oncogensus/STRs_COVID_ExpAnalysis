@@ -22,19 +22,19 @@ dbl  (9): age, allele1_est, allele2_est, depth, start, end, n_outliers, n_cl...
 --- Crossing STR Outliers with Single-Cell DEGs per GSE ---
 
 === Processing GSE157344 ===
-  Found 11 CSV files
+  Found 10 CSV files (10 after excluding totals)
   Genes found: 2
-  Interactions: 12
+  Interactions: 6
   Saved: results/STR_vs_scRNA_overlap_GSE157344.csv
 
 === Processing GSE159812 ===
-  Found 5 CSV files
+  Found 5 CSV files (5 after excluding totals)
   Genes found: 7
   Interactions: 9
   Saved: results/STR_vs_scRNA_overlap_GSE159812.csv
 
 --- Generating unified output ---
-Unified: results/STR_vs_scRNA_overlap_unified.csv (21 rows)
+Unified: results/STR_vs_scRNA_overlap_unified.csv (15 rows)
 
 === All done ===
 Execution finished
