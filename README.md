@@ -244,71 +244,125 @@ Generate genome-wide STR distribution plots.
 - Localization of complete STR dataset: STRs_analysis_dataset.tsv
 - Environment: micromamba - r_viz
 
-### 7.3: Statistical Filtering
+### 7.3: STR Filtering and scRNA-seq Overlap
 
-## Purpose: 
+#### 7.3.1: STR-scRNA Overlap Import
+
+Cross-reference DBSCAN outlier STRs with scRNA-seq differentially expressed genes.
+
+**Script**: `7.3.1_scRNA_Seq_df_import.r`
+
+**Required Input Files**
+- `str_path`: `STRs_analysis_dataset.tsv` (integrated STR dataset)
+- `sc_path`: Directory containing GSE subfolders with scRNA-seq DEG CSVs
+
+**Data Sources**
+- **GSE157344**: Lung tissue
+- **GSE159812**: Brain tissue
+
+**Quality Parameters (DBSCAN)**
+- `n_clusters > 0`, `noise_ratio <= 0.10`, `n_outliers > 1`
+- Cell type "total" excluded at import
+
+**Output** (`results/`)
+- `STR_vs_scRNA_overlap_GSE157344.csv` (lung overlap)
+- `STR_vs_scRNA_overlap_GSE159812.csv` (brain overlap)
+- `STR_vs_scRNA_overlap_unified.csv` (merged with `source_tissue` column)
+
+**Environment**: micromamba - `r_enrich_env`
+
+#### 7.3.2: Statistical Filtering
+
 Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criteria.
 
-**Script**: statistical_filt.ipynb
+**Script**: `7.3.2_statistical_filt.ipynb`
 
-## Required Input Files
-- Integrated dataset: STRs_analysis_dataset.tsv
+**Required Input Files**
+- Integrated dataset: `STRs_analysis_dataset.tsv`
 
-### Output 
-- allele2_mw_significant_sheets_en.csv (Mann-Whitney: largest allele)
-- mean_allele_mw_significant_raw_en.csv (Mann-Whitney: mean allele size)
-- covid_targeted_no_overlap_allele_mean_no_threshold.csv (Non-overlap signature in 1.659 scRNA-seq genes)
-- top_10_unique_loci_outliers.csv (Top 10 outlier loci)
+**Output**
+- `allele2_mw_significant_sheets_en.csv` (Mann-Whitney: largest allele)
+- `mean_allele_mw_significant_raw_en.csv` (Mann-Whitney: mean allele size)
+- `covid_targeted_no_overlap_allele_mean_no_threshold.csv` (Non-overlap signature in scRNA-seq genes)
+- `top_10_unique_loci_outliers.csv` (Top 10 outlier loci)
 
-### 7.4: scRNA-seq Integration Analysis
-## Purpose: 
-Integrate STR annotations with scRNA-seq expression data.
+### 7.4: scRNA-seq Overlap Visualization
 
-## 7.4.1: Data Import
+Generate cell-type-level visualizations of STR-scRNA overlaps.
 
-**Script**: scRNA_Seq_df_import.r
+**Script**: `7.4.2_analysis_scRNA_Seq.ipynb`
 
-## Required Input Files
-- str_path: STRs_analysis_dataset.tsv (integrated STR data)
-- sc_path: smerged_covid.csv (lung-expressed genes from scRNA-seq)
+**Required Input Files**
+- Unified overlap CSV from step 7.3.1: `results/STR_vs_scRNA_overlap_unified.csv`
+- Full STR dataset: `STRs_analysis_dataset.tsv`
 
-### Quality Parameters
-- Quality Criteria: n_clusters > 0, noise_ratio <= 0.10, n_outliers > 1
-- Environment: micromamba - r_enrich_env
+**Output**
+- `overlap_allele2_Plot_Optimized.png` (Bubble plot: non-overlap variants, largest allele)
+- `overlap_mean_allele_Plot_Optimized.png` (Bubble plot: non-overlap variants, mean allele)
+- `STR_Centered_Quantitative_Table.html` (STR impact table)
+- `overlap_allele2_Table.html` (Largest allele overlap table)
+- `overlap_mean_allele_Table.html` (Mean allele overlap table)
+- `STR_Impact_Final_Optimized.png` (Final STR impact bubble plot)
 
-## Output Generated
-- results/STR_vs_scRNA_overlap.csv
+**Environment**: micromamba - `r_enrich_env`
 
-### 7.4.2: Visualization and Analysis
-**Script**: analysis_scRNA_Seq.ipynb
+### 7.5: Ancestry Analysis
 
-## Purpose: 
-Generate genome-wide STR distribution plots.
+#### 7.5.1: Categorical Ancestry Comparison
 
-### Required Input Files
-- str_path: STRs_analysis_dataset.tsv
-- sc_path: smerged_covid.csv
+Compare STR allele distributions and DBSCAN outlier burden across categorical ancestry populations via Kruskal-Wallis and Dunn post-hoc tests.
 
-Environment: micromamba - r_enrich_env
+**Script**: `7.5.1_ancestry_comparation_cat.r`
 
-### Output
-- results/overlap_allele2_Plot_Optimized.png (Bubble plot: non-overlap variants, largest allele)
-- results/overlap_mean_allele_Plot_Optimized.png (Bubble plot: non-overlap variants, mean allele)
-- results/STR_Centered_Quantitative_Table.html (STR impact table)
-- results/overlap_allele2_Table.html (Largest allele overlap table)
-- results/overlap_mean_allele_Table.html (Mean allele overlap table)
-- results/STR_Impact_Final_Optimized.png (Final STR impact bubble plot)
+**Required Input Files**
+- `STRs_analysis_dataset.tsv` (integrated STR dataset)
+- `samples_infos.csv` (demographic/phenotype data)
+- EthSEQ ancestry assignments
 
-**Script**: `genome_viz.ipynb` (Jupyter Notebook)
+**DBSCAN QC**: 7,141 STRs passing filters (n_clusters > 0, noise_ratio <= 0.10, n_outliers >= 1)
 
-## Required Files
-- Localization of complete STR dataset: STRs_analysis_dataset.tsv
-- Environment: micromamba - r_viz
+**Output** (`results/categorical_data/`)
+- `alleles_distribution_summary.csv`, `alleles_kruskal_results.csv`, `alleles_dunn_results.csv`
+- `dbscan_distribution_summary.csv`, `dbscan_kruskal_results.csv`, `dbscan_dunn_results.csv`
+- `plotdata_alleles_long.csv`, `plotdata_alleles_wide.csv`
+- `plotdata_dbscan_long.csv`, `plotdata_dbscan_wide.csv`
+- `dbscan_qc_flags.csv`
 
+**Environment**: micromamba - `r_enrich_env`
 
-**Environment**
-- Visualization packages (micromamba environment: `r_enrich_env`)
+#### 7.5.2: High-Resolution Ancestry Correlation
 
+Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
+
+**Script**: `7.5.2_ancestry_comparation_high_resolution.r`
+
+**Required Input Files**
+- Same as 7.5.1
+
+**Output** (`results/high_resolution/`)
+- `plotdata_region_sample.csv` (region-level outlier metrics by sample)
+- `correlation_full.csv` (Spearman rho and adjusted p-values)
+- `ancestry_region_distribution_wide.csv` (ancestry proportions per region)
+
+**Environment**: micromamba - `r_enrich_env`
+
+#### 7.5.3: Ancestry Data Visualization
+
+Generate publication-ready tables and heatmaps from ancestry analysis results.
+
+**Script**: `7.5.3_ancestry_dataviz.ipynb`
+
+**Required Input Files**
+- CSV outputs from 7.5.1 and 7.5.2
+
+**Output** (`results/high_resolution/dataviz/`)
+- `genomic_summary_per_region.html` (regional ancestry + outlier metrics table)
+- `heatmap_correlation_outlier_prop.png` (Spearman rho heatmap: outlier proportion)
+- `heatmap_correlation_outlier_strength.png` (Spearman rho heatmap: outlier strength)
+- `comprehensive_correlation_table.html` (full correlation table with significance)
+- Ridge plots, boxplots of allele distributions by ancestry
+
+**Environment**: micromamba - `r_enrich_env`
 
 ## Workflow Execution
 # 1. Environment setup using YAML configuration files:
@@ -340,6 +394,16 @@ Environment: micromamba - r_enrich_env
 5. DBSCAN Analysis (dbscan)
 6. scRNA-seq Data Processing (scovid)
 7. Variant Analysis (variant_analysis)
+   7.1 Dataset Integration
+   7.2 Descriptive Analysis & Genome Visualization
+   7.3 STR Filtering & scRNA-seq Overlap
+      7.3.1 STR-scRNA Overlap Import
+      7.3.2 Statistical Filtering
+   7.4 scRNA-seq Overlap Visualization
+   7.5 Ancestry Analysis
+      7.5.1 Categorical Ancestry Comparison
+      7.5.2 High-Resolution Ancestry Correlation
+      7.5.3 Ancestry Data Visualization
 
 ## Output Structure
 All results are organized in the project directory with outputs generated at each stage:
@@ -364,19 +428,34 @@ strs_paper/
 │   └── lung/
 └── variant_analysis/              # Final integrated outputs (stage 7)
     ├── STRs_analysis_dataset.tsv    # Master integrated dataset
-    ├── allele2_mw_significant_sheets_en.csv
-    ├── mean_allele_mw_significant_raw_en.csv
-    ├── covid_targeted_no_overlap_allele_mean_no_threshold.csv
-    ├── top_10_unique_loci_outliers.csv
     ├── results/
-    │   ├── STR_vs_scRNA_overlap.csv
-    │   ├── overlap_allele2_Plot_Optimized.png
+    │   ├── STR_vs_scRNA_overlap_GSE157344.csv   # 7.3.1: lung overlap
+    │   ├── STR_vs_scRNA_overlap_GSE159812.csv   # 7.3.1: brain overlap
+    │   ├── STR_vs_scRNA_overlap_unified.csv     # 7.3.1: merged with source_tissue
+    │   ├── overlap_allele2_Plot_Optimized.png   # 7.4: bubble plot
     │   ├── overlap_mean_allele_Plot_Optimized.png
     │   ├── STR_Centered_Quantitative_Table.html
     │   ├── overlap_allele2_Table.html
     │   ├── overlap_mean_allele_Table.html
     │   └── STR_Impact_Final_Optimized.png
-    └── genome_viz.ipynb           # Visualization script
+    ├── results/categorical_data/                # 7.5.1: ancestry tests
+    │   ├── alleles_kruskal_results.csv
+    │   ├── dbscan_kruskal_results.csv
+    │   └── ...
+    ├── results/high_resolution/                 # 7.5.2: ancestry correlations
+    │   ├── correlation_full.csv
+    │   ├── plotdata_region_sample.csv
+    │   ├── ancestry_region_distribution_wide.csv
+    │   └── dataviz/                             # 7.5.3: plots & tables
+    │       ├── genomic_summary_per_region.html
+    │       ├── heatmap_correlation_outlier_prop.png
+    │       ├── heatmap_correlation_outlier_strength.png
+    │       └── comprehensive_correlation_table.html
+    ├── allele2_mw_significant_sheets_en.csv     # 7.3.2: statistical filtering
+    ├── mean_allele_mw_significant_raw_en.csv
+    ├── covid_targeted_no_overlap_allele_mean_no_threshold.csv
+    ├── top_10_unique_loci_outliers.csv
+    └── genome_viz.ipynb
 ```
 
 # References
@@ -386,6 +465,6 @@ strs_paper/
 4. AD_STR DBSCAN Approach: https://github.com/mhguo1/AD_STR/tree/main (https://github.com/mhguo1/AD_STR/tree/main)
 ---
 
-**Last Updated**: May 2026
+**Last Updated**: July 2026
 
 **Status**: Finalized workflow for 2026 publication on STR vs COVID-19 analysis
