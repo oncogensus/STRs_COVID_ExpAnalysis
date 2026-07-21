@@ -16,6 +16,9 @@ samples/*
 *.pbs
 *.gtf
 
+# Ignore backup
+bk_6_scovid_data
+
 # Ignore scovid_data
 6_scovid_data/*
 !6_scovid_data/integrate_cell.py
