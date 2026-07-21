@@ -11,48 +11,13 @@ The following object is masked from ‘package:stats’:
 
 
 Loading data...
-[DEBUG] Initial Dataset Dimensions: 495844 rows, 33 columns
+[DEBUG] Initial Dataset Dimensions: 495844 rows, 23 columns
 
 Applying DBSCAN Quality Control...
 [DEBUG] QC Pass Rate: NA %
 
 Building ancestry proportions...
-
-Consolidating one row per sample...
-
-Merging ancestry back to main dataset...
-
-Flagging outliers and extracting residuals (strength)...
-Warning message:
-In eval(jsub, SDenv, parent.frame()) : NAs introduced by coercion
-
-Aggregating by Region and Sample (QC Filtered - Main Dataset)...
-
-Aggregating by Region and Sample (Unfiltered - ONLY for Correlation/Debug)...
-
---- DEBUG START (Based on Unfiltered Object) ---
-[1] Regions found in raw input: intergenic, intron, promoter, three_prime_utr, five_prime_utr, CDS, others 
-[2] Regions present after unfiltered aggregation: intergenic, intron, promoter, three_prime_utr, five_prime_utr, CDS, others 
-[3] Checking variance for target regions:
-  -> Region: CDS 
-     - Variance (outlier_prop): 0 
-     - Variance (outlier_strength): 0 
-     - Total Rows: 136 
-     - Samples with outliers: 0 
-  -> Region: five_prime_utr 
-     - Variance (outlier_prop): 0 
-     - Variance (outlier_strength): 0 
-     - Total Rows: 165 
-     - Samples with outliers: 0 
-[4] Exact names of detected regions (Top 10): intergenic, intron, promoter, three_prime_utr, five_prime_utr, CDS, others 
---- DEBUG END ---
-
-Running Spearman correlations for Prop and Strength (Using Unfiltered Data)...
-[DEBUG] Correlations computed successfully.
-
-Saving results...
-
-========================================
-PIPELINE COMPLETED SUCCESSFULLY
-Files saved in: results/high_resolution 
-========================================
+Error in eval(jsub, SDenv, parent.frame()) : 
+  object 'sample_id_clean' not found
+Calls: unique -> [ -> [.data.table -> eval -> eval
+Execution halted
