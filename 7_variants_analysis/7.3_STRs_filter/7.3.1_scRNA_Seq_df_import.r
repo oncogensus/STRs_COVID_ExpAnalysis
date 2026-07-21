@@ -56,7 +56,8 @@ for (gse in gse_folders) {
   cat(sprintf("\n=== Processing %s ===\n", gse_name))
 
   csv_files <- list.files(gse, pattern = "\\.csv$", full.names = TRUE)
-  cat(sprintf("  Found %d CSV files\n", length(csv_files)))
+  csv_files <- csv_files[!grepl("_total\\.csv$", csv_files)]
+  cat(sprintf("  Found %d CSV files (%d after excluding totals)\n", length(csv_files), length(csv_files)))
 
   df_gse <- csv_files %>%
     lapply(function(f) {
