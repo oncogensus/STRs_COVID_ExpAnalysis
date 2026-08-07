@@ -42,4 +42,7 @@ strs_call/hg38.fa.*
 gtf_annot/*.gtf
 gtf_annot/Homo_sapiens*.gtf
 
+# External tracks downloaded at runtime (7.4.3.1_download_external_tracks.sh)
+7_variants_analysis/7.4_scRNA-seq_analysis/external_tracks/
+
 
