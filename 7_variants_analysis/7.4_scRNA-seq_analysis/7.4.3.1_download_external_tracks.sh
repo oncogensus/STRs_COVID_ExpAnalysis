@@ -9,24 +9,48 @@
 # Tracks downloaded (hg38 / GRCh38):
 #   B1. RepeatMasker           (UCSC)
 #   B2. GTEx eQTL SNPs         (GTEx Portal - selected significant variants)
-#   B3. CTCF ChIP-seq (ENCODE) (wgEncodeReg4TfChip_ENCFF341CQE)
-#   B4. DNase-seq              (ENCODE)
-#   B5. H3K27ac                (ENCODE / Roadmap)
-#   B6. DNA methylation        (ENCODE/Roadmap, brain)
-#   B7. TF ChIP-seq (ReMap)    (NACC2, FOXB1, KLF9, GATA2, ZNF384, MNT)
-#   B8. ReMap Density          (ReMap 2022)
-#   B9. DECIPHER               (dosage sensitivity)
+#   B3. CTCF ChIP-seq (ENCODE) (brain, dorsolateral prefrontal cortex)
+#   B4. DNase-seq              (ENCODE, brain)
+#   B5. H3K27ac                (ENCODE, brain - dorsolateral prefrontal cortex)
+#   B6. H3K27me3 (ENCODE)      (brain - repressive mark, replaces retired Roadmap)
+#   B7. TF ChIP-seq (ReMap)    (CTCF, REST, KLF9, GATA2, ZNF384, MNT)
+#   B8. ReMap Density          (ReMap 2022 track hub)
+#   B9. ClinGen dosage sensitivity (gene curation list, GRCh38)
 #
 # Usage:
 #   bash 7.4.3.1_download_external_tracks.sh
 #
 # Output: all files saved under ./external_tracks/
+#
+# NOTE: every download is validated after retrieval; HTML error pages (e.g. a
+# 404 response) are detected and removed so the notebook never imports a bogus
+# file. Only tracks that were actually downloaded will be shown.
 # ==============================================================================
 set -euo pipefail
 
 OUTDIR="external_tracks"
 mkdir -p "$OUTDIR"
 cd "$OUTDIR"
+
+# ------------------------------------------------------------------------------
+# Helper: fetch a file and delete it if it is an HTML error page
+# ------------------------------------------------------------------------------
+download() {
+  local url="$1" out="$2"
+  if [ -f "$out" ]; then
+    echo "   [skip] $out already present"
+    return 0
+  fi
+  echo "   downloading $out"
+  curl -fsSL --retry 2 -o "$out.tmp" "$url" || { echo "   [FAIL] $url"; rm -f "$out.tmp"; return 1; }
+  # magic-byte sanity check: keep only real data files
+  if head -c 200 "$out.tmp" | grep -qiE '<html|<!DOCTYPE'; then
+    echo "   [FAIL] $url returned an HTML/error page; removed"
+    rm -f "$out.tmp"
+    return 1
+  fi
+  mv "$out.tmp" "$out"
+}
 
 echo "=============================================="
 echo " Downloading external tracks -> $OUTDIR"
@@ -36,10 +60,7 @@ echo "=============================================="
 # B1. RepeatMasker hg38 (UCSC)
 # ------------------------------------------------------------------------------
 echo "[B1] RepeatMasker hg38 (UCSC rmsk)"
-if [ ! -f rmsk.hg38.bed.gz ]; then
-  curl -sSL -o rmsk.hg38.bed.gz \
-    "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz"
-fi
+download "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz" "rmsk.hg38.bed.gz"
 
 # ------------------------------------------------------------------------------
 # B2. GTEx eQTL SNPs
@@ -48,7 +69,8 @@ fi
 # cited in Relatorio_STR_Final_Integral.pdf (tissue in parentheses).
 # Full GTEx eQTL data: https://gtexportal.org/home/downloads/adult-gtex/qtl
 echo "[B2] GTEx eQTL SNP list (report-derived rsIDs)"
-cat > gtex_eqTL_rsids.tsv <<'EOF'
+if [ ! -f gtex_eqTL_rsids.tsv ]; then
+  cat > gtex_eqTL_rsids.tsv <<'EOF'
 rsID	tissue
 rs17016404	Brain_Hypothalamus
 rs17016416	Brain_Hypothalamus
@@ -70,83 +92,70 @@ rs2753166	Brain_Frontal_Cortex_BA9
 rs13220639	Brain_Frontal_Cortex_BA9
 rs138555200	Brain_Hippocampus
 EOF
+fi
 echo "   -> saved gtex_eqTL_rsids.tsv ($(wc -l < gtex_eqTL_rsids.tsv) lines)"
 
 # ------------------------------------------------------------------------------
-# B3. CTCF ChIP-seq signal (ENCODE, wgEncodeReg4TfChip_ENCFF341CQE)
+# B3. CTCF ChIP-seq signal (ENCODE, brain - dorsolateral prefrontal cortex)
+#     ENCFF910VLV (fold change over control, GRCh38, released)
 # ------------------------------------------------------------------------------
-echo "[B3] CTCF ChIP-seq (ENCODE wgEncodeReg4TfChip_ENCFF341CQE)"
-if [ ! -f CTCF_ENCFF341CQE.bw ]; then
-  curl -sSL -o CTCF_ENCFF341CQE.bw \
-    "https://www.encodeproject.org/files/ENCFF341CQE/@@download/ENCFF341CQE.bigWig"
-fi
+echo "[B3] CTCF ChIP-seq (ENCODE brain, ENCFF910VLV)"
+download "https://www.encodeproject.org/files/ENCFF910VLV/@@download/ENCFF910VLV.bigWig" "CTCF_ENCFF910VLV.bw"
 
 # ------------------------------------------------------------------------------
-# B4. DNase-seq accessibility (ENCODE, brain) - representative track
+# B4. DNase-seq accessibility (ENCODE, brain)
+#     ENCFF110ZAI (read-depth normalized signal, GRCh38, released)
 # ------------------------------------------------------------------------------
-echo "[B4] DNase-seq accessibility (ENCODE, brain)"
-if [ ! -f DNase_brain.bw ]; then
-  curl -sSL -o DNase_brain.bw \
-    "https://www.encodeproject.org/files/ENCFF284JLI/@@download/ENCFF284JLI.bigWig"
-fi
+echo "[B4] DNase-seq accessibility (ENCODE brain, ENCFF110ZAI)"
+download "https://www.encodeproject.org/files/ENCFF110ZAI/@@download/ENCFF110ZAI.bigWig" "DNase_brain.bw"
 
 # ------------------------------------------------------------------------------
-# B5. H3K27ac histone mark (ENCODE/Roadmap, brain) - representative track
+# B5. H3K27ac histone mark (ENCODE, brain - dorsolateral prefrontal cortex)
+#     ENCFF542HTC (fold change over control, GRCh38, released)
 # ------------------------------------------------------------------------------
-echo "[B5] H3K27ac (ENCODE, brain)"
-if [ ! -f H3K27ac_brain.bw ]; then
-  curl -sSL -o H3K27ac_brain.bw \
-    "https://www.encodeproject.org/files/ENCFF744IFL/@@download/ENCFF744IFL.bigWig"
-fi
+echo "[B5] H3K27ac (ENCODE brain, ENCFF542HTC)"
+download "https://www.encodeproject.org/files/ENCFF542HTC/@@download/ENCFF542HTC.bigWig" "H3K27ac_brain.bw"
 
 # ------------------------------------------------------------------------------
-# B6. DNA methylation (Roadmap, brain) - representative track
+# B6. H3K27me3 repressive mark (ENCODE, brain) - replaces retired Roadmap link
+#     (Roadmap Egg2 server no longer serves the DNA-methylation bigwigs.)
 # ------------------------------------------------------------------------------
-echo "[B6] DNA methylation (Roadmap brain)"
-if [ ! -f Methylation_brain.bed.gz ]; then
-  curl -sSL -o Methylation_brain.bed.gz \
-    "https://egg2.wustl.edu/roadmap/data/byDataType/dnamethylation/MethylHMR/FractionalMethylation_bigwig/E002-H3K4me1.bigwig"
-fi
+echo "[B6] H3K27me3 (ENCODE brain, ENCFF722UXM)"
+download "https://www.encodeproject.org/files/ENCFF722UXM/@@download/ENCFF722UXM.bigWig" "H3K27me3_brain.bw"
 
 # ------------------------------------------------------------------------------
-# B7. TF ChIP-seq peaks (ReMap 2022) - NACC2, FOXB1, KLF9, GATA2, ZNF384, MNT
-#     ReMap peak files: https://remap.univ-amu.fr/
+# B7. TF ChIP-seq peaks (ReMap 2022) - CTCF, REST, KLF9, GATA2, ZNF384, MNT
+#     Per-TF files: https://remap.univ-amu.fr/target_page/<TF>:9606
 # ------------------------------------------------------------------------------
 echo "[B7] ReMap TF ChIP-seq peaks"
 declare -A TF_FILES=(
-  [NACC2]="remap2022_nacc2_all_macs2_hg38_v1_0.bed.gz"
-  [FOXB1]="remap2022_foxb1_all_macs2_hg38_v1_0.bed.gz"
+  [CTCF]="remap2022_ctcf_all_macs2_hg38_v1_0.bed.gz"
+  [REST]="remap2022_rest_all_macs2_hg38_v1_0.bed.gz"
   [KLF9]="remap2022_klf9_all_macs2_hg38_v1_0.bed.gz"
   [GATA2]="remap2022_gata2_all_macs2_hg38_v1_0.bed.gz"
   [ZNF384]="remap2022_znf384_all_macs2_hg38_v1_0.bed.gz"
   [MNT]="remap2022_mnt_all_macs2_hg38_v1_0.bed.gz"
 )
 for tf in "${!TF_FILES[@]}"; do
-  if [ ! -f "${TF_FILES[$tf]}" ]; then
-    echo "   downloading $tf"
-    curl -sSL -o "${TF_FILES[$tf]}" \
-      "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/ALL/${TF_FILES[$tf]}"
-  fi
+  echo "   $tf"
+  download "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tf/remap2022_${tf}_all_macs2_hg38_v1_0.bed.gz" \
+           "${TF_FILES[$tf]}"
 done
 
 # ------------------------------------------------------------------------------
 # B8. ReMap Density - aggregated TF binding density (hg38)
+#     Served by the ReMap 2022 UCSC track hub (the /storage/remap2022/.../density
+#     path used to return 404).
 # ------------------------------------------------------------------------------
 echo "[B8] ReMap 2022 density (hg38)"
-if [ ! -f remap2022_density_hg38.bw ]; then
-  curl -sSL -o remap2022_density_hg38.bw \
-    "https://remap.univ-amu.fr/storage/remap2022/hg38/density/remap2022_density_hg38_v1_0.bw"
-fi
+download "https://remap.univ-amu.fr/storage/public/hubReMap2022/hg38/bigBed/hg38.bw" "remap2022_density_hg38.bw"
 
 # ------------------------------------------------------------------------------
-# B9. DECIPHER dosage sensitivity (haploinsufficiency / triplosensitivity)
-#     Public ClinGen dosage sensitivity download
+# B9. ClinGen dosage sensitivity (haploinsufficiency / triplosensitivity)
+#     Gene curation list (GRCh38) from ftp.clinicalgenome.org
 # ------------------------------------------------------------------------------
-echo "[B9] DECIPHER/ClinGen dosage sensitivity"
-if [ ! -f ClinGen_dosage_sensitivity.csv ]; then
-  curl -sSL -o ClinGen_dosage_sensitivity.csv \
-    "https://ftp.clinicalgenome.org/ClinGen_dosage_sensitivity.csv"
-fi
+echo "[B9] ClinGen dosage sensitivity (gene curation, GRCh38)"
+download "https://ftp.clinicalgenome.org/ClinGen_gene_curation_list_GRCh38.tsv" "ClinGen_gene_curation_list_GRCh38.tsv"
 
 echo ""
 echo "=============================================="
