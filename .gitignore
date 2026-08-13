@@ -45,4 +45,7 @@ gtf_annot/Homo_sapiens*.gtf
 # External tracks downloaded at runtime (7.4.3.1_download_external_tracks.sh)
 7_variants_analysis/7.4_scRNA-seq_analysis/external_tracks/
 
+# Gviz read-alignment plots (7.4.3.2_trackviewer_STR_viz.ipynb)
+**/results_reads_alignment_gviz/
+
 
