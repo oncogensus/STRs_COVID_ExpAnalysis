@@ -157,6 +157,86 @@ download "https://remap.univ-amu.fr/storage/public/hubReMap2022/hg38/bigBed/hg38
 echo "[B9] ClinGen dosage sensitivity (gene curation, GRCh38)"
 download "https://ftp.clinicalgenome.org/ClinGen_gene_curation_list_GRCh38.tsv" "ClinGen_gene_curation_list_GRCh38.tsv"
 
+# ------------------------------------------------------------------------------
+# B10. JARVIS (Junk Annotation genome-wide Residual Variation Intolerance Score)
+#      Constraint score for non-coding regions (UCSC gbdb, hg38).
+#      CAUTION: 21 GB bigWig. The notebook queries it by window over the remote
+#      URL (no local download required), so this step is OPTIONAL.
+#      Set DOWNLOAD_LARGE=1 to fetch it anyway, e.g.:
+#        DOWNLOAD_LARGE=1 bash 7.4.3.1_download_external_tracks.sh
+# ------------------------------------------------------------------------------
+if [ "${DOWNLOAD_LARGE:-0}" = "1" ]; then
+  echo "[B10] JARVIS non-coding constraint score (hg38, 21GB bigWig)"
+  download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/jarvis/jarvis.bw" "jarvis.bw"
+else
+  echo "[B10] SKIP JARVIS bigWig (21 GB). Notebook queries remote URL by window."
+fi
+
+# ------------------------------------------------------------------------------
+# B11. UK Biobank / deCODE Genetics Depletion Rank Score (hg38)
+#      Constraint score: rank 0 (most depleted) to 100 (least depleted).
+# ------------------------------------------------------------------------------
+echo "[B11] UK Biobank / deCODE Depletion Rank Score (hg38)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/ukbDepletion/ukbDepletion.bw" "ukbDepletion.bw"
+
+# ------------------------------------------------------------------------------
+# B12. ReMap Atlas of Regulatory Regions - aggregated density (hg38, UCSC)
+#      Distinct from the remap2022 density bigWig already downloaded in B8.
+# ------------------------------------------------------------------------------
+echo "[B12] ReMap Atlas density (hg38, UCSC reMapDensity2022)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/reMap/reMapDensity2022.bw" "remap_density_ucsc.bw"
+
+# ------------------------------------------------------------------------------
+# B13. JASPAR CORE TFBS predictions (hg38) - bigBed (billions of items)
+#      Must be queried by window with bigBedToBed (installed via micromamba).
+# ------------------------------------------------------------------------------
+echo "[B13] JASPAR CORE TFBS (hg38, JASPAR2024.bb)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/jaspar/JASPAR2024.bb" "JASPAR2024.bb"
+
+# ------------------------------------------------------------------------------
+# B14. DECIPHER common CNVs (hg38) - dbVar curated, AF>=0.01
+#      bigBed; queried by window with bigBedToBed.
+# ------------------------------------------------------------------------------
+echo "[B14] DECIPHER common CNVs (hg38, common_decipher.bb)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/bbi/dbVar/common_decipher.bb" "decipher_common.bb"
+
+# ------------------------------------------------------------------------------
+# B15. TRExplorer tandem repeat catalog (hg38, UCSC strVar)
+#      bigBed; queried by window with bigBedToBed.
+# ------------------------------------------------------------------------------
+echo "[B15] TRExplorer tandem repeat catalog (hg38, trexplorer.bb)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/strVar/trexplorer.bb" "trexplorer.bb"
+
+# ------------------------------------------------------------------------------
+# B16. Extra ReMap TF ChIP-seq peaks (beyond the original 6)
+#      NACC2, FOXB1, FOXK1, PATZ1, RAD21, TCF4, MITF, USF2, RAD51, GATA1
+# ------------------------------------------------------------------------------
+echo "[B16] ReMap TF ChIP-seq peaks (extra TFs)"
+declare -A EXTRA_TF_FILES=(
+  [NACC2]="remap2022_nacc2_all_macs2_hg38_v1_0.bed.gz"
+  [FOXB1]="remap2022_foxb1_all_macs2_hg38_v1_0.bed.gz"
+  [FOXK1]="remap2022_foxk1_all_macs2_hg38_v1_0.bed.gz"
+  [PATZ1]="remap2022_patz1_all_macs2_hg38_v1_0.bed.gz"
+  [RAD21]="remap2022_rad21_all_macs2_hg38_v1_0.bed.gz"
+  [TCF4]="remap2022_tcf4_all_macs2_hg38_v1_0.bed.gz"
+  [MITF]="remap2022_mitf_all_macs2_hg38_v1_0.bed.gz"
+  [USF2]="remap2022_usf2_all_macs2_hg38_v1_0.bed.gz"
+  [RAD51]="remap2022_rad51_all_macs2_hg38_v1_0.bed.gz"
+  [GATA1]="remap2022_gata1_all_macs2_hg38_v1_0.bed.gz"
+)
+for tf in "${!EXTRA_TF_FILES[@]}"; do
+  echo "   $tf"
+  download "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tf/remap2022_${tf}_all_macs2_hg38_v1_0.bed.gz" \
+           "${EXTRA_TF_FILES[$tf]}"
+done
+
+# ------------------------------------------------------------------------------
+# B17. ENCODE wgEncodeReg4TfChip CTCF ChIP-seq (wgEncodeReg4TfChip_ENCFF341CQE)
+#      BigWig from the ENCODE Portal accession ENCFF341CQE.
+# ------------------------------------------------------------------------------
+echo "[B17] ENCODE wgEncodeReg4TfChip CTCF ChIP-seq (ENCFF341CQE)"
+download "https://www.encodeproject.org/files/ENCFF341CQE/@@download/ENCFF341CQE.bigWig" "wgEncodeReg4TfChip_ENCFF341CQE.bw"
+
 echo ""
 echo "=============================================="
 echo " DONE. Tracks available in: $(pwd)"
