@@ -32,24 +32,61 @@ OUTDIR="external_tracks"
 mkdir -p "$OUTDIR"
 cd "$OUTDIR"
 
+# TFs that failed to download in B16 (best-effort); reported in the final summary.
+declare -a FAILED_TFS=()
+
 # ------------------------------------------------------------------------------
-# Helper: fetch a file and delete it if it is an HTML error page
+# Helper: fetch a file, trying the primary URL then any fallback URLs.
+# Prints the HTTP status code of every attempt and, on success, the final size
+# and elapsed time. Removes the temp file if the server returns an HTML error
+# page (e.g. a 404 captured as a page) so the notebook never imports a bogus
+# file. Returns 0 on success, 1 if every candidate failed.
+# Usage: download "<primary_url>" "<out_file>" ["<fallback_url1>" ...]
 # ------------------------------------------------------------------------------
 download() {
-  local url="$1" out="$2"
+  local url="$1" out="$2"; shift 2
+  local fallbacks=("$@")
   if [ -f "$out" ]; then
     echo "   [skip] $out already present"
     return 0
   fi
-  echo "   downloading $out"
-  curl -fsSL --retry 2 -o "$out.tmp" "$url" || { echo "   [FAIL] $url"; rm -f "$out.tmp"; return 1; }
-  # magic-byte sanity check: keep only real data files
-  if head -c 200 "$out.tmp" | grep -qiE '<html|<!DOCTYPE'; then
-    echo "   [FAIL] $url returned an HTML/error page; removed"
+  local all=("$url" "${fallbacks[@]}")
+  local u http_code start_ts end_ts size
+  for u in "${all[@]}"; do
+    echo "   GET  $u"
+    start_ts=$(date +%s)
+    http_code=$(curl -sSL -o "$out.tmp" -w '%{http_code}' --retry 2 --retry-delay 3 "$u") || http_code="000"
+    end_ts=$(date +%s)
+    if [ "$http_code" = "200" ] && [ -s "$out.tmp" ]; then
+      # magic-byte sanity check: reject HTML/error pages served with a 200
+      if head -c 200 "$out.tmp" | grep -qiE '<html|<!DOCTYPE'; then
+        echo "   [FAIL] HTTP $http_code but payload is an HTML/error page; removed"
+        rm -f "$out.tmp"
+        continue
+      fi
+      size=$(stat -c%s "$out.tmp" 2>/dev/null || wc -c < "$out.tmp")
+      mv "$out.tmp" "$out"
+      echo "   [OK]   HTTP $http_code — ${size} bytes, $((end_ts - start_ts))s -> $out"
+      return 0
+    fi
+    echo "   [FAIL] HTTP $http_code ($((end_ts - start_ts))s) for: $u"
     rm -f "$out.tmp"
-    return 1
-  fi
-  mv "$out.tmp" "$out"
+  done
+  echo "   [FAIL] all $(( ${#all[@]} )) candidate URL(s) failed for: $out"
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# Build candidate ReMap storage URLs for a TF, trying letter-case variants
+# (ReMap occasionally serves a file under a different letter-case).
+# ------------------------------------------------------------------------------
+remap_tf_candidates() {
+  local tf="$1"
+  local lc; lc=$(printf '%s' "$tf" | tr '[:upper:]' '[:lower:]')
+  local tc; tc=$(printf '%s' "$tf" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+  echo "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tf/remap2022_${tf}_all_macs2_hg38_v1_0.bed.gz"
+  [ "$lc" != "$tf" ] && echo "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$lc/remap2022_${lc}_all_macs2_hg38_v1_0.bed.gz"
+  [ "$tc" != "$tf" ] && echo "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tc/remap2022_${tc}_all_macs2_hg38_v1_0.bed.gz"
 }
 
 echo "=============================================="
@@ -138,8 +175,8 @@ declare -A TF_FILES=(
 )
 for tf in "${!TF_FILES[@]}"; do
   echo "   $tf"
-  download "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tf/remap2022_${tf}_all_macs2_hg38_v1_0.bed.gz" \
-           "${TF_FILES[$tf]}"
+  mapfile -t cands < <(remap_tf_candidates "$tf")
+  download "${cands[0]}" "${TF_FILES[$tf]}" "${cands[@]:1}"
 done
 
 # ------------------------------------------------------------------------------
@@ -224,10 +261,18 @@ declare -A EXTRA_TF_FILES=(
   [RAD51]="remap2022_rad51_all_macs2_hg38_v1_0.bed.gz"
   [GATA1]="remap2022_gata1_all_macs2_hg38_v1_0.bed.gz"
 )
+# Best-effort: a missing TF peak (e.g. NACC2/FOXB1 absent from ReMap 2022 hg38)
+# must NOT abort the whole run. Failures are collected and reported at the end.
+declare -a FAILED_TFS=()
 for tf in "${!EXTRA_TF_FILES[@]}"; do
   echo "   $tf"
-  download "https://remap.univ-amu.fr/storage/remap2022/hg38/MACS2/TF/$tf/remap2022_${tf}_all_macs2_hg38_v1_0.bed.gz" \
-           "${EXTRA_TF_FILES[$tf]}"
+  mapfile -t cands < <(remap_tf_candidates "$tf")
+  if download "${cands[0]}" "${EXTRA_TF_FILES[$tf]}" "${cands[@]:1}"; then
+    :
+  else
+    echo "   [WARN] $tf unavailable (HTTP 404 / not on ReMap 2022 hg38). Kept in list; will be handled separately."
+    FAILED_TFS+=("$tf")
+  fi
 done
 
 # ------------------------------------------------------------------------------
@@ -240,5 +285,12 @@ download "https://www.encodeproject.org/files/ENCFF341CQE/@@download/ENCFF341CQE
 echo ""
 echo "=============================================="
 echo " DONE. Tracks available in: $(pwd)"
+if [ ${#FAILED_TFS[@]} -gt 0 ]; then
+  echo ""
+  echo " [!] The following B16 TFs FAILED to download and are NOT present:"
+  for t in "${FAILED_TFS[@]}"; do echo "     - $t"; done
+  echo "     (NACC2 and FOXB1 are known to be absent from ReMap 2022 hg38;"
+  echo "      investigate alternative sources or remove them from the list.)"
+fi
 ls -lh
 echo "=============================================="
