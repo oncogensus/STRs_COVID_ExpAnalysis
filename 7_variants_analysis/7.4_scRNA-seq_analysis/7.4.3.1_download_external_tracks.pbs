@@ -2,7 +2,6 @@
 #PBS -q workq
 #PBS -N download_external_tracks
 #PBS -j oe
-#PBS -o ${PBS_O_WORKDIR}/external_tracks/download_external_tracks.log
 #PBS -V
 
 cd $PBS_O_WORKDIR
