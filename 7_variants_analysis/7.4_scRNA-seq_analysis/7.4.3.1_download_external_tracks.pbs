@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q workq
 #PBS -N download_external_tracks
-#PBS -o ${PBS_O_WORKDIR}/7_variants_analysis/7.4_scRNA-seq_analysis/download_external_tracks.out
-#PBS -e ${PBS_O_WORKDIR}/7_variants_analysis/7.4_scRNA-seq_analysis/download_external_tracks.err
+#PBS -j oe
+#PBS -o ${PBS_O_WORKDIR}/external_tracks/download_external_tracks.log
 #PBS -V
 
 cd $PBS_O_WORKDIR
