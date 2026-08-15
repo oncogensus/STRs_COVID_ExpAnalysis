@@ -13,3 +13,6 @@ micromamba activate str
 
 # Execute the download script
 bash 7_variants_analysis/7.4_scRNA-seq_analysis/7.4.3.1_download_external_tracks.sh
+
+# Clean up PBS default output file (script writes its own timestamped log)
+rm -f "${PBS_O_WORKDIR}/download_external_tracks.o${PBS_JOBID}" 2>/dev/null || true
