@@ -30,6 +30,23 @@ set -euo pipefail
 
 OUTDIR="external_tracks"
 mkdir -p "$OUTDIR"
+
+# ------------------------------------------------------------------------------
+# Logging: mirror stdout+stderr into a single merged log file with per-line
+# timestamps so curl errors (stderr) and [OK]/[FAIL]/[WARN] (stdout) are all
+# captured chronologically in one place. Works for direct runs and PBS.
+# ------------------------------------------------------------------------------
+LOGFILE="$OUTDIR/download_external_tracks.log"
+exec > >(
+    while IFS= read -r line; do
+        echo "$(date '+%Y-%m-%d %H:%M:%S') $line"
+    done | tee -a "$LOGFILE"
+) 2>&1
+
+echo "=============================================="
+echo " download started — log: $LOGFILE"
+echo "=============================================="
+
 cd "$OUTDIR"
 
 # TFs that failed to download in B16 (best-effort); reported in the final summary.
