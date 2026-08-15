@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N download_external_tracks
+#PBS -o ${PBS_O_WORKDIR}/7_variants_analysis/7.4_scRNA-seq_analysis/download_external_tracks.out
+#PBS -e ${PBS_O_WORKDIR}/7_variants_analysis/7.4_scRNA-seq_analysis/download_external_tracks.err
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+# Micromamba environment setup
+export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate str
+
+# Execute the download script
+bash 7_variants_analysis/7.4_scRNA-seq_analysis/7.4.3.1_download_external_tracks.sh
