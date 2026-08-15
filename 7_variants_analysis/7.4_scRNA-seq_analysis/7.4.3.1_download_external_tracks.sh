@@ -243,9 +243,10 @@ download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/reMap/reMapDensity2022.bw" "
 # ------------------------------------------------------------------------------
 # B13. JASPAR CORE TFBS predictions (hg38) - bigBed (billions of items)
 #      Must be queried by window with bigBedToBed (installed via micromamba).
+#      Updated to JASPAR 2026 release.
 # ------------------------------------------------------------------------------
-echo "[B13] JASPAR CORE TFBS (hg38, JASPAR2024.bb)"
-download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/jaspar/JASPAR2024.bb" "JASPAR2024.bb"
+echo "[B13] JASPAR CORE TFBS (hg38, JASPAR2026.bb)"
+download "https://hgdownload.soe.ucsc.edu/gbdb/hg38/jaspar/JASPAR2026.bb" "JASPAR2026.bb"
 
 # ------------------------------------------------------------------------------
 # B14. DECIPHER common CNVs (hg38) - dbVar curated, AF>=0.01
@@ -307,7 +308,7 @@ if [ ${#FAILED_TFS[@]} -gt 0 ]; then
   echo " [!] The following B16 TFs FAILED to download and are NOT present:"
   for t in "${FAILED_TFS[@]}"; do echo "     - $t"; done
   echo "     (NACC2 and FOXB1 are known to be absent from ReMap 2022 hg38;"
-  echo "      investigate alternative sources or remove them from the list.)"
+  echo "      NACC2 is queried via JASPAR2026.bb instead.)"
 fi
 ls -lh
 echo "=============================================="
