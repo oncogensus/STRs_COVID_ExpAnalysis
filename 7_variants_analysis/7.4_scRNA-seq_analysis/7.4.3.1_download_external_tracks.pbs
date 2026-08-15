@@ -2,9 +2,13 @@
 #PBS -q workq
 #PBS -N download_external_tracks
 #PBS -j oe
+#PBS -o external_tracks/download_external_tracks.log
 #PBS -V
 
 cd $PBS_O_WORKDIR
+
+# Ensure log directory exists before PBS tries to write output
+mkdir -p external_tracks
 
 # Micromamba environment setup
 export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
