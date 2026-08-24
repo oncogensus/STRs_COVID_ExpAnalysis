@@ -116,6 +116,29 @@ echo "=============================================="
 echo "[B1] RepeatMasker hg38 (UCSC rmsk)"
 download "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz" "rmsk.hg38.bed.gz"
 
+# The UCSC goldenPath dump is a table ('#bin swScore ... genoName genoStart
+# genoEnd ... repClass repFamily'), not a BED. Convert it once, in place, so
+# rtracklayer/data.table parse it correctly. Idempotent: skipped when the
+# file is already a proper BED.
+if [ -f "rmsk.hg38.bed.gz" ]; then
+  hdr=$(gzip -cd "rmsk.hg38.bed.gz" 2>/dev/null | head -n 1 || true)
+  case "$hdr" in
+    "#bin"*genoName*)
+      echo "   [conv] converting rmsk.txt dump to BED..."
+      gzip -cd "rmsk.hg38.bed.gz" \
+        | awk -F'\t' 'NR>1 && $6 ~ /^chr/ {print $6 "\t" ($7+1) "\t" $8 "\t" $12 "/" $13}' \
+        | gzip -c > "rmsk.hg38.bed.conv.tmp"
+      if [ -s "rmsk.hg38.bed.conv.tmp" ]; then
+        mv "rmsk.hg38.bed.conv.tmp" "rmsk.hg38.bed.gz"
+        echo "   [conv] done -> rmsk.hg38.bed.gz"
+      else
+        rm -f "rmsk.hg38.bed.conv.tmp"
+        echo "   [WARN] rmsk conversion produced no output; keeping original"
+      fi
+      ;;
+  esac
+fi
+
 # ------------------------------------------------------------------------------
 # B2. GTEx eQTL SNPs
 # ------------------------------------------------------------------------------
