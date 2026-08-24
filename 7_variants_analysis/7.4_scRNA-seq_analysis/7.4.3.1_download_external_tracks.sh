@@ -117,26 +117,47 @@ echo "[B1] RepeatMasker hg38 (UCSC rmsk)"
 download "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz" "rmsk.hg38.bed.gz"
 
 # The UCSC goldenPath dump is a table ('#bin swScore ... genoName genoStart
-# genoEnd ... repClass repFamily'), not a BED. Convert it once, in place, so
-# rtracklayer/data.table parse it correctly. Idempotent: skipped when the
-# file is already a proper BED.
+# genoEnd ... repClass repFamily'), not a BED. It may come with or without
+# the header line. Convert it once, in place, so rtracklayer/data.table
+# parse it correctly. Idempotent: skipped when the file is already a proper BED.
 if [ -f "rmsk.hg38.bed.gz" ]; then
   hdr=$(gzip -cd "rmsk.hg38.bed.gz" 2>/dev/null | head -n 1 || true)
+  is_header=false
+  is_headerless=false
   case "$hdr" in
     "#bin"*genoName*)
-      echo "   [conv] converting rmsk.txt dump to BED..."
+      is_header=true
+      ;;
+  esac
+  if [ "$is_header" = false ]; then
+    # Check if headerless: first field numeric (bin), 6th field starts with chr
+    first_field=$(echo "$hdr" | awk -F'\t' '{print $1}')
+    sixth_field=$(echo "$hdr" | awk -F'\t' '{print $6}')
+    case "$first_field" in
+      ''|*[!0-9]*) ;;
+      *) case "$sixth_field" in chr*) is_headerless=true;; esac ;;
+    esac
+  fi
+  if [ "$is_header" = true ] || [ "$is_headerless" = true ]; then
+    echo "   [conv] converting rmsk.txt dump to BED..."
+    if [ "$is_header" = true ]; then
       gzip -cd "rmsk.hg38.bed.gz" \
         | awk -F'\t' 'NR>1 && $6 ~ /^chr/ {print $6 "\t" ($7+1) "\t" $8 "\t" $12 "/" $13}' \
         | gzip -c > "rmsk.hg38.bed.conv.tmp"
-      if [ -s "rmsk.hg38.bed.conv.tmp" ]; then
-        mv "rmsk.hg38.bed.conv.tmp" "rmsk.hg38.bed.gz"
-        echo "   [conv] done -> rmsk.hg38.bed.gz"
-      else
-        rm -f "rmsk.hg38.bed.conv.tmp"
-        echo "   [WARN] rmsk conversion produced no output; keeping original"
-      fi
-      ;;
-  esac
+    else
+      # headerless: no NR>1 skip needed
+      gzip -cd "rmsk.hg38.bed.gz" \
+        | awk -F'\t' '$6 ~ /^chr/ {print $6 "\t" ($7+1) "\t" $8 "\t" $12 "/" $13}' \
+        | gzip -c > "rmsk.hg38.bed.conv.tmp"
+    fi
+    if [ -s "rmsk.hg38.bed.conv.tmp" ]; then
+      mv "rmsk.hg38.bed.conv.tmp" "rmsk.hg38.bed.gz"
+      echo "   [conv] done -> rmsk.hg38.bed.gz"
+    else
+      rm -f "rmsk.hg38.bed.conv.tmp"
+      echo "   [WARN] rmsk conversion produced no output; keeping original"
+    fi
+  fi
 fi
 
 # ------------------------------------------------------------------------------
