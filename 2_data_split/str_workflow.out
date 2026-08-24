@@ -1,0 +1,7 @@
+=== STARTING INTEGRATED STR WORKFLOW (NEW DEFAULTS) ===
+Filter Thresholds:
+  - Minimum Depth: >= 15
+  - Minimum Total Clips (L+R): >= 1 (Logic: > 0)
+  - Exclude Homopolymers: --exclude_homopolymers
+---------------------------------------------------------------
+=== WORKFLOW FINISHED SUCCESSFULLY ===

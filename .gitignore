@@ -1,0 +1,51 @@
+# Ignore sample data
+samples/*
+
+# Ignore large genomic files
+*.bam
+*.bam.bai
+*.vcf
+*.vcf.gz
+*.fa
+*.fasta
+*.str
+*.fai
+*.pdf
+*.tsv
+*.gds
+*.pbs
+*.gtf
+
+# Ignore backup
+bk_6_scovid_data
+
+# Ignore scovid_data
+6_scovid_data/*
+!6_scovid_data/integrate_cell.py
+
+# Ignore results generated
+**/results/
+
+# Keep results but ignore large output files
+results/*.bam
+results/*.vcf.gz
+
+# Ancestry results
+ancestry/EthSEQ_Results_3D/
+
+# Results from desc_analysis
+desc_analysis/results/
+
+# Large reference files
+strs_call/hg38.fa
+strs_call/hg38.fa.*
+gtf_annot/*.gtf
+gtf_annot/Homo_sapiens*.gtf
+
+# External tracks downloaded at runtime (7.4.3.1_download_external_tracks.sh)
+7_variants_analysis/7.4_scRNA-seq_analysis/external_tracks/
+
+# Gviz read-alignment plots (7.4.3.2_trackviewer_STR_viz.ipynb)
+**/results_reads_alignment_gviz/
+
+

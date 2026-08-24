@@ -1,0 +1,95 @@
+==========================================
+STR Annotation Pipeline Job
+Start time: Fri May 15 16:35:19 -03 2026
+Working directory: /home/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/3_gtf_annot
+==========================================
+Executing annotation pipeline...
+=== STR ANNOTATION DEBUG LOG ===
+
+[1] Distribution of Variants by Region (coding region):
+shape: (8, 2)
+┌──────────────────┬────────┐
+│ region           ┆ count  │
+│ ---              ┆ ---    │
+│ str              ┆ u32    │
+╞══════════════════╪════════╡
+│ intron           ┆ 199035 │
+│ intergenic       ┆ 196579 │
+│ others           ┆ 86068  │
+│ promoter         ┆ 7628   │
+│ three_prime_utr  ┆ 4118   │
+│ non_coding_exons ┆ 1356   │
+│ five_prime_utr   ┆ 902    │
+│ CDS              ┆ 158    │
+└──────────────────┴────────┘
+
+[2] Detailed Analysis: 'others' regions
+ - Total 'others' variants found: 86068
+
+Biotype distribution within 'others':
+shape: (13, 2)
+┌─────────────────────────────────┬───────┐
+│ gene_biotype                    ┆ count │
+│ ---                             ┆ ---   │
+│ str                             ┆ u32   │
+╞═════════════════════════════════╪═══════╡
+│ lncRNA                          ┆ 75945 │
+│ unknown                         ┆ 4666  │
+│ transcribed_unprocessed_pseudo… ┆ 2264  │
+│ transcribed_processed_pseudoge… ┆ 1003  │
+│ unprocessed_pseudogene          ┆ 907   │
+│ …                               ┆ …     │
+│ unitary_pseudogene              ┆ 38    │
+│ snRNA                           ┆ 32    │
+│ TEC                             ┆ 29    │
+│ IG_V_gene                       ┆ 14    │
+│ misc_RNA                        ┆ 5     │
+└─────────────────────────────────┴───────┘
+
+ -> SUCCESS: 'others' location report saved to: ../samples/others_regions_statistics.csv
+
+[3] Integrity Check (others vs intergenic):
+ - 'others' variants with Gene ID: 81402/86068
+ - 'intergenic' variants with Gene ID: 0 (Expected: 0)
+
+[4] 'Others' Variants Sample (Top 5):
+shape: (5, 6)
+┌──────────────────────┬───────┬───────────┬───────────┬────────────┬──────────────────────────────┐
+│ STRs_ID              ┆ chrom ┆ start     ┆ end       ┆ gene_name  ┆ gene_biotype                 │
+│ ---                  ┆ ---   ┆ ---       ┆ ---       ┆ ---        ┆ ---                          │
+│ str                  ┆ str   ┆ i64       ┆ i64       ┆ str        ┆ str                          │
+╞══════════════════════╪═══════╪═══════════╪═══════════╪════════════╪══════════════════════════════╡
+│ chr7:88514208:GT:23  ┆ 7     ┆ 88514208  ┆ 88514254  ┆ AC002069.2 ┆ lncRNA                       │
+│ chr7:103210653:GT:1  ┆ 7     ┆ 103210653 ┆ 103210654 ┆ DPY19L2P2  ┆ transcribed_unprocessed_pseu │
+│                      ┆       ┆           ┆           ┆            ┆ do…                          │
+│ chr7:119907201:GT:9  ┆ 7     ┆ 119907201 ┆ 119907219 ┆ LINC02476  ┆ lncRNA                       │
+│ chr7:157482076:GT:10 ┆ 7     ┆ 157482076 ┆ 157482095 ┆ AC006372.3 ┆ lncRNA                       │
+│ chr7:157482478:GT:38 ┆ 7     ┆ 157482478 ┆ 157482553 ┆ AC006372.3 ┆ lncRNA                       │
+└──────────────────────┴───────┴───────────┴───────────┴────────────┴──────────────────────────────┘
+
+[5] STR 'Others' - Protein Coding Audit:
+ - Formatting coordinates for BedTool...
+ - Processing GTF for protein_coding features...
+ - Performing intersection to identify overlap origins...
+
+ === AUDIT RESULTS: Protein Coding Overlaps in 'Others' ===
+ Total unique 'others' variants overlapping protein_coding: 2
+
+ Distribution by Feature Type:
+shape: (2, 2)
+┌─────────────────┬─────┐
+│ overlap_feature ┆ len │
+│ ---             ┆ --- │
+│ str             ┆ u32 │
+╞═════════════════╪═════╡
+│ transcript      ┆ 324 │
+│ gene            ┆ 84  │
+└─────────────────┴─────┘
+
+==============================
+DEBUG COMPLETED
+==========================================
+SUCCESS: Pipeline completed at Fri May 15 16:35:29 -03 2026
+Output files location: ../samples/
+- others_regions_statistics.csv - Summary of STRs in region category named as others
+==========================================
