@@ -45,7 +45,7 @@ add_bam() {
   if [ -f "$b" ]; then
     local iu; iu="$(idx_of "$b")"
     if [ -n "$iu" ]; then
-      echo ",{\"type\":\"alignment\",\"name\":\"$(basename "$b")\",\"url\":\"$b\",\"indexURL\":\"$iu\"}" >> "$tt"
+      echo "{\"type\":\"alignment\",\"name\":\"$(basename "$b")\",\"url\":\"$b\",\"indexURL\":\"$iu\"}" >> "$tt"
     else
       echo "WARN: indice .bai ausente para $b" >&2
     fi
