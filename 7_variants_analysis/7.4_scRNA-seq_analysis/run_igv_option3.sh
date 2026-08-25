@@ -26,16 +26,26 @@ awk -F'\t' 'BEGIN{OFS="\t"} {print $1,$2,$3,$4,$5,$6,$2,$3,"255,0,0"}' \
 awk -F'\t' 'BEGIN{OFS="\t"} {print $1,$2,$3,$4,$5,$6,$2,$3,"0,0,255"}' \
   "$BED_WITHOUT" >> "$COMBINED"
 
-# --- Xvfb (display virtual); reusa DISPLAY se ja houver ---
-if [ -z "${DISPLAY:-}" ]; then
-  XDISP=:99
-  Xvfb "$XDISP" -screen 0 1024x768x24 >/dev/null 2>&1 &
-  XVFB_PID=$!
-  export DISPLAY="$XDISP"
-  sleep 2
+# --- Xvfb (display virtual); garante que :99 esteja ativo ---
+XDISP=:99
+XSOCK=/tmp/.X11-unix/X${XDISP#:}
+STARTED_XVFB=0
+if [ ! -e "$XSOCK" ]; then
+  if command -v Xvfb >/dev/null 2>&1; then
+    Xvfb "$XDISP" -screen 0 1024x768x24 >/dev/null 2>&1 &
+    XVFB_PID=$!
+    STARTED_XVFB=1
+    for i in $(seq 1 30); do
+      [ -e "$XSOCK" ] && break
+      sleep 0.5
+    done
+  else
+    echo "AVISO: Xvfb indisponivel; confie em DISPLAY ja ativo se houver."
+  fi
 else
   XVFB_PID=""
 fi
+export DISPLAY="$XDISP"
 
 # --- monta o batch ---
 {
