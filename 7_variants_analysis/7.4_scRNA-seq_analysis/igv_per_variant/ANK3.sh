@@ -2,8 +2,8 @@
 # IGV.js (navegador) para a variante ROBO2.
 # Anotacao so da amostra com variante + reads (BAMs) das duas amostras.
 # Os BAMs sao EXTRAIDOS para a regiao do locus (+/- FLANK) com samtools e
-# reindexados, gerando arquivos pequenos e rapidos p/ o IGV.js (evita servir
-# BAMs inteiros de dezenas de GB pelo tunel SSH).
+# reindexados. O contig e renomeado p/ "chrN" (padrao hg38 do IGV.js) caso o
+# BAM original use nomenclatura sem "chr" (ex.: "10" em vez de "chr10").
 # Uso: bash igv_per_variant/ROBO2.sh   (requer samtools + str_samples_bams.tsv)
 set -u
 
@@ -32,24 +32,58 @@ awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > 
 if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
 BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
 
-# extrai a regiao do locus (+/- FLANK) de cada BAM e reindexa
+# descobre o nome do contig como aparece no BAM (chr10 vs 10, etc.)
+bam_chr() {
+  local bam="$1" want="$2" hit=""
+  hit="$(samtools view -H "$bam" | awk -v w="$want" -F'\t' '{for(i=1;i<=NF;i++) if($i=="SN:"w){print w; exit}}')"
+  if [ -n "$hit" ]; then echo "$want"; return; fi
+  local alt; case "$want" in chr*) alt="${want#chr}";; *) alt="chr$want";; esac
+  hit="$(samtools view -H "$bam" | awk -v w="$alt" -F'\t' '{for(i=1;i<=NF;i++) if($i=="SN:"w){print w; exit}}')"
+  if [ -n "$hit" ]; then echo "$alt"; else echo "$want"; fi
+}
+
+# renomeia o contig do BAM extraido para $chr (padrao hg38), se necessario
+norm_chr() {
+  local bam="$1" cur="$2" want="$3"
+  if [ "$cur" = "$want" ]; then
+    samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    return
+  fi
+  samtools view -h "$bam" \
+    | awk -v cur="$cur" -v want="$want" 'BEGIN{FS=OFS="\t"} {
+         if ($1 ~ /^@SQ/) sub("SN:"cur"\t","SN:"want"\t",$0);
+         else if ($1 !~ /^@/ && $3==cur) $3=want;
+         print }' \
+    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igvjs_${GENE}_samtools.log" \
+    && mv "${bam}.tmp" "$bam"
+  samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+}
+
 extract_bam() {
   local full="$1" label="$2"
   [ -f "$full" ] || { echo "WARN: BAM ausente: $full" >&2; return; }
+  local cur; cur="$(bam_chr "$full" "$chr")"
   local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
   local fend=$(( end + FLANK ))
-  local reg="${chr}:${fstart}-${fend}"
+  local reg="${cur}:${fstart}-${fend}"
   local outb="$OUT/$GENE.$label.bam"
+  echo "Extraindo $label (contig '$cur'): $reg"
   samtools view -b -h "$full" "$reg" > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
   if [ -s "$outb" ]; then
-    samtools index "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    norm_chr "$outb" "$cur" "$chr"
     echo "$outb $outb.bai"
   else
-    echo "WARN: extract vazio p/ $full ($reg); usando BAM completo." >&2
-    local idx=""
-    [ -f "$full.bai" ] && idx="$full.bai"
-    [ -z "$idx" ] && [ -f "${full%.bam}.bai" ] && idx="${full%.bam}.bai"
-    [ -n "$idx" ] && echo "$full $idx" || echo "WARN: sem indice p/ $full" >&2
+    echo "WARN: extract vazio p/ $full ($reg); copiando BAM completo." >&2
+    cp "$full" "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    if [ -s "$outb" ]; then
+      norm_chr "$outb" "$cur" "$chr"
+      local idx="$outb.bai"
+      [ -f "$full.bai" ] && cp "$full.bai" "$idx" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+      [ -f "${full%.bam}.bai" ] && cp "${full%.bam}.bai" "$idx" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+      echo "$outb $idx"
+    else
+      echo "WARN: falha ao copiar $full" >&2
+    fi
   fi
 }
 read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
