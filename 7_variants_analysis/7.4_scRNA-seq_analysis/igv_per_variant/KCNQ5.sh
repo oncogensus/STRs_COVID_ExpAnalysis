@@ -67,7 +67,7 @@ extract_bam() {
   local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
   local fend=$(( end + FLANK ))
   local outb="$OUT/$GENE.$label.bam"
-  echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}"
+  echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}" >&2
   # 1) tenta regiao (rapido)
   if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igv_${GENE}_samtools.log"; then
     if [ -s "$outb" ]; then
