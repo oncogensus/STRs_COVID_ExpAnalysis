@@ -89,16 +89,43 @@ fetch('tracks.json')
 HTML
 
 command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
-python -m http.server "$PORT" --directory / >"/tmp/igvjs_${GENE}.log" 2>&1 &
+
+# Servidor HTTP a partir da raiz (/) com CORS; SimpleHTTPRequestHandler ja suporta Range.
+# Threading + bind em localhost para nao expor na rede.
+python - "$PORT" <<'PY' >"/tmp/igvjs_${GENE}.log" 2>&1 &
+import sys, http.server, socketserver
+port = int(sys.argv[1])
+class H(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        super().end_headers()
+socketserver.TCPServer.allow_reuse_address = True
+http.server.test(HandlerClass=H, port=port, bind='127.0.0.1', directory='/')
+PY
 PID=$!
 trap "kill $PID 2>/dev/null" EXIT
+
+# Auto-teste: confirma se cada arquivo e servido (codigo HTTP 200)
+sleep 1
+if command -v curl >/dev/null 2>&1; then
+  echo "Auto-teste de acesso (codigo HTTP esperado 200):"
+  for u in "$BED_URL" "$vbam" "$vbam.bai" "$cbam" "$cbam.bai"; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$u")
+    echo "  [$code]  $u"
+  done
+else
+  echo "WARN: curl ausente; nao rodei auto-teste."
+fi
 
 echo
 echo "============================================================"
 echo "Variante $GENE"
+echo "BAM variante: $vbam"
+echo "BAM controle: $cbam"
 echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
 echo "Regiao: ${chr}:${s1}-${end}"
+echo "Log do servidor: /tmp/igvjs_$GENE.log"
 echo "============================================================"
 
 wait "$PID"
