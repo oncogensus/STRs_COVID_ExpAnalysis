@@ -91,6 +91,14 @@ verify_tab <- data.frame(
   control_indexed = logical(),
   stringsAsFactors = FALSE)
 
+# mapeamento locus -> BAMs (caminhos absolutos) p/ carregar reads no IGV
+mapping <- data.frame(
+  gene = character(), STRs_ID = character(), chr = character(),
+  start0 = integer(), end = integer(),
+  variant_sample = character(), variant_bam = character(),
+  control_sample = character(), control_bam = character(),
+  stringsAsFactors = FALSE)
+
 with_rows  <- list()
 without_rows <- list()
 
@@ -168,6 +176,15 @@ for (i in seq_len(nrow(variants))) {
     control_bam = if (c_indexed) basename(c_bam) else NA_character_,
     control_indexed = c_indexed,
     stringsAsFactors = FALSE))
+
+  mapping <- rbind(mapping, data.frame(
+    gene = v_gene, STRs_ID = v_strs, chr = v_chr,
+    start0 = v_s0, end = v_end,
+    variant_sample = if (v_indexed) v_sample else NA_character_,
+    variant_bam = if (v_indexed) v_bam else NA_character_,
+    control_sample = if (c_indexed) c_sample else NA_character_,
+    control_bam = if (c_indexed) c_bam else NA_character_,
+    stringsAsFactors = FALSE))
 }
 
 write_bed <- function(rows, out) {
@@ -184,6 +201,10 @@ write_bed <- function(rows, out) {
 
 n_with    <- write_bed(with_rows, out_with)
 n_without <- write_bed(without_rows, out_without)
+
+out_map <- 'str_samples_bams.tsv'
+write.table(mapping, out_map, sep = '\t', row.names = FALSE, quote = FALSE)
+cat('Escrevi', nrow(mapping), 'loci ->', out_map, '\n')
 
 cat('\n=== Resumo (verify_tab) ===\n')
 print(verify_tab)
