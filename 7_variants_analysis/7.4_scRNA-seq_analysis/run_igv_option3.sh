@@ -52,8 +52,21 @@ awk -F'\t' '{print "goto "$1":"($2+1)"-"$3; print "snapshot"}' \
   "$COMBINED" >> igv_batch_option3.txt
 echo "exit" >> igv_batch_option3.txt
 
+# --- resolve o comando do IGV (usa 'igv' se ja estiver no env ativo) ---
+if command -v igv >/dev/null 2>&1; then
+  IGV_CMD="igv"
+elif command -v micromamba >/dev/null 2>&1; then
+  IGV_CMD="micromamba run -n igv igv"
+elif command -v mamba >/dev/null 2>&1; then
+  IGV_CMD="mamba run -n igv igv"
+elif command -v conda >/dev/null 2>&1; then
+  IGV_CMD="conda run -n igv igv"
+else
+  echo "ERRO: nao encontrei igv/micromamba/mamba/conda"; exit 1
+fi
+
 # --- roda IGV em batch (headless) ---
-micromamba run -n igv igv -b "$(pwd)/igv_batch_option3.txt"
+$IGV_CMD -b "$(pwd)/igv_batch_option3.txt"
 
 # --- encerra Xvfb somente se nós subimos ---
 if [ -n "$XVFB_PID" ]; then kill "$XVFB_PID" 2>/dev/null || true; fi
