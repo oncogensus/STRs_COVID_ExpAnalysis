@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# IGV.js (navegador) para a variante ROBO2.
+# IGV.js (navegador) para a variante ANK3.
 # Anotacao so da amostra com variante + reads (BAMs) das duas amostras.
-# Os BAMs sao EXTRAIDOS para a regiao do locus (+/- FLANK) com samtools e
-# reindexados. O contig e renomeado p/ "chrN" (padrao hg38 do IGV.js) caso o
-# BAM original use nomenclatura sem "chr" (ex.: "10" em vez de "chr10").
-# Uso: bash igv_per_variant/ROBO2.sh   (requer samtools + str_samples_bams.tsv)
+# Os BAMs sao EXTRAIDOS para a regiao do locus (+/- FLANK). Tenta regiao
+# (rapido, precisa de indice); se falhar, faz streaming + filtro por coordenada.
+# O contig e renomeado p/ "chrN" (padrao hg38 do IGV.js) caso o BAM original
+# use nomenclatura sem "chr" (ex.: "10" em vez de "chr10").
+# Uso: bash igv_per_variant/ANK3.sh   (requer samtools + str_samples_bams.tsv)
 set -u
 
 GENE="ANK3"; PORT="8202"; FLANK=1000
@@ -32,7 +33,7 @@ awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > 
 if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
 BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
 
-# descobre o nome do contig como aparece no BAM (chr10 vs 10, etc.)
+# contig como aparece no HEADER do BAM
 bam_chr() {
   local bam="$1" want="$2" hit=""
   hit="$(samtools view -H "$bam" | awk -v w="$want" -F'\t' '{for(i=1;i<=NF;i++) if($i=="SN:"w){print w; exit}}')"
@@ -54,9 +55,9 @@ norm_chr() {
          if ($1 ~ /^@SQ/) sub("SN:"cur"\t","SN:"want"\t",$0);
          else if ($1 !~ /^@/ && $3==cur) $3=want;
          print }' \
-    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igvjs_${GENE}_samtools.log" \
+    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igv_${GENE}_samtools.log" \
     && mv "${bam}.tmp" "$bam"
-  samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+  samtools index "$bam" 2>>"/tmp/igv_${GENE}_samtools.log"
 }
 
 extract_bam() {
@@ -65,25 +66,27 @@ extract_bam() {
   local cur; cur="$(bam_chr "$full" "$chr")"
   local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
   local fend=$(( end + FLANK ))
-  local reg="${cur}:${fstart}-${fend}"
   local outb="$OUT/$GENE.$label.bam"
-  echo "Extraindo $label (contig '$cur'): $reg"
-  samtools view -b -h "$full" "$reg" > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+  echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}"
+  # 1) tenta regiao (rapido)
+  if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igv_${GENE}_samtools.log"; then
+    if [ -s "$outb" ]; then
+      norm_chr "$outb" "$cur" "$chr"
+      echo "$outb $outb.bai"; return
+    fi
+  fi
+  # 2) fallback: streaming + filtro por coordenada (nao precisa de indice)
+  echo "WARN: regiao falhou p/ $full; usando streaming (pode demorar)..." >&2
+  samtools view -h "$full" \
+    | awk -v c="$cur" -v a="$fstart" -v b="$fend" 'BEGIN{FS=OFS="\t"} {
+         if ($1 ~ /^@/) { print; next }
+         if ($3==c && $4>=a && $4<=b) print }' \
+    | samtools view -b - > "$outb" 2>>"/tmp/igv_${GENE}_samtools.log"
   if [ -s "$outb" ]; then
     norm_chr "$outb" "$cur" "$chr"
     echo "$outb $outb.bai"
   else
-    echo "WARN: extract vazio p/ $full ($reg); copiando BAM completo." >&2
-    cp "$full" "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
-    if [ -s "$outb" ]; then
-      norm_chr "$outb" "$cur" "$chr"
-      local idx="$outb.bai"
-      [ -f "$full.bai" ] && cp "$full.bai" "$idx" 2>>"/tmp/igvjs_${GENE}_samtools.log"
-      [ -f "${full%.bam}.bai" ] && cp "${full%.bam}.bai" "$idx" 2>>"/tmp/igvjs_${GENE}_samtools.log"
-      echo "$outb $idx"
-    else
-      echo "WARN: falha ao copiar $full" >&2
-    fi
+    echo "WARN: extract vazio para $full" >&2
   fi
 }
 read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
@@ -130,16 +133,18 @@ fetch('tracks.json')
 </html>
 HTML
 
-# Servidor HTTP a partir da raiz (/) com CORS; SimpleHTTPRequestHandler suporta Range.
+# Servidor HTTP a partir da raiz (/) com CORS. Sem kwargs directory/bind (compat. Python antigo).
 python - "$PORT" <<'PY' >"/tmp/igvjs_${GENE}.log" 2>&1 &
-import sys, http.server, socketserver
+import sys, http.server, socketserver, os
 port = int(sys.argv[1])
+os.chdir('/')
 class H(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         super().end_headers()
 socketserver.TCPServer.allow_reuse_address = True
-http.server.test(HandlerClass=H, port=port, bind='127.0.0.1', directory='/')
+httpd = socketserver.TCPServer(('', port), H)
+httpd.serve_forever()
 PY
 PID=$!
 trap "kill $PID 2>/dev/null" EXIT
@@ -162,7 +167,7 @@ echo "BAM variante extraido: $vb_out"
 echo "BAM controle extraido: $cb_out"
 echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igvjs_${GENE}_samtools.log"
+echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igv_${GENE}_samtools.log"
 echo "============================================================"
 
 wait "$PID"
