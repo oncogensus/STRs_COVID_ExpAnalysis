@@ -24,7 +24,7 @@ No seu PC (PowerShell):
 ```powershell
 ssh -L 8201:localhost:8201 Carlos_Chagas
 ```
-Abra no navegador: **http://localhost:8201**
+Abra no navegador: **http://localhost:8201/tmp/igvjs_ROBO2/index.html**
 
 ## Uso — todas de uma vez
 No cluster:
@@ -35,7 +35,7 @@ No PC:
 ```powershell
 ssh -L 8201-8208:localhost:8201-8208 Carlos_Chagas
 ```
-Abra as páginas em abas: `http://localhost:8201` (ROBO2), `8202` (ANK3), … `8208` (ST6GALNAC3).
+Abra as páginas em abas: `http://localhost:8201/tmp/igvjs_ROBO2/index.html` (ROBO2), `8202`→`/tmp/igvjs_ANK3/index.html`, … `8208`→`/tmp/igvjs_ST6GALNAC3/index.html`.
 
 ## Mapeamento variante → porta
 | gene | porta |
@@ -52,4 +52,4 @@ Abra as páginas em abas: `http://localhost:8201` (ROBO2), `8202` (ANK3), … `8
 ## Notas
 - Os scripts são estáticos, mas data-driven: leem `str_samples_bams.tsv` em runtime, então continuam corretos se os BAMs mudarem.
 - Ao fechar o script (Ctrl+C) o servidor HTTP daquela variante é encerrado.
-- Para remover: `rm -rf igv_per_variant/data`.
+- Para remover os arquivos temporários: `rm -rf /tmp/igvjs_*`.

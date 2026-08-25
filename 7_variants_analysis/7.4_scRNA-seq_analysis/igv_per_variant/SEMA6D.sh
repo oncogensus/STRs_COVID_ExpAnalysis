@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # IGV.js (navegador) para a variante ROBO2.
 # Anotacao so da amostra com variante + BAMs das duas amostras.
+# Abordagem: o servidor HTTP sobe a PARTIR DA RAIZ (/) e os tracks usam
+# caminhos absolutos, evitando problemas de symlink fora do diretorio.
 # Uso: bash igv_per_variant/ROBO2.sh   (requer str_samples_bams.tsv + str_samples_with_variant.bed)
 set -u
 
@@ -15,35 +17,50 @@ ANN="str_samples_with_variant.bed"
 row="$(awk -F'\t' -v g="$GENE" '$1==g' "$TSV")"
 [ -z "$row" ] && { echo "ERRO: $GENE nao encontrado no TSV."; exit 1; }
 chr="$(echo "$row" | cut -f3)"; start0="$(echo "$row" | cut -f4)"; end="$(echo "$row" | cut -f5)"
-vbam="$(echo "$row" | cut -f7)"; cbam="$(echo "$row" | cut -f9)"
+# normaliza barras duplas (ex.: recal//x.bam)
+vbam="$(echo "$row" | cut -f7 | sed 's|//*|/|g')"
+cbam="$(echo "$row" | cut -f9 | sed 's|//*|/|g')"
 s1=$((start0 + 1))
 
-DATA="$BASE/igv_per_variant/data/$GENE"; mkdir -p "$DATA"
+OUT="/tmp/igvjs_${GENE}"; mkdir -p "$OUT"
 
-# BED so deste locus (fallback: BED inteiro)
-awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$DATA/$GENE.bed"
-if [ ! -s "$DATA/$GENE.bed" ]; then ln -sf "$(pwd)/$ANN" "$DATA/$GENE.bed"; fi
+# BED so deste locus (fallback: BED inteiro, por caminho absoluto)
+awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/$GENE.bed"
+if [ -s "$OUT/$GENE.bed" ]; then BED_URL="/$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
 
-# symlinks dos BAMs (+ .bai)
-for b in "$vbam" "$cbam"; do
+# helper: descobre o arquivo de indice (.bam.bai ou .bai)
+idx_of() {
+  local b="$1" c=""
+  for cand in "$b.bai" "${b%.bam}.bai"; do
+    [ -f "$cand" ] && { c="$cand"; break; }
+  done
+  [ -n "$c" ] && printf '%s' "$c"
+}
+
+tt="$(mktemp)"
+echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
+
+add_bam() {
+  local b="$1"
   if [ -f "$b" ]; then
-    ln -sf "$b" "$DATA/$(basename "$b")"
-    [ -f "$b.bai" ] && ln -sf "$b.bai" "$DATA/$(basename "$b").bai"
+    local iu; iu="$(idx_of "$b")"
+    if [ -n "$iu" ]; then
+      echo ",{\"type\":\"alignment\",\"name\":\"$(basename "$b")\",\"url\":\"$b\",\"indexURL\":\"$iu\"}" >> "$tt"
+    else
+      echo "WARN: indice .bai ausente para $b" >&2
+    fi
   else
     echo "WARN: BAM ausente: $b" >&2
   fi
-done
+}
+add_bam "$vbam"
+add_bam "$cbam"
 
-# tracks.json
-tt="$(mktemp)"
-echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$GENE.bed\",\"format\":\"bed\"}" > "$tt"
-[ -f "$vbam" ] && echo "{\"type\":\"alignment\",\"name\":\"$(basename "$vbam")\",\"url\":\"$(basename "$vbam")\",\"indexURL\":\"$(basename "$vbam").bai\"}" >> "$tt"
-[ -f "$cbam" ] && echo "{\"type\":\"alignment\",\"name\":\"$(basename "$cbam")\",\"url\":\"$(basename "$cbam")\",\"indexURL\":\"$(basename "$cbam").bai\"}" >> "$tt"
-{ echo "["; paste -sd, "$tt"; echo "]"; } > "$DATA/tracks.json"
+{ echo "["; paste -sd, "$tt"; echo "]"; } > "$OUT/tracks.json"
 rm -f "$tt"
 
 # index.html (igv.js via CDN)
-sed "s/__LOCUS__/${chr}:${s1}-${end}/" > "$DATA/index.html" <<'HTML'
+sed "s/__LOCUS__/${chr}:${s1}-${end}/" > "$OUT/index.html" <<'HTML'
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -68,15 +85,15 @@ fetch('tracks.json')
 HTML
 
 command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
-python -m http.server "$PORT" --directory "$DATA" >"/tmp/igvjs_${GENE}.log" 2>&1 &
+python -m http.server "$PORT" --directory / >"/tmp/igvjs_${GENE}.log" 2>&1 &
 PID=$!
 trap "kill $PID 2>/dev/null" EXIT
 
 echo
 echo "============================================================"
-echo "Variante $GENE  ->  http://localhost:$PORT"
+echo "Variante $GENE"
+echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Abrir no navegador: http://localhost:$PORT"
 echo "Regiao: ${chr}:${s1}-${end}"
 echo "============================================================"
 
