@@ -35,18 +35,41 @@ fi
 echo "Usando IGV: $IGV_CMD"
 
 # ---------- DISPLAY ----------
-if [ -z "${DISPLAY:-}" ]; then
-  echo "DISPLAY vazio: subindo Xvfb :99 (display virtual)."
+ensure_xvfb() {
   XSOCK="/tmp/.X11-unix/X99"
+  if [ -S "$XSOCK" ] && command -v xdpyinfo >/dev/null 2>&1 && DISPLAY=:99 xdpyinfo >/dev/null 2>&1; then
+    return 0
+  fi
   command -v Xvfb >/dev/null 2>&1 || { echo "ERRO: Xvfb ausente." >&2; exit 1; }
   pkill -f "Xvfb :99" 2>/dev/null; sleep 1
   Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb_igv.log 2>&1 &
-  for i in $(seq 1 20); do
-    [ -S "$XSOCK" ] && break; sleep 0.5
-  done
-  export DISPLAY=:99
+  for i in $(seq 1 20); do [ -S "$XSOCK" ] && break; sleep 0.5; done
+}
+
+if [ -z "${DISPLAY:-}" ]; then
+  echo "DISPLAY vazio: subindo Xvfb :99."
+  ensure_xvfb; export DISPLAY=:99
+elif [[ "$DISPLAY" == :* ]]; then
+  sock="/tmp/.X11-unix/X${DISPLAY#:}"
+  if [ -S "$sock" ] && command -v xdpyinfo >/dev/null 2>&1 && DISPLAY="$DISPLAY" xdpyinfo >/dev/null 2>&1; then
+    echo "Usando DISPLAY=$DISPLAY (servidor X presente)."
+  else
+    echo "DISPLAY=$DISPLAY sem servidor X respondivel; subindo Xvfb :99."
+    ensure_xvfb; export DISPLAY=:99
+  fi
 else
-  echo "Usando DISPLAY=$DISPLAY (X forwarding?)."
+  echo "Usando DISPLAY=$DISPLAY (possivelmente X forwarding via ssh -Y)."
+fi
+
+# ---------- VNC opcional (para ver o display virtual) ----------
+if command -v x11vnc >/dev/null 2>&1; then
+  x11vnc -display :99 -bg -nopw -listen localhost -rfbport 5900 >/tmp/x11vnc.log 2>&1 &
+  echo "x11vnc iniciado em localhost:5900."
+  echo "  Para ver: no seu desktop faca  ssh -L 5900:localhost:5900 usuario@carloschagas"
+  echo "  e conecte um VNC viewer em localhost:5900."
+else
+  echo "Dica: x11vnc nao instalado. Para ver a janela, use 'ssh -Y' (X forwarding) e"
+  echo "      garanta que DISPLAY aponte para o display encaminhado (nao :99)."
 fi
 
 # ---------- checagens ----------
