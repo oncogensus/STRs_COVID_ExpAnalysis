@@ -26,7 +26,11 @@ OUT="/tmp/igvjs_${GENE}"; mkdir -p "$OUT"
 
 # BED so deste locus (fallback: BED inteiro, por caminho absoluto)
 awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/$GENE.bed"
-if [ -s "$OUT/$GENE.bed" ]; then BED_URL="/$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
+if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
+# normaliza barras duplas em todas as URLs
+BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
+vbam="$(echo "$vbam" | sed 's|//*|/|g')"
+cbam="$(echo "$cbam" | sed 's|//*|/|g')"
 
 # helper: descobre o arquivo de indice (.bam.bai ou .bai)
 idx_of() {
