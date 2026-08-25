@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # IGV.js (navegador) para a variante ROBO2.
-# Anotacao so da amostra com variante + BAMs das duas amostras.
-# Abordagem: o servidor HTTP sobe a PARTIR DA RAIZ (/) e os tracks usam
-# caminhos absolutos, evitando problemas de symlink fora do diretorio.
-# Uso: bash igv_per_variant/ROBO2.sh   (requer str_samples_bams.tsv + str_samples_with_variant.bed)
+# Anotacao so da amostra com variante + reads (BAMs) das duas amostras.
+# Os BAMs sao EXTRAIDOS para a regiao do locus (+/- FLANK) com samtools e
+# reindexados, gerando arquivos pequenos e rapidos p/ o IGV.js (evita servir
+# BAMs inteiros de dezenas de GB pelo tunel SSH).
+# Uso: bash igv_per_variant/ROBO2.sh   (requer samtools + str_samples_bams.tsv)
 set -u
 
-GENE="CDH12"; PORT="8203"
+GENE="CDH12"; PORT="8203"; FLANK=1000
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$BASE"
 
 TSV="str_samples_bams.tsv"
@@ -17,49 +18,56 @@ ANN="str_samples_with_variant.bed"
 row="$(awk -F'\t' -v g="$GENE" '$1==g' "$TSV")"
 [ -z "$row" ] && { echo "ERRO: $GENE nao encontrado no TSV."; exit 1; }
 chr="$(echo "$row" | cut -f3)"; start0="$(echo "$row" | cut -f4)"; end="$(echo "$row" | cut -f5)"
-# normaliza barras duplas (ex.: recal//x.bam)
 vbam="$(echo "$row" | cut -f7 | sed 's|//*|/|g')"
 cbam="$(echo "$row" | cut -f9 | sed 's|//*|/|g')"
 s1=$((start0 + 1))
 
+command -v samtools >/dev/null 2>&1 || { echo "ERRO: samtools ausente. Instale: micromamba install -n igv -c bioconda samtools"; exit 1; }
+command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
+
 OUT="/tmp/igvjs_${GENE}"; mkdir -p "$OUT"
 
-# BED so deste locus (fallback: BED inteiro, por caminho absoluto)
+# BED so deste locus (fallback: BED inteiro)
 awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/$GENE.bed"
 if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
-# normaliza barras duplas em todas as URLs
 BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
-vbam="$(echo "$vbam" | sed 's|//*|/|g')"
-cbam="$(echo "$cbam" | sed 's|//*|/|g')"
 
-# helper: descobre o arquivo de indice (.bam.bai ou .bai)
-idx_of() {
-  local b="$1" c=""
-  for cand in "$b.bai" "${b%.bam}.bai"; do
-    [ -f "$cand" ] && { c="$cand"; break; }
-  done
-  [ -n "$c" ] && printf '%s' "$c"
-}
-
-tt="$(mktemp)"
-echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
-
-add_bam() {
-  local b="$1"
-  if [ -f "$b" ]; then
-    local iu; iu="$(idx_of "$b")"
-    if [ -n "$iu" ]; then
-      echo "{\"type\":\"alignment\",\"name\":\"$(basename "$b")\",\"url\":\"$b\",\"indexURL\":\"$iu\"}" >> "$tt"
-    else
-      echo "WARN: indice .bai ausente para $b" >&2
-    fi
+# extrai a regiao do locus (+/- FLANK) de cada BAM e reindexa
+extract_bam() {
+  local full="$1" label="$2"
+  [ -f "$full" ] || { echo "WARN: BAM ausente: $full" >&2; return; }
+  local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
+  local fend=$(( end + FLANK ))
+  local reg="${chr}:${fstart}-${fend}"
+  local outb="$OUT/$GENE.$label.bam"
+  samtools view -b -h "$full" "$reg" > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+  if [ -s "$outb" ]; then
+    samtools index "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    echo "$outb $outb.bai"
   else
-    echo "WARN: BAM ausente: $b" >&2
+    echo "WARN: extract vazio p/ $full ($reg); usando BAM completo." >&2
+    local idx=""
+    [ -f "$full.bai" ] && idx="$full.bai"
+    [ -z "$idx" ] && [ -f "${full%.bam}.bai" ] && idx="${full%.bam}.bai"
+    [ -n "$idx" ] && echo "$full $idx" || echo "WARN: sem indice p/ $full" >&2
   fi
 }
-add_bam "$vbam"
-add_bam "$cbam"
+read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
+read -r cb_out cb_idx <<< "$(extract_bam "$cbam" control)"
 
+# tracks.json (sem virgula inicial; paste insere o separador)
+tt="$(mktemp)"
+echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
+add_extracted() {
+  local b="$1" idx="$2" name="$3"
+  if [ -n "$b" ] && [ -f "$b" ] && [ -n "$idx" ] && [ -f "$idx" ]; then
+    echo "{\"type\":\"alignment\",\"name\":\"$name\",\"url\":\"$b\",\"indexURL\":\"$idx\"}" >> "$tt"
+  else
+    echo "WARN: track nao adicionado: $b ($idx)" >&2
+  fi
+}
+add_extracted "$vb_out" "$vb_idx" "$(basename "$vbam")"
+add_extracted "$cb_out" "$cb_idx" "$(basename "$cbam")"
 { echo "["; paste -sd, "$tt"; echo "]"; } > "$OUT/tracks.json"
 rm -f "$tt"
 
@@ -88,10 +96,7 @@ fetch('tracks.json')
 </html>
 HTML
 
-command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
-
-# Servidor HTTP a partir da raiz (/) com CORS; SimpleHTTPRequestHandler ja suporta Range.
-# Threading + bind em localhost para nao expor na rede.
+# Servidor HTTP a partir da raiz (/) com CORS; SimpleHTTPRequestHandler suporta Range.
 python - "$PORT" <<'PY' >"/tmp/igvjs_${GENE}.log" 2>&1 &
 import sys, http.server, socketserver
 port = int(sys.argv[1])
@@ -105,27 +110,25 @@ PY
 PID=$!
 trap "kill $PID 2>/dev/null" EXIT
 
-# Auto-teste: confirma se cada arquivo e servido (codigo HTTP 200)
 sleep 1
 if command -v curl >/dev/null 2>&1; then
-  echo "Auto-teste de acesso (codigo HTTP esperado 200):"
-  for u in "$BED_URL" "$vbam" "$vbam.bai" "$cbam" "$cbam.bai"; do
-    code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$u")
-    echo "  [$code]  $u"
+  echo "Auto-teste (HTTP 200 esperado):"
+  for u in "$BED_URL" "$vb_out" "$vb_idx" "$cb_out" "$cb_idx"; do
+    [ -n "$u" ] && code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$u") && echo "  [$code]  $u"
   done
 else
-  echo "WARN: curl ausente; nao rodei auto-teste."
+  echo "WARN: curl ausente; auto-teste ignorado."
 fi
 
 echo
 echo "============================================================"
 echo "Variante $GENE"
-echo "BAM variante: $vbam"
-echo "BAM controle: $cbam"
+echo "Regiao: ${chr}:${s1}-${end} (flank +/-${FLANK})"
+echo "BAM variante extraido: $vb_out"
+echo "BAM controle extraido: $cb_out"
 echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Regiao: ${chr}:${s1}-${end}"
-echo "Log do servidor: /tmp/igvjs_$GENE.log"
+echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igvjs_${GENE}_samtools.log"
 echo "============================================================"
 
 wait "$PID"

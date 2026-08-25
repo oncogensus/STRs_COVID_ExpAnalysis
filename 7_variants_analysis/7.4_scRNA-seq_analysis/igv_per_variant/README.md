@@ -13,7 +13,16 @@ Cada variante mostra:
   Rscript str_samples_to_bed.R
   ```
 - `python` 3.7+ (suporte a Range, necessário para os BAMs)
+- `samtools` (extrai a região do locus de cada BAM); instale se faltar:
+  `micromamba install -n igv -c bioconda samtools`
 - internet no PC para carregar o igv.js do CDN
+
+## O que o script faz com os BAMs
+Em vez de servir o BAM inteiro (que pode ter dezenas de GB), o script extrai
+só a região do locus com `samtools view -b -h <bam> <chr>:inicio-fim` (flanco
+de `+/-1000 bp`, ajustável pela variável `FLANK` no topo de cada script) e
+reindexa. O IGV.js carrega então um BAM pequeno e rápido. Se a extração vier
+vazia, ele usa o BAM completo como fallback.
 
 ## Uso — uma variante
 No cluster:
