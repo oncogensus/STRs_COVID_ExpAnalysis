@@ -64,7 +64,7 @@ if (file.exists(bed_file)) {
 }
 
 # ---- leitura dos residuos normalizados (fonte dos controles) ----
-norm <- readr::read_tsv(norm_file, show_col_types = FALSE)
+norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)
 norm$sample_id <- trimws(norm$sample_id)
 norm$resid     <- suppressWarnings(as.numeric(norm$allele2_residuals))
