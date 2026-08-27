@@ -6,3 +6,5 @@ litcovid_validation/data/
 litcovid_validation/results/
 dbscan_subset/data/
 dbscan_subset/results/
+pathway_crossvalidation/data/
+pathway_crossvalidation/results/
