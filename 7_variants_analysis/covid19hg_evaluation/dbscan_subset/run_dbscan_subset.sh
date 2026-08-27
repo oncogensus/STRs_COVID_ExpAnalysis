@@ -7,8 +7,13 @@ cd "$HERE"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p data results
 
-# Garante data.table/dbscan no ambiente micromamba `dbscan-r` (binarios conda-forge)
-micromamba install -n dbscan-r -c conda-forge -y r-data.table r-dbscan 2>&1 | tail -5 || \
+# Caminhos do micromamba (a funcao `micromamba` do hook nao e herdada pelo subshell)
+MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/storage2/matheusbomfim/projects/micromamba}"
+MAMBA_BIN="$MAMBA_ROOT_PREFIX/bin/micromamba"
+DBSCAN_RSCRIPT="$MAMBA_ROOT_PREFIX/envs/dbscan-r/bin/Rscript"
+
+# Garante data.table/dbscan no env dbscan-r (no-op se ja existirem)
+"$MAMBA_BIN" install -n dbscan-r -c conda-forge -y r-data.table r-dbscan 2>&1 | tail -5 || \
   echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env dbscan-r, pode ignorar."
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
@@ -39,8 +44,8 @@ NR==FNR { ids[$1]; next }
 FNR==1  { for(i=1;i<=NF;i++) if($i=="STRs_ID") c=i; print; next }
 $(c) in ids
 ' data/suggestive_strs_ids.txt "$RESIDUALS" > data/suggestive_strs_residuals.tsv
-# R roda no env micromamba `dbscan-r` (tem data.table/dbscan)
-micromamba run -n dbscan-r Rscript run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
+# R roda no env micromamba dbscan-r (tem data.table/dbscan)
+"$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
 echo "=== 4/5 junta outliers ==="
 python3 summarize_subset.py \
