@@ -7,9 +7,9 @@ cd "$HERE"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p data results
 
-# Biblioteca R de usuario (para data.table/dbscan, se ausentes no env `igv`)
-export R_LIBS_USER="${R_LIBS_USER:-$HOME/R/library}"
-mkdir -p "$R_LIBS_USER"
+# Garante data.table/dbscan no ambiente micromamba `igv` (binarios conda-forge)
+micromamba install -n igv -c conda-forge -y r-data.table r-dbscan 2>&1 | tail -5 || \
+  echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env igv, pode ignorar."
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
 WINDOW=50000

@@ -3,17 +3,15 @@
 # Re-roda o DBSCAN (mesmos parametros de 5_dbscan/outliers_search/5.2_dbscan_str.r)
 # sobre o SUBSET de STRs localizados nos genes sugestivos do COVID-19 HG.
 #
+# Depende de data.table e dbscan instalados no env micromamba `igv`:
+#   micromamba install -n igv -c conda-forge -y r-data.table r-dbscan
+#
 # Uso:
 #   Rscript run_dbscan_subset.R <input_residuals.tsv> <output.tsv>
-
-# Garante que a biblioteca de usuario (R_LIBS_USER) esteja no path e instala
-# data.table/dbscan caso nao existam no ambiente (ex.: env `igv` sem os pacotes).
-rlibs <- Sys.getenv("R_LIBS_USER")
-if (rlibs != "") .libPaths(c(rlibs, .libPaths()))
 for (pkg in c("data.table", "dbscan")) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg, repos = "https://cloud.r-project.org",
-                     lib = if (rlibs != "") rlibs else NULL)
+    stop("Pacote '", pkg, "' ausente no env `igv`. Instale com:\n",
+         "  micromamba install -n igv -c conda-forge -y r-", pkg, "\n")
   }
 }
 library(data.table)
