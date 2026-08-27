@@ -9,6 +9,9 @@ mkdir -p data results
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 export CATALOG
 
+echo "=== 0/2 baixa arquivo gene-anotado do LitCovid (se ausente) ==="
+bash download_litcovid.sh
+
 echo "=== 1/2 genes outlier do DBSCAN global (n_outliers>0) ==="
 python3 get_outlier_genes.py --catalog "$CATALOG" --out data/outlier_genes.txt
 

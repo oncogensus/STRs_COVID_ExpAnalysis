@@ -15,10 +15,12 @@ suporte na literatura COVID?"
 
 ## Como rodar (cluster, env `igv`)
 ```bash
-bash download_litcovid.sh          # 1x (~2.3GB; ignorado pelo git)
-bash run_litcovid.sh               # ou: qsub litcovid.pbs  (submit_litcovid.sh)
+bash run_litcovid.sh               # ja inclui o download (1x, ~2.3GB) + get_outlier_genes + gene_literature
+# ou via PBS: qsub litcovid.pbs  (submit_litcovid.sh)
 ```
-`CATALOG` default: `../../samples/STRs_analysis_dataset.tsv` (sobrescreva se precisar).
+Para submeter as DUAS etapas (Parte 1 -> Parte 2) encadeadas via PBS, use na pasta
+pai: `bash submit_validation.sh`.
+`CATALOG` default: `../../../samples/STRs_analysis_dataset.tsv` (sobrescreva se precisar).
 
 ## Saídas
 - `results/gene_literature.tsv` — `gene, entrez, pmid, title, journal, year`.

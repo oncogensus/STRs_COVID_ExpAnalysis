@@ -18,7 +18,9 @@ a coorte tem STRs que o DBSCAN marca como outliers?"
 ```bash
 bash run_dbscan_subset.sh          # ou: qsub dbscan_subset.pbs  (submit_dbscan_subset.sh)
 ```
-`CATALOG` e `RESIDUALS` têm defaults relativos ao repo; sobrescreva se precisar.
+Para submeter as DUAS etapas (Parte 1 -> Parte 2) encadeadas via PBS, use na pasta
+pai: `bash submit_validation.sh` (a Parte 2 depende da Parte 1 para o crossvalidate).
+`CATALOG` e `RESIDUALS` têm defaults relativos à raiz do repo (3 níveis acima); sobrescreva se precisar.
 
 ## Pré-requisitos
 - `genes.hg38.bed` e `data/*.leave_23andme_20220403.tsv.gz` já existem em
