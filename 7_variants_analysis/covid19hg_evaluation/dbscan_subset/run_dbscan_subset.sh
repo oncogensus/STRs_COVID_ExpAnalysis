@@ -6,6 +6,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p data results
+
+# Biblioteca R de usuario (para data.table/dbscan, se ausentes no env `igv`)
+export R_LIBS_USER="${R_LIBS_USER:-$HOME/R/library}"
+mkdir -p "$R_LIBS_USER"
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
 WINDOW=50000
