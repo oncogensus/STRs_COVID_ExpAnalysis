@@ -4,7 +4,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
-ROOT="$(cd "$HERE/../.." && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
 mkdir -p data results
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
