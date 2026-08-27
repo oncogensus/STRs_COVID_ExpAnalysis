@@ -13,7 +13,8 @@ export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
 MICROMAMBA="$MAMBA_ROOT_PREFIX/bin/micromamba"
 
 # Garante pacotes do env r_enrich_env (no-op se ja existirem)
-"$MICROMAMBA" install -n r_enrich_env -c conda-forge -y r-reactomepa r-msigdbr r-upsetr r-patchwork 2>&1 | tail -3 || \
+# Reactome via msigdbr (CP:REACTOME) + clusterProfiler::enricher (offline, sem ReactomePA)
+"$MICROMAMBA" install -n r_enrich_env -c conda-forge -y r-msigdbr r-patchwork 2>&1 | tail -3 || \
   echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env r_enrich_env, pode ignorar."
 
 RSCRIPT="$MAMBA_ROOT_PREFIX/envs/r_enrich_env/bin/Rscript"

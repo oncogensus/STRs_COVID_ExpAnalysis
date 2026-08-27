@@ -86,12 +86,21 @@ run_kegg <- function(genes, bg) {
   res
 }
 run_reactome <- function(genes, bg) {
-  res <- tryCatch(
-    enrichPathway(gene = genes, universe = bg, pvalueCutoff = 0.05,
-                  pAdjustMethod = "BH", qvalueCutoff = 1.0),
-    error = function(e) { cat("ReactomePA indisponivel:", conditionMessage(e), "\n"); NULL })
-  if (!is.null(res) && nrow(res@result) > 0)
-    res <- setReadable(res, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+  res <- tryCatch({
+    if (!requireNamespace("msigdbr", quietly = TRUE))
+      stop("msigdbr indisponivel")
+    rs <- msigdbr(species = "Homo sapiens", category = "CP", subcategory = "REACTOME") %>%
+      dplyr::select(gs_id, gs_name, entrez_gene)
+    rs <- rs[!is.na(rs$entrez_gene) & rs$entrez_gene != "", ]
+    t2g <- unique(rs %>% dplyr::select(gs_id, entrez_gene))
+    t2n <- unique(rs %>% dplyr::select(gs_id, gs_name))
+    er <- enricher(gene = genes, universe = bg, pvalueCutoff = 0.05,
+                   pAdjustMethod = "BH", qvalueCutoff = 1.0,
+                   TERM2GENE = t2g, TERM2NAME = t2n)
+    if (!is.null(er) && nrow(er@result) > 0)
+      er <- setReadable(er, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+    er
+  }, error = function(e) { cat("Reactome (msigdbr) falhou:", conditionMessage(e), "\n"); NULL })
   res
 }
 
@@ -104,6 +113,7 @@ extract_sig <- function(res, source_name, pipeline) {
   if (is.null(res) || nrow(res@result) == 0) return(data.frame())
   r <- as.data.frame(res@result)
   r <- r[!is.na(r$p.adjust) & r$p.adjust < 0.05, ]
+  if (nrow(r) == 0) return(data.frame())
   data.frame(source = source_name, pipeline = pipeline,
              ID = r$ID, Description = r$Description,
              pvalue = r$pvalue, p.adjust = r$p.adjust,
@@ -197,7 +207,7 @@ ggsave("results/figB_membership.png", pBmem, width = 6, height = 10, dpi = 300, 
 ## Fig C: sobreposicao com hsa05171 (COVID-19) via msigdbr (offline)
 tryCatch({
   library(msigdbr)
-  kegg_covid <- msigdbr(species = "Homo sapiens", category = "KEGG") %>%
+  kegg_covid <- msigdbr(species = "Homo sapiens", category = "CP", subcategory = "KEGG") %>%
     filter(gs_id == "hsa05171")
   covid_genes <- unique(kegg_covid$gene_symbol)
   dfc <- data.frame(gene = covid_genes,
