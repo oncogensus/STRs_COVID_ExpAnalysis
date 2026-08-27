@@ -1,0 +1,24 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N gene_crossvalidation
+#PBS -o gene_crossvalidation.pbs.out
+#PBS -e gene_crossvalidation.pbs.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+cd $PBS_O_WORKDIR
+
+export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
+MICROMAMBA="$MAMBA_ROOT_PREFIX/bin/micromamba"
+
+# Garante UpSetR + org.Hs.eg.db no env r_enrich_env (no-op se ja existirem)
+"$MICROMAMBA" install -n r_enrich_env -c conda-forge -y r-upsetr 2>&1 | tail -3 || \
+  echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env r_enrich_env, pode ignorar."
+
+RSCRIPT="$MAMBA_ROOT_PREFIX/envs/r_enrich_env/bin/Rscript"
+
+echo "=== Gene-level cross-validation (agnostic x GWAS-filtered) ==="
+"$RSCRIPT" gene_crossvalidation.R || echo "AVISO: gene_crossvalidation falhou (veja .err)"
+
+echo "=== pronto ==="

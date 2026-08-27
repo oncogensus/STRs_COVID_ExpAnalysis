@@ -61,9 +61,10 @@ if (length(p2_entrez) < 5) stop("P2 muito pequeno para enrichment")
 ## ======================================================================
 ## 3. ENRICHMENT (KEGG online + Reactome via msigdbr/enricher, FDR<0.05)
 ## ======================================================================
+## Retorna TODAS as vias testadas (cutoff=1) para re-filtrar por threshold em R.
 run_kegg <- function(genes, bg) {
   res <- enrichKEGG(gene = genes, organism = "hsa", keyType = "ncbi-geneid",
-                    universe = bg, pvalueCutoff = 0.05,
+                    universe = bg, pvalueCutoff = 1.0,
                     pAdjustMethod = "BH", qvalueCutoff = 1.0)
   if (!is.null(res) && nrow(res@result) > 0)
     res <- setReadable(res, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
@@ -72,13 +73,14 @@ run_kegg <- function(genes, bg) {
 run_reactome <- function(genes, bg) {
   res <- tryCatch({
     if (!requireNamespace("msigdbr", quietly = TRUE)) stop("msigdbr indisponivel")
-    rs <- msigdbr::msigdbr(species = "Homo sapiens", category = "CP",
-                           subcategory = "REACTOME") %>%
+    ## msigdbr: curated pathways ficam em category = "C2", subcategory = "CP:REACTOME"
+    rs <- msigdbr::msigdbr(species = "Homo sapiens", category = "C2",
+                           subcategory = "CP:REACTOME") %>%
       dplyr::select(gs_id, gs_name, entrez_gene)
     rs <- rs[!is.na(rs$entrez_gene) & rs$entrez_gene != "", ]
     t2g <- unique(rs %>% dplyr::select(gs_id, entrez_gene))
     t2n <- unique(rs %>% dplyr::select(gs_id, gs_name))
-    er <- enricher(gene = genes, universe = bg, pvalueCutoff = 0.05,
+    er <- enricher(gene = genes, universe = bg, pvalueCutoff = 1.0,
                    pAdjustMethod = "BH", qvalueCutoff = 1.0,
                    TERM2GENE = t2g, TERM2NAME = t2n)
     if (!is.null(er) && nrow(er@result) > 0)
@@ -92,22 +94,21 @@ kk_p2 <- run_kegg(p2_entrez, bg_entrez)
 re_p1 <- run_reactome(p1_entrez, bg_entrez)
 re_p2 <- run_reactome(p2_entrez, bg_entrez)
 
-extract_sig <- function(res, source_name, pipeline) {
+## Extrai TODAS as vias testadas (com p bruto e FDR) para re-filtrar por threshold.
+extract_all <- function(res, source_name, pipeline) {
   if (is.null(res) || nrow(res@result) == 0) return(data.frame())
   r <- as.data.frame(res@result)
-  r <- r[!is.na(r$p.adjust) & r$p.adjust < 0.05, ]
-  if (nrow(r) == 0) return(data.frame())
   data.frame(source = source_name, pipeline = pipeline,
              ID = r$ID, Description = r$Description,
              pvalue = r$pvalue, p.adjust = r$p.adjust,
              geneID = r$geneID, stringsAsFactors = FALSE)
 }
-sig <- bind_rows(
-  extract_sig(kk_p1, "KEGG",    "P1"),
-  extract_sig(kk_p2, "KEGG",    "P2"),
-  extract_sig(re_p1, "Reactome", "P1"),
-  extract_sig(re_p2, "Reactome", "P2"))
-cat("Vias significativas (FDR<0.05):", nrow(sig), "\n")
+all_sig <- bind_rows(
+  extract_all(kk_p1, "KEGG",     "P1"),
+  extract_all(kk_p2, "KEGG",     "P2"),
+  extract_all(re_p1, "Reactome", "P1"),
+  extract_all(re_p2, "Reactome", "P2"))
+cat("[all_sig] vias testadas retidas:", nrow(all_sig), "\n")
 
 ## debug: top pathways por pvalue (mesmo que nenhuma passe FDR) para inspecao
 dump_top <- function(res, tag) {
@@ -129,30 +130,78 @@ save_individual(kk_p1, "KEGG_P1"); save_individual(kk_p2, "KEGG_P2")
 save_individual(re_p1, "Reactome_P1"); save_individual(re_p2, "Reactome_P2")
 
 ## ======================================================================
-## 4. CLASSIFICACAO DE CROSS-VALIDATION (nivel via)
+## 4. CLASSIFICACAO DE CROSS-VALIDATION (nivel via) POR THRESHOLD
+##    - nominal: p bruto < 0.05
+##    - fdr01 : FDR (BH)  < 0.10
+##    - fdr05 : FDR (BH)  < 0.50
+## Cada threshold gera seu proprio CSV/TSV (pedido do usuario).
 ## ======================================================================
-if (nrow(sig) == 0) {
-  cat("AVISO: nenhuma via significativa (FDR<0.05). Veja results/*_top_pvalue.csv para inspecao.\n")
-  cls <- data.frame(source = character(), ID = character(), Description = character(),
-                    p1 = numeric(), p2 = numeric(), in_p1 = logical(), in_p2 = logical(),
-                    class = factor(levels = c("High-Confidence","Hypothesis-Driven","Agnostic-Specific")))
-} else {
-  cls <- sig %>% group_by(source, ID) %>% summarise(
-    Description = first(Description),
-    p1 = min(p.adjust[pipeline == "P1"], na.rm = TRUE),
-    p2 = min(p.adjust[pipeline == "P2"], na.rm = TRUE),
-    in_p1 = any(pipeline == "P1"),
-    in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
-    class = case_when(in_p1 & in_p2 ~ "High-Confidence",
-                      in_p1            ~ "Hypothesis-Driven",
-                      in_p2            ~ "Agnostic-Specific",
-                      TRUE             ~ "None"))
-  cls$class <- factor(cls$class,
-                      levels = c("High-Confidence","Hypothesis-Driven","Agnostic-Specific"))
+minna <- function(x) if (length(x) == 0) NA else min(x, na.rm = TRUE)
+
+summarise_cls <- function(sig, tag) {
+  if (nrow(sig) == 0) {
+    cat(sprintf("AVISO: nenhuma via em '%s'. Veja results/*_top_pvalue.csv.\n", tag))
+    cls <- data.frame(source = character(), ID = character(), Description = character(),
+                      p1_pvalue = numeric(), p2_pvalue = numeric(),
+                      p1_p.adjust = numeric(), p2_p.adjust = numeric(),
+                      in_p1 = logical(), in_p2 = logical(),
+                      class = character(), stringsAsFactors = FALSE)
+  } else {
+    cls <- sig %>% group_by(source, ID) %>% summarise(
+      Description  = first(Description),
+      p1_pvalue    = minna(pvalue[pipeline == "P1"]),
+      p2_pvalue    = minna(pvalue[pipeline == "P2"]),
+      p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),
+      p2_p.adjust  = minna(p.adjust[pipeline == "P2"]),
+      in_p1 = any(pipeline == "P1"),
+      in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
+      class = case_when(in_p1 & in_p2 ~ "High-Confidence",
+                        in_p1            ~ "Hypothesis-Driven",
+                        in_p2            ~ "Agnostic-Specific",
+                        TRUE             ~ "None"))
+  }
+  write.table(cls, sprintf("results/pathway_convergence_%s.tsv", tag),
+              sep = "\t", row.names = FALSE, quote = FALSE)
+  write.csv(cls, sprintf("results/pathway_convergence_%s.csv", tag), row.names = FALSE)
+  if (nrow(cls) > 0)
+    cat(sprintf("[%s] High-Confidence: %d | Hypothesis-Driven: %d | Agnostic-Specific: %d\n",
+                tag, sum(cls$class == "High-Confidence"),
+                sum(cls$class == "Hypothesis-Driven"),
+                sum(cls$class == "Agnostic-Specific")))
+  invisible(cls)
 }
-write.table(cls, "results/pathway_convergence.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
-if (nrow(cls) > 0) cat("High-Confidence:", sum(cls$class == "High-Confidence"),
-    "| Hypothesis-Driven:", sum(cls$class == "Hypothesis-Driven"),
-    "| Agnostic-Specific:", sum(cls$class == "Agnostic-Specific"), "\n")
+
+sig_nominal <- all_sig %>% filter(!is.na(pvalue) & pvalue < 0.05)
+sig_fdr01  <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.10)
+sig_fdr05  <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.50)
+
+cat("=== Cross-validation por threshold ===\n")
+build_convergence_nominal <- summarise_cls(sig_nominal, "nominal_p005")
+build_convergence_fdr01   <- summarise_cls(sig_fdr01,   "fdr01")
+build_convergence_fdr05   <- summarise_cls(sig_fdr05,   "fdr05")
+
+## ======================================================================
+## 5. TABELA-MAE unindo os tres thresholds (p bruto + FDR 0.1 + FDR 0.5)
+## ======================================================================
+master <- all_sig %>% group_by(source, ID) %>% summarise(
+  Description  = first(Description),
+  p1_pvalue    = minna(pvalue[pipeline == "P1"]),
+  p2_pvalue    = minna(pvalue[pipeline == "P2"]),
+  p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),
+  p2_p.adjust  = minna(p.adjust[pipeline == "P2"]),
+  in_p1 = any(pipeline == "P1"),
+  in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
+  pass_nominal = (in_p1 & !is.na(p1_pvalue) & p1_pvalue < 0.05) |
+                 (in_p2 & !is.na(p2_pvalue) & p2_pvalue < 0.05),
+  pass_fdr01   = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.10) |
+                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.10),
+  pass_fdr05   = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.50) |
+                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.50),
+  class = case_when(in_p1 & in_p2 ~ "High-Confidence",
+                    in_p1            ~ "Hypothesis-Driven",
+                    in_p2            ~ "Agnostic-Specific",
+                    TRUE             ~ "None"))
+write.table(master, "results/pathway_convergence.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
+cat("Tabela-mae: results/pathway_convergence.tsv (", nrow(master), " vias unicas)\n", sep = "")
 
 cat("\n=== Pronto: tabelas em results/ (figuras em plot_pathways.R) ===\n")

@@ -23,31 +23,33 @@ ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GAL
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 
 ## ======================================================================
-## FIG A: dotplot de vias enriquecidas por pipeline (cor = classe)
+## FIG A: dotplot de vias enriquecidas por pipeline (nominal p<0.05; cor = classe)
 ## ======================================================================
 safe_read <- function(f) if (file.exists(f)) read_csv(f) else NULL
+
+PIPE_LAB <- c("P1" = "GWAS-COVID filtered", "P2" = "Global outliers")
 
 dfA <- bind_rows(
   safe_read("results/KEGG_P1_enrich.csv")    %>% mutate(source = "KEGG",    pipeline = "P1"),
   safe_read("results/KEGG_P2_enrich.csv")    %>% mutate(source = "KEGG",    pipeline = "P2"),
   safe_read("results/Reactome_P1_enrich.csv") %>% mutate(source = "Reactome", pipeline = "P1"),
   safe_read("results/Reactome_P2_enrich.csv") %>% mutate(source = "Reactome", pipeline = "P2")
-) %>% filter(!is.na(p.adjust) & p.adjust < 0.05)
+) %>% filter(!is.na(pvalue) & pvalue < 0.05)
 
 if (!is.null(dfA) && nrow(dfA) > 0) {
-  cls <- tryCatch(read_delim("results/pathway_convergence.tsv", delim = "\t"), error = function(e) NULL)
+  cls <- tryCatch(read_delim("results/pathway_convergence_nominal.tsv", delim = "\t"), error = function(e) NULL)
   if (!is.null(cls)) dfA <- left_join(dfA, cls %>% select(source, ID, class), by = c("source", "ID"))
   dfA <- dfA %>% mutate(n_gene = lengths(strsplit(geneID, "/")),
                         class = ifelse(is.na(class), "None", as.character(class)),
                         lab = paste(source, Description, sep = ": "))
-  pA <- ggplot(dfA, aes(x = -log10(p.adjust), y = reorder(lab, -log10(p.adjust)))) +
+  pA <- ggplot(dfA, aes(x = -log10(pvalue), y = reorder(lab, -log10(pvalue)))) +
     geom_point(aes(size = n_gene, color = class), alpha = 0.85) +
     scale_color_manual(values = c("High-Confidence" = "#2C3E50",
                                   "Hypothesis-Driven" = "#3498DB",
                                   "Agnostic-Specific" = "#c0392b", "None" = "#999999")) +
     facet_wrap(~ source, scales = "free_y") +
-    theme_minimal() + labs(title = "Vias enriquecidas por pipeline (FDR<0.05)",
-                           x = "-log10(FDR)", y = "", size = "n genes")
+    theme_minimal() + labs(title = "Vias enriquecidas por pipeline (nominal p<0.05)",
+                           x = "-log10(p bruto)", y = "", size = "n genes")
   ggsave("results/figA_dotplot.png", pA, width = 12, height = 10, dpi = 300, bg = "white")
   cat("Fig A ok\n")
 } else cat("Sem vias significativas para Fig A (veja *_top_pvalue.csv).\n")
@@ -55,10 +57,11 @@ if (!is.null(dfA) && nrow(dfA) > 0) {
 ## ======================================================================
 ## FIG B: cnetplot das vias High-Confidence + heatmap de membership
 ## ======================================================================
-cls <- tryCatch(read_delim("results/pathway_convergence.tsv", delim = "\t"), error = function(e) NULL)
-if (!is.null(cls) && nrow(cls) > 0) {
-  hc_k <- cls$ID[cls$class == "High-Confidence" & cls$source == "KEGG"]
-  hc_r <- cls$ID[cls$class == "High-Confidence" & cls$source == "Reactome"]
+cls_master  <- tryCatch(read_delim("results/pathway_convergence.tsv", delim = "\t"), error = function(e) NULL)
+cls_nominal <- tryCatch(read_delim("results/pathway_convergence_nominal.tsv", delim = "\t"), error = function(e) NULL)
+if (!is.null(cls_nominal) && nrow(cls_nominal) > 0) {
+  hc_k <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "KEGG"]
+  hc_r <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "Reactome"]
   plots_B <- list()
   if (length(hc_k) > 0 && file.exists("results/KEGG_P1.rds")) {
     kk <- readRDS("results/KEGG_P1.rds")
@@ -71,11 +74,13 @@ if (!is.null(cls) && nrow(cls) > 0) {
                                  labs(title = "High-Confidence (Reactome)")))
   }
   if (length(plots_B) > 0) {
-    (wrap_plots(plots_B, ncol = 1)) +
-      ggsave("results/figB_cnetplot.png", width = 10, height = 6 * length(plots_B), dpi = 300, bg = "white")
+    ggsave("results/figB_cnetplot.png", wrap_plots(plots_B, ncol = 1),
+           width = 10, height = 6 * length(plots_B), dpi = 300, bg = "white")
     cat("Fig B cnetplot ok\n")
   }
-  mem <- cls %>% filter(class != "None") %>%
+}
+if (!is.null(cls_master) && nrow(cls_master) > 0) {
+  mem <- cls_master %>% filter(class != "None") %>%
     select(source, ID, Description, class, in_p1, in_p2) %>%
     pivot_longer(cols = c(in_p1, in_p2), names_to = "pip", values_to = "member") %>%
     mutate(pip = ifelse(pip == "in_p1", "P1", "P2"),
@@ -86,7 +91,7 @@ if (!is.null(cls) && nrow(cls) > 0) {
     labs(title = "Membership de vias por pipeline", x = "", y = "", fill = "na via")
   ggsave("results/figB_membership.png", pBmem, width = 6, height = 10, dpi = 300, bg = "white")
   cat("Fig B membership ok\n")
-} else cat("Sem vias para Fig B.\n")
+}
 
 ## ======================================================================
 ## FIG C: sobreposicao com hsa05171 (COVID-19) via msigdbr (offline)
@@ -95,8 +100,9 @@ p1_sym <- unique(toupper(str_trim(read_delim(p1_file, delim = "\t")$gene)))
 p2_sym <- unique(toupper(str_trim(read_delim(p2_file, delim = "\t")$gene_name)))
 tryCatch({
   library(msigdbr)
-  kegg_covid <- msigdbr::msigdbr(species = "Homo sapiens", category = "CP",
-                                 subcategory = "KEGG") %>% filter(gs_id == "hsa05171")
+  ## msigdbr: curated pathways ficam em category = "C2", subcategory = "CP:KEGG"
+  kegg_covid <- msigdbr::msigdbr(species = "Homo sapiens", category = "C2",
+                                 subcategory = "CP:KEGG") %>% filter(gs_id == "hsa05171")
   covid_genes <- unique(kegg_covid$gene_symbol)
   dfc <- data.frame(gene = covid_genes, in_P1 = covid_genes %in% p1_sym,
                     in_P2 = covid_genes %in% p2_sym, stringsAsFactors = FALSE)
