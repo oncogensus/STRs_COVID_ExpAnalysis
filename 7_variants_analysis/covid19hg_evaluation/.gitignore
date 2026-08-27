@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Validacao DBSCAN<->LitCovid: dados baixados e resultados (nao versionar)
+litcovid_validation/data/
+litcovid_validation/results/
+dbscan_subset/data/
+dbscan_subset/results/

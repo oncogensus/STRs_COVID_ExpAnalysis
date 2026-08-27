@@ -14,6 +14,7 @@ samples/*
 *.tsv
 *.gds
 *.pbs
+!7_variants_analysis/covid19hg_evaluation/*.pbs
 *.gtf
 
 # Ignore backup
