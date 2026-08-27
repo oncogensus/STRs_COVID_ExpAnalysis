@@ -12,10 +12,12 @@
 #   cd ../dbscan_subset     && qsub -W depend=afterok:<JOB1> dbscan_subset.pbs
 cd "$(dirname "$0")"
 
-L=$(qsub litcovid_validation/litcovid.pbs)
+cd litcovid_validation
+L=$(qsub litcovid.pbs)
 echo "litcovid_validation -> $L"
 
-D=$(qsub -W depend=afterok:$L dbscan_subset/dbscan_subset.pbs)
+cd ../dbscan_subset
+D=$(qsub -W depend=afterok:$L dbscan_subset.pbs)
 echo "dbscan_subset       -> $D"
 
 echo
