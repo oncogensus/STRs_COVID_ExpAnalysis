@@ -148,7 +148,7 @@ summarise_cls <- function(sig, tag) {
                       class = character(), stringsAsFactors = FALSE)
   } else {
     cls <- sig %>% group_by(source, ID) %>% summarise(
-      Description  = first(Description),
+      Description  = Description[1],
       p1_pvalue    = minna(pvalue[pipeline == "P1"]),
       p2_pvalue    = minna(pvalue[pipeline == "P2"]),
       p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),
@@ -184,7 +184,7 @@ build_convergence_fdr05   <- summarise_cls(sig_fdr05,   "fdr05")
 ## 5. TABELA-MAE unindo os tres thresholds (p bruto + FDR 0.1 + FDR 0.5)
 ## ======================================================================
 master <- all_sig %>% group_by(source, ID) %>% summarise(
-  Description  = first(Description),
+  Description  = Description[1],
   p1_pvalue    = minna(pvalue[pipeline == "P1"]),
   p2_pvalue    = minna(pvalue[pipeline == "P2"]),
   p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),

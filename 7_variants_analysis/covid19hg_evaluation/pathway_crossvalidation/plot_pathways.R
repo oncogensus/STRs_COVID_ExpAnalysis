@@ -40,7 +40,7 @@ if (!is.null(dfA) && nrow(dfA) > 0) {
   cls <- tryCatch(read_delim("results/pathway_convergence_nominal.tsv", delim = "\t"), error = function(e) NULL)
   if (!is.null(cls)) dfA <- left_join(dfA, cls %>% select(source, ID, class), by = c("source", "ID"))
   dfA <- dfA %>% mutate(n_gene = lengths(strsplit(geneID, "/")),
-                        class = ifelse(is.na(class), "None", as.character(class)),
+                        class = ifelse(is.na(.data$class), "None", as.character(.data$class)),
                         lab = paste(source, Description, sep = ": "))
   pA <- ggplot(dfA, aes(x = -log10(pvalue), y = reorder(lab, -log10(pvalue)))) +
     geom_point(aes(size = n_gene, color = class), alpha = 0.85) +
