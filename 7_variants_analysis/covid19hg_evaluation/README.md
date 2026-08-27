@@ -57,3 +57,20 @@ python3 overlap_str_cohort.py --catalog "$CATALOG" --covid-genes covid_genes.tsv
   em regiões densas; janela configurável.
 - `STRs_analysis_dataset.tsv` é pós-QC do STRling (depth≥15, sem homopolímeros).
 - Todos os builds são hg38; cromossomos normalizados para `chrN` internamente.
+
+## PBS (job scheduler do cluster)
+Cada etapa tem um wrapper `.pbs` (fila `workq`, env `igv` via micromamba).
+Submissão em cadeia (com dependência `afterok`):
+
+```bash
+bash submit_all.sh
+# ou, manualmente:
+qsub download_data.pbs
+qsub build_gene_bed.pbs
+qsub extract_covid_genes.pbs
+qsub overlap_str_cohort.pbs
+```
+
+`submit_all.sh` roda no nó de login e encadeia as 4 etapas. O download
+(`download_data.pbs`) tem `walltime=12h`; ajuste se necessário. O caminho do
+catálogo de STR em `overlap_str_cohort.pbs`/`run_all.sh` deve bater com o seu.
