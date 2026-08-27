@@ -1,0 +1,18 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N litcovid_validation
+#PBS -o litcovid.pbs.out
+#PBS -e litcovid.pbs.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=12:00:00
+
+cd $PBS_O_WORKDIR
+
+export MAMBA_ROOT_PREFIX="/storage2/matheusbomfim/projects/micromamba"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+echo "=== LitCovid validation (Parte 1) ==="
+bash run_litcovid.sh
+echo "=== pronto ==="
