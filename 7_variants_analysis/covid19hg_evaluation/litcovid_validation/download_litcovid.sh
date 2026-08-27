@@ -8,10 +8,19 @@ cd "$HERE"
 mkdir -p data
 URL="https://ftp.ncbi.nlm.nih.gov/pub/lu/LitCovid/litcovid2pubtator.json.gz"
 OUT="data/litcovid2pubtator.json.gz"
-if [ -s "$OUT" ]; then
-  echo "Ja existe: $OUT (pule)"
-else
-  echo "Baixando $URL -> $OUT"
-  wget -O "$OUT" "$URL"
+
+if [ -s "$OUT" ] && [ "$(stat -c%s "$OUT" 2>/dev/null || echo 0)" -gt 100000000 ]; then
+  echo "Ja existe e parece valido: $OUT (pule)"
+  exit 0
 fi
-echo "Pronto."
+
+echo "Baixando $URL -> $OUT"
+wget -O "$OUT" "$URL"
+
+# validacao pos-download
+if [ ! -s "$OUT" ] || [ "$(stat -c%s "$OUT")" -lt 100000000 ]; then
+  echo "ERRO: download falhou ou arquivo suspeito (<100MB). Removendo." >&2
+  rm -f "$OUT"
+  exit 1
+fi
+echo "Pronto ($OUT)."

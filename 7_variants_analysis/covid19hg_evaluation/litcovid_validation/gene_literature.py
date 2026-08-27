@@ -4,11 +4,11 @@
 # COVID da literatura do LitCovid que mencionam o gene, usando o arquivo
 # gene-anotado do LitCovid (litcovid2pubtator.json.gz, baixado por download_litcovid.sh).
 #
-# Mapeamento símbolo -> Entrez via MyGene.info; fallback por texto do mention quando
-# o símbolo não mapeia. O arquivo PubTator é percorrido em streaming (JSON-lines, gzip),
-# sem carregar tudo na memória.
+# Mapeamento simbolo -> Entrez via MyGene.info; fallback por texto do mention quando
+# o simbolo nao mapeia. O arquivo PubTator e percorrido em streaming (suporta tanto
+# JSON-lines quanto um unico array JSON, sem carregar tudo na memoria).
 #
-# Saída:
+# Saida:
 #   results/gene_literature.tsv        (gene, entrez, pmid, title, journal, year)
 #   results/gene_literature_summary.tsv (gene, n_outlier_str_loci, n_articles)
 #
@@ -17,7 +17,7 @@
 #       --genes data/outlier_genes.txt \
 #       --litcovid data/litcovid2pubtator.json.gz \
 #       --out results/gene_literature.tsv
-import argparse, csv, gzip, json, sys, time, urllib.parse, urllib.request
+import argparse, csv, gzip, json, os, sys, time, urllib.parse, urllib.request
 
 MYGENE_URL = "https://mygene.info/v3/query"
 
@@ -60,6 +60,53 @@ def map_symbols_to_entrez(symbols):
     return entrez_to_symbol, unmapped
 
 
+def iter_objects(fh):
+    """Yield cada artigo do PubTator, seja JSON-lines ou um unico array JSON.
+    Nao carrega o arquivo inteiro na memoria."""
+    decoder = json.JSONDecoder()
+    buf = ''
+    started = False
+    for chunk in iter(lambda: fh.read(1 << 20), ''):
+        buf += chunk
+        if not started:
+            buf = buf.lstrip()
+            if buf.startswith('['):
+                buf = buf[1:].lstrip()   # pula '[' de um array JSON
+            started = True
+        while True:
+            buf = buf.lstrip(', \n\t\r')
+            if not buf:
+                break
+            try:
+                obj, end = decoder.raw_decode(buf)
+            except ValueError:
+                break   # objeto incompleto; aguarda proximo chunk
+            yield obj
+            buf = buf[end:]
+
+
+def gene_ids_of(art):
+    gids = set()
+    for ann in art.get('annotations', []):
+        if str(ann.get('type', '')).lower() == 'gene':
+            for m in ann.get('mentions', []):
+                g = m.get('gene_id') or m.get('id')
+                if g is not None:
+                    gids.add(str(g))
+    return gids
+
+
+def gene_texts_of(art):
+    txts = set()
+    for ann in art.get('annotations', []):
+        if str(ann.get('type', '')).lower() == 'gene':
+            for m in ann.get('mentions', []):
+                t = (m.get('text') or '').lower()
+                if t:
+                    txts.add(t)
+    return txts
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--genes', required=True)
@@ -92,37 +139,37 @@ def main():
     target_symbol_lower = {s.lower() for s in target_symbols}
     symbol_lower_to_symbol = {s.lower(): s for s in target_symbols}
 
+    if not os.path.exists(args.litcovid):
+        sys.exit(f"ERRO: arquivo LitCovid ausente: {args.litcovid}\n"
+                 f"      Rode antes: bash download_litcovid.sh")
+    sz = os.path.getsize(args.litcovid)
+    sys.stderr.write(f"Arquivo LitCovid: {args.litcovid} ({sz/1e9:.2f} GB)\n")
+    if sz < 100_000_000:
+        sys.exit(f"ERRO: arquivo muito pequeno ({sz} bytes); download falhou ou "
+                 f"esta corrompido. Remova-o e rode download_litcovid.sh novamente.")
+
     seen = set()
     articles = []
     n_total = 0
     with gzip.open(args.litcovid, 'rt', encoding='utf-8', errors='replace') as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                art = json.loads(line)
-            except Exception:
+        for art in iter_objects(fh):
+            if not isinstance(art, dict):
                 continue
             n_total += 1
-            if n_total % 500000 == 0:
+            if n_total % 200000 == 0:
                 sys.stderr.write(f"  processados {n_total} artigos...\n")
             pmid = str(art.get('pmid', ''))
             title = art.get('title', '') or ''
             journal = art.get('journal', '') or ''
             year = art.get('publish_year', '') or ''
             matched = set()
-            for ann in art.get('annotations', []):
-                if ann.get('type') != 'Gene':
-                    continue
-                for m in ann.get('mentions', []):
-                    gid = str(m.get('gene_id', ''))
-                    if gid in target_entrez:
-                        matched.add(entrez_to_symbol[gid])
-                    else:
-                        txt = (m.get('text', '') or '').lower()
-                        if txt in target_symbol_lower:
-                            matched.add(symbol_lower_to_symbol[txt])
+            for gid in gene_ids_of(art):
+                if gid in target_entrez:
+                    matched.add(entrez_to_symbol.get(gid, ''))
+            for t in gene_texts_of(art):
+                if t in target_symbol_lower:
+                    matched.add(symbol_lower_to_symbol[t])
+            matched.discard('')
             for g in matched:
                 key = (g, pmid)
                 if key in seen:
@@ -132,7 +179,7 @@ def main():
                                  title, journal, year))
 
     sys.stderr.write(f"Artigos LitCovid total: {n_total}; "
-                     f"artigos associados aos genes-alvo: {len(articles)}\n")
+                     f"associados aos genes-alvo: {len(articles)}\n")
 
     articles.sort(key=lambda x: (x[0], x[2]))
     with open(args.out, 'w', newline='') as out:
