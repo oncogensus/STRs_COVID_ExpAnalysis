@@ -3,15 +3,15 @@
 # Re-roda o DBSCAN (mesmos parametros de 5_dbscan/outliers_search/5.2_dbscan_str.r)
 # sobre o SUBSET de STRs localizados nos genes sugestivos do COVID-19 HG.
 #
-# Depende de data.table e dbscan instalados no env micromamba `dbscan`:
-#   micromamba install -n dbscan -c conda-forge -y r-data.table r-dbscan
+# Depende de data.table e dbscan instalados no env micromamba `dbscan-r`:
+#   micromamba install -n dbscan-r -c conda-forge -y r-data.table r-dbscan
 #
 # Uso:
 #   Rscript run_dbscan_subset.R <input_residuals.tsv> <output.tsv>
 for (pkg in c("data.table", "dbscan")) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
-    stop("Pacote '", pkg, "' ausente no env `dbscan`. Instale com:\n",
-         "  micromamba install -n dbscan -c conda-forge -y r-", pkg, "\n")
+    stop("Pacote '", pkg, "' ausente no env `dbscan-r`. Instale com:\n",
+         "  micromamba install -n dbscan-r -c conda-forge -y r-", pkg, "\n")
   }
 }
 library(data.table)
