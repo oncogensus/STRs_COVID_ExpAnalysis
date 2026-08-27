@@ -30,9 +30,9 @@ def detect_cols(header):
     for i, h in enumerate(low):
         if idx['chrom'] is None and h in ('chrom',):
             idx['chrom'] = i
-        if idx['left'] is None and 'left' in h:
+        if idx['left'] is None and ('left' in h or h == 'start' or 'start' in h or 'begin' in h):
             idx['left'] = i
-        if idx['right'] is None and 'right' in h:
+        if idx['right'] is None and ('right' in h or h == 'end' or 'end' in h):
             idx['right'] = i
         if idx['motif'] is None and ('repeat' in h or 'motif' in h):
             idx['motif'] = i
