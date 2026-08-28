@@ -16,7 +16,7 @@ DBSCAN_RSCRIPT="$MAMBA_ROOT_PREFIX/envs/dbscan-r/bin/Rscript"
 "$MAMBA_BIN" install -n dbscan-r -c conda-forge -y r-data.table r-dbscan 2>&1 | tail -5 || \
   echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env dbscan-r, pode ignorar."
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
-RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
+RESIDUALS="${RESIDUALS:-$ROOT/5_global_dbscan/norm_test/STRs_normalized_residuals.tsv}"
 P_THRESH=1e-5
 
 echo "=== 1/5 extrai genes sugestivos COVID-19 HG (p<$P_THRESH) ==="
