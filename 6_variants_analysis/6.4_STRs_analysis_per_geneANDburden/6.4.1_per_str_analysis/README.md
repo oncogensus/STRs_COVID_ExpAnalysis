@@ -37,21 +37,34 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
 **Ordem de execução**:
 1. `1_overlap_suggestive_strs.py` — gene × STR sugestivo → `results/suggestive_gene_strs.tsv`
-2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`
-3. `3_summarize_subset.py` — filtra n_outliers > 0 → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
+2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`;
+   em seguida `annotate_catalog.py` enriquece resíduos e outliers com o catálogo completo da coorte.
+3. `3_summarize_subset.py` — filtra n_outliers > 0 e anexa anotação do catálogo
+   (`gene_id`, `gene_name`, `region`, `type`, `pops`) → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
 4. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
 
-**Arquivos gerados (enriquecidos com resíduos, métricas DBSCAN e localização genômica)**:
+**Anotação do catálogo** (`annotate_catalog.py`, em `2_run_dbscan_subset.sh`/`.pbs`):
+junta `samples/STRs_analysis_dataset.tsv` (via `$CATALOG`) trazendo **TODAS** as
+colunas do catálogo **exceto** as métricas DBSCAN globais
+(`n_outliers`, `outlier_samples`, `outlier_residuals`, `n_clusters`, `noise_ratio`).
+- Modo `sample` (resíduos, tem `sample_id`): acrescenta `group`, `age`, `sex`,
+  `allele1_est`, `allele2_est`, `depth`, `repeat_unit`, `gene_id`, `gene_name`,
+  `region`, `chrom`, `start`, `end`, `pop` (ancestralidade), `contribution`, `type`.
+- Modo `str` (outliers, só `STRs_ID`): acrescenta só colunas de locus
+  (`repeat_unit`, `gene_id`, `gene_name`, `region`, `chrom`, `start`, `end`, `type`),
+  preservando as métricas DBSCAN do subset.
+
+**Arquivos gerados (enriquecidos com resíduos, métricas DBSCAN e catálogo da coorte)**:
 - `data/suggestive_strs_residuals.tsv` — subset de `STRs_normalized_residuals.tsv`
-  (um residuo `allele2_residuals` por amostra/STR) + colunas de localização
-  (`str_chrom`, `str_start`, `str_end`, `repeatunit`, `str_locus`).
+  (um residuo `allele2_residuals` por amostra/STR) + anotação completa do catálogo
+  por amostra (ancestralidade `pop`, `gene_id`, `gene_name`, `region`, `type`, etc.).
 - `results/suggestive_strs_outliers.tsv` — 1 linha por STR com métricas DBSCAN
   (`n_samples`, `n_samples_valid`, `n_outliers`, `outlier_samples`,
   `outlier_residuals`, `n_clusters`, `noise_ratio`, `eps`, `minPts`, `cutoff`,
-  `max_residual`, `mean_residual`) + localização genômica do STR.
+  `max_residual`, `mean_residual`) + anotação de locus do catálogo.
 - `results/covid_suggestive_genes_with_outlier_STRs.tsv` — gene sugestivo × STR
-  outlier: traz localização completa (gene + STR) e todas as métricas/resíduos
-  acima. `annotate_location.py` adiciona a localização aos arquivos de residuos/outliers.
+  outlier: localização completa (gene + STR), todas as métricas/resíduos acima e
+  anotação do catálogo (`gene_id`, `gene_name`, `region`, `type`, `pops`).
 
 **Submissão PBS**: `submit_dbscan_subset.sh`.
 

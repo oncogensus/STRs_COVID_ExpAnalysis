@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6412_summarize
+#PBS -o 3_summarize_subset.out
+#PBS -e 3_summarize_subset.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+# Etapa 3/4 de 6.4.1.2: junta overlap com outliers DBSCAN (filtra n_outliers>0).
+# Entrada: results/suggestive_gene_strs.tsv (etapa 1),
+#          results/suggestive_strs_outliers.tsv (etapa 2),
+#          catalogo de STR da coorte ($CATALOG, p/ anotacao gene/region/pop).
+# Saida:   results/covid_suggestive_genes_with_outlier_STRs.tsv
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+PYBIN="$(command -v python3)"
+[ -x "$PYBIN" ] || { echo "ERRO: python3 ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+[ -f results/suggestive_gene_strs.tsv ] || { echo "ERRO: results/suggestive_gene_strs.tsv ausente (rode etapa 1)"; exit 1; }
+[ -f results/suggestive_strs_outliers.tsv ] || { echo "ERRO: results/suggestive_strs_outliers.tsv ausente (rode etapa 2)"; exit 1; }
+
+CATALOG="${CATALOG:-$REPO/samples/STRs_analysis_dataset.tsv}"
+[ -f "$CATALOG" ] || { echo "ERRO: catalogo $CATALOG ausente"; exit 1; }
+
+echo "=== 3/4 sumariza subset (filtra n_outliers>0) ==="
+"$PYBIN" 3_summarize_subset.py \
+  --overlap results/suggestive_gene_strs.tsv \
+  --dbscan results/suggestive_strs_outliers.tsv \
+  --catalog "$CATALOG" \
+  --out results/covid_suggestive_genes_with_outlier_STRs.tsv
+echo "=== FIM ==="

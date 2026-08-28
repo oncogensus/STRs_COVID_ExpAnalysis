@@ -41,14 +41,14 @@ $(c) in ids
 
 "$R_BIN" 2_run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
-echo "=== 2b/4 anota localizacao genomica (str_chrom/start/end/motif) ==="
+echo "=== 2b/4 anota residuos e outliers com o catalogo (ancestralidade, region, gene) ==="
 micromamba activate igv
-python3 annotate_location.py \
+python3 annotate_catalog.py --catalog "$CATALOG" \
   --in  data/suggestive_strs_residuals.tsv \
-  --overlap results/suggestive_gene_strs.tsv \
+  --id-col strs_id --sample-col sample_id --mode sample \
   --out data/suggestive_strs_residuals.tsv
-python3 annotate_location.py \
+python3 annotate_catalog.py --catalog "$CATALOG" \
   --in  results/suggestive_strs_outliers.tsv \
-  --overlap results/suggestive_gene_strs.tsv \
+  --id-col strs_id --mode str \
   --out results/suggestive_strs_outliers.tsv
 echo "=== FIM ==="
