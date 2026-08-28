@@ -3,8 +3,8 @@
 # Cruzamento coord-a-coord:
 #   genes COVID (covid_genes.tsv)  x  catalogo completo de STRs da coorte
 #   (STRs_analysis_dataset.tsv / global_STRs_filtered.tsv).
-# Um STR "cai no gene" se sua extensao [s,e] sobrepoe o corpo do gene +/- window.
-# Usa o mesmo --window da extracao, para o cruzamento ser simetrico.
+# Um STR "cai no gene" se sua extensao [s,e] sobrepoe o corpo do gene
+# (gene_start..gene_end), SEM janela de flanco.
 #
 # Uso:
 #   python3 overlap_str_cohort.py \
@@ -50,7 +50,6 @@ def main():
     ap.add_argument('--catalog', required=True)
     ap.add_argument('--covid-genes', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--window', type=int, default=50000)
     ap.add_argument('--col-chrom', default=None)
     ap.add_argument('--col-left', default=None)
     ap.add_argument('--col-right', default=None)
@@ -65,8 +64,8 @@ def main():
         if args.debug:
             sys.stderr.write(f"[DEBUG] {msg}\n")
 
-    # ---- carrega genes COVID ----
-    covid = {}  # chrom -> list of [gstart_w, gend_w, name, best_p, pheno, lead]
+    # ---- carrega genes COVID (corpo do gene, sem janela) ----
+    covid = {}  # chrom -> list of [gstart, gend, name, best_p, pheno, lead]
     with open(args.covid_genes) as fh:
         r = csv.DictReader(fh, delimiter='\t')
         for row in r:
@@ -76,15 +75,14 @@ def main():
             except ValueError:
                 continue
             covid.setdefault(chrom, []).append(
-                [gs - args.window, ge + args.window, row['gene'],
-                 row['best_p'], row['phenotypes'], row['lead_snp']])
+                [gs, ge, row['gene'], row['best_p'], row['phenotypes'], row['lead_snp']])
 
     n_genes = sum(len(v) for v in covid.values())
     dbg(f"Genes COVID carregados: {n_genes} em {len(covid)} cromossomos.")
     if args.debug:
         per_chrom = ", ".join(f"{c}={len(v)}" for c, v in sorted(covid.items()))
         dbg(f"Genes COVID por cromossomo: {per_chrom}")
-    sys.stderr.write(f"Genes COVID: {n_genes} (janela +/-{args.window} bp por gene)\n")
+    sys.stderr.write(f"Genes COVID: {n_genes} (corpo do gene, sem janela)\n")
 
     # ---- le catalogo de STR ----
     with open(args.catalog) as fh:
@@ -123,7 +121,7 @@ def main():
     sys.stderr.write(f"Catalogo: {nrows} linhas, {len(loci)} loci unicos de STR.\n")
     dbg(f"Iniciando cruzamento coord-a-coord de {len(loci)} loci STR contra genes COVID...")
 
-    # ---- cruzamento ----
+    # ---- cruzamento (somente dentro do corpo do gene) ----
     out_rows = []
     # acompanhamento para estatisticas de "amostras identificadas" e localizacao
     all_samples = set()          # amostras unicas que carregam algum STR no gene
@@ -133,11 +131,11 @@ def main():
         if args.debug and n_done % 100000 == 0:
             dbg(f"  processados {n_done}/{len(loci)} loci STR...")
         genes = covid.get(chrom, [])
-        # candidatos: gstart_w <= e  (depois filtra gend_w >= s)
+        # candidatos: gstart <= e  (depois filtra gend >= s)
         for g in genes:
             if g[0] <= e and g[1] >= s:
                 out_rows.append([
-                    g[2], chrom, g[0] + args.window, g[1] - args.window,
+                    g[2], chrom, g[0], g[1],
                     g[3], g[4], g[5],
                     f"{chrom}:{s}-{e}:{motif}", chrom, s, e, motif, len(samples)
                 ])

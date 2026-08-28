@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # extract_covid_genes.py
 # Le os summary stats do COVID-19 HG r7 (A2/B2/C2, leave_23andme), extrai os SNPs
-# com p < --p-thresh (default 5e-8) e mapeia cada um ao gene se cai no corpo
-# do gene ou ate --window bp flanqueando (default 50000). Gera um conjunto de
-# "genes COVID" com o melhor p por gene e o fenotipo(s).
+# com p < --p-thresh (default 5e-8) e mapeia cada um ao gene somente se o SNP
+# cai DENTRO do corpo do gene (gene_start..gene_end, sem janela de flanco).
+# Gera um conjunto de "genes COVID" com o melhor p por gene e o fenotipo(s).
 #
 # Uso:
 #   python3 extract_covid_genes.py \
@@ -27,7 +27,7 @@ def phenotype_of(path):
     m = re.search(r'_(A\d|B\d|C\d)_', base)
     return m.group(1) if m else base
 
-def load_genes(path, window):
+def load_genes(path):
     by_chr = {}
     with open(path) as fh:
         for line in fh:
@@ -45,15 +45,15 @@ def load_genes(path, window):
         by_chr[c].sort(key=lambda x: x[0])
     return by_chr
 
-def map_snp(by_chr, chrom, pos, window):
+def map_snp(by_chr, chrom, pos):
     genes = by_chr.get(chrom)
     if not genes:
         return []
-    # candidatos: start <= pos+window (depois filtra por end+window >= pos)
-    idx = bisect.bisect_right([g[0] for g in genes], pos + window)
+    # candidatos: start <= pos (depois filtra por end >= pos, ou seja, dentro do corpo)
+    idx = bisect.bisect_right([g[0] for g in genes], pos)
     hits = []
     for g in genes[:idx]:
-        if g[1] + window >= pos:
+        if g[1] >= pos:
             hits.append((g[2], g[0], g[1]))  # (name, gstart, gend)
     return hits
 
@@ -62,12 +62,11 @@ def main():
     ap.add_argument('--sumstats', nargs='+', required=True)
     ap.add_argument('--gene-bed', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--window', type=int, default=50000)
     ap.add_argument('--p-thresh', type=float, default=5e-8)
     args = ap.parse_args()
 
     sys.stderr.write("Carregando genes...\n")
-    by_chr = load_genes(args.gene_bed, args.window)
+    by_chr = load_genes(args.gene_bed)
 
     # gene -> [best_p, set(phenotypes), lead_snp, chrom, gstart, gend]
     genes = {}
@@ -104,7 +103,7 @@ def main():
                 continue
             chrom = norm_chrom(f[i_chr])
             rs = f[i_rs] if (i_rs is not None and i_rs < len(f) and f[i_rs]) else f"{chrom}:{pos}"
-            for gname, gs, ge in map_snp(by_chr, chrom, pos, args.window):
+            for gname, gs, ge in map_snp(by_chr, chrom, pos):
                 if gname not in genes:
                     genes[gname] = [p, {pheno}, rs, chrom, gs, ge]
                 else:

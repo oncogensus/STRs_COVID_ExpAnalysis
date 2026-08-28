@@ -18,6 +18,8 @@ samples/*
 !7_variants_analysis/covid19hg_evaluation/litcovid_validation/*.pbs
 !7_variants_analysis/covid19hg_evaluation/dbscan_subset/*.pbs
 !7_variants_analysis/covid19hg_evaluation/pathway_crossvalidation/*.pbs
+!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.1_covid19hg_overlap/*.pbs
+!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset/*.pbs
 *.gtf
 *.html
 *.bed

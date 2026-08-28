@@ -17,7 +17,6 @@ DBSCAN_RSCRIPT="$MAMBA_ROOT_PREFIX/envs/dbscan-r/bin/Rscript"
   echo "AVISO: nao foi possivel instalar via micromamba; se os pacotes ja existirem no env dbscan-r, pode ignorar."
 CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_dbscan/norm_test/STRs_normalized_residuals.tsv}"
-WINDOW=50000
 P_THRESH=1e-5
 
 echo "=== 1/5 extrai genes sugestivos COVID-19 HG (p<$P_THRESH) ==="
@@ -28,7 +27,7 @@ python3 ../extract_covid_genes.py \
     ../data/COVID19_HGI_C2_ALL_leave_23andme_20220403.tsv.gz \
   --gene-bed ../genes.hg38.bed \
   --out results/covid_genes_suggestive.tsv \
-  --window "$WINDOW" --p-thresh "$P_THRESH"
+  --p-thresh "$P_THRESH"
 
 echo "=== 2/5 overlap genes sugestivos x STRs da coorte (somente dentro do gene) ==="
 python3 overlap_suggestive_strs.py \

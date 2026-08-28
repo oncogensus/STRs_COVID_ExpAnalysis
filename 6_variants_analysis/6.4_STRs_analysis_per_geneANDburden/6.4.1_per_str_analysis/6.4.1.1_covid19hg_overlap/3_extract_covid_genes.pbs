@@ -1,0 +1,42 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6411_extract
+#PBS -o 3_extract_covid_genes.out
+#PBS -e 3_extract_covid_genes.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=02:00:00
+
+# Etapa 3/4 de 6.4.1.1: summary stats -> genes COVID (p<5e-8) mapeados ao gene.
+# Entrada: data/COVID19_HGI_*.tsv.gz (etapa 1), genes.hg38.bed (etapa 2)
+# Saida:   covid_genes.tsv
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.1_covid19hg_overlap"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+PYBIN="$(command -v python3)"
+[ -x "$PYBIN" ] || { echo "ERRO: python3 ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+[ -f genes.hg38.bed ] || { echo "ERRO: genes.hg38.bed ausente (rode etapa 2/4)"; exit 1; }
+for f in data/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz \
+         data/COVID19_HGI_B2_ALL_leave_23andme_20220403.tsv.gz \
+         data/COVID19_HGI_C2_ALL_leave_23andme_20220403.tsv.gz; do
+  [ -f "$f" ] || { echo "ERRO: $f ausente (rode etapa 1/4 download)"; exit 1; }
+done
+
+echo "=== 3/4 extrai genes COVID (p<5e-8, somente dentro do gene) ==="
+"$PYBIN" 3_extract_covid_genes.py \
+  --sumstats \
+    data/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz \
+    data/COVID19_HGI_B2_ALL_leave_23andme_20220403.tsv.gz \
+    data/COVID19_HGI_C2_ALL_leave_23andme_20220403.tsv.gz \
+  --gene-bed genes.hg38.bed \
+  --out covid_genes.tsv \
+  --p-thresh 5e-8
+echo "=== FIM ==="
