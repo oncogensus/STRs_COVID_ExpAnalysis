@@ -7,17 +7,22 @@ suppressMessages({
   library(SKAT)
 })
 
-REPO_ROOT             <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
-norm_file             <- file.path(REPO_ROOT, "5_dbscan/norm_test/STRs_normalized_residuals.tsv")
-dbscan_out            <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
-pca_file              <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
-pheno_file            <- file.path(REPO_ROOT, "samples/samples_infos.csv")
-out_dir               <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results")
+REPO_ROOT  <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+
+norm_file  <- file.path(REPO_ROOT, "5_dbscan/norm_test/STRs_normalized_residuals.tsv")
+pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
+pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
+
+# === Estrategia GWAS-based: ajuste o caminho e o nome da coluna de outliers ===
+gwas_out          <- file.path(REPO_ROOT, "7_variants_analysis/covid19hg_evaluation/dbscan_subset/results/suggestive_strs_outliers.tsv")
+gwas_outlier_col  <- "outlier_samples"
+
+out_dir               <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas")
 case_label           <- "case"
 control_label        <- "control"
 high_thresh_q         <- 0.95
 min_strs_per_gene     <- 2
-remove_sample_outliers <- TRUE
+remove_sample_outliers <- FALSE
 skat_kernel           <- "linear.weighted"
 run_gene_burden       <- TRUE
 selftest              <- FALSE
@@ -40,23 +45,27 @@ load_inputs <- function() {
 
   id_map <- norm %>% distinct(sample_id, sample_id_clean)
 
-  dbs <- fread(dbscan_out, header = TRUE, sep = "\t", data.table = FALSE)
-  if (!all(c("STRs_ID", "outlier_samples") %in% colnames(dbs)))
-    stop("dbscan_out deve conter STRs_ID e outlier_samples")
+  if (!file.exists(gwas_out)) stop("gwas_out nao encontrado: ", gwas_out,
+    "\nAjuste 'gwas_out' para o arquivo de outliers da estrategia gwas-based.")
+  dbs <- fread(gwas_out, header = TRUE, sep = "\t", data.table = FALSE)
+  if (!all(c("STRs_ID", gwas_outlier_col) %in% colnames(dbs)))
+    stop("gwas_out deve conter STRs_ID e '", gwas_outlier_col, "'")
 
   outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
   for (i in seq_len(nrow(dbs))) {
-    samps <- unlist(strsplit(as.character(dbs$outlier_samples[i]), ";"))
+    raw <- as.character(dbs[[gwas_outlier_col]][i])
+    samps <- unlist(strsplit(raw, "[;,[:space:]]+"))
     samps <- samps[nzchar(trimws(samps))]
     if (length(samps) == 0) next
     m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
+    if (all(is.na(m))) m <- id_map$sample_id_clean[match(samps, id_map$sample_id_clean)]
     m <- m[!is.na(m)]
     if (length(m) == 0) next
     outlier_long <- rbind(outlier_long,
                           data.frame(STRs_ID = rep(dbs$STRs_ID[i], length(m)),
                                      sample_id_clean = m, stringsAsFactors = FALSE))
   }
-  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de dbscan_out")
+  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de gwas_out")
 
   str_meta <- norm %>% distinct(STRs_ID, gene_id, gene_name, region)
 
@@ -94,6 +103,10 @@ build_matrix <- function(covar, outlier_long) {
 
 run_burden_global <- function(M, covar, high_thresh_q) {
   count <- rowSums(M)
+  cat("  [burden_global] range(count)=", range(count),
+      " n_zero=", sum(count == 0), " n_nonzero=", sum(count > 0), "\n")
+  cat("  [burden_global] table(group)=", table(covar$group[match(rownames(M), covar$sample_id_clean)]), "\n")
+
   df <- data.frame(
     sample_id_clean = rownames(M),
     count = count,
@@ -105,9 +118,28 @@ run_burden_global <- function(M, covar, high_thresh_q) {
     EV3 = covar$EV3[match(rownames(M), covar$sample_id_clean)],
     stringsAsFactors = FALSE
   )
-  fit <- glm(group ~ count + age + sex + EV1 + EV2 + EV3,
-             data = df, family = binomial())
-  coefs <- summary(fit)$coefficients["count", , drop = FALSE]
+
+  empty_row <- data.frame(
+    test = c("logistic_OR_per_expansion", "mann_whitney", "threshold_OR", "threshold_fisher"),
+    estimate = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
+    p_value = NA_real_, stringsAsFactors = FALSE)
+
+  if (var(count) == 0 || length(unique(df$group)) < 2) {
+    cat("  [burden_global] count sem variancia ou grupo unico: retornando NA\n")
+    return(empty_row)
+  }
+
+  fit <- tryCatch(
+    glm(group ~ count + age + sex + EV1 + EV2 + EV3,
+        data = df, family = binomial()),
+    error = function(e) { cat("  [burden_global] glm erro:", conditionMessage(e), "\n"); NULL })
+  if (is.null(fit)) return(empty_row)
+  coefs <- tryCatch(summary(fit)$coefficients["count", , drop = FALSE],
+                    error = function(e) NULL)
+  if (is.null(coefs) || !"count" %in% rownames(coefs)) {
+    cat("  [burden_global] 'count' nao estimavel (modelo colapsou): retornando NA\n")
+    return(empty_row)
+  }
   or <- exp(coefs[, "Estimate"])
   or_lo <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
   or_hi <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
@@ -172,6 +204,38 @@ run_skat_per_gene <- function(M, str_meta, covar, min_strs_per_gene, skat_kernel
   out
 }
 
+run_str_burden_test <- function(M, covar) {
+  common <- intersect(rownames(M), covar$sample_id_clean)
+  Mc <- M[common, , drop = FALSE]
+  covc <- covar %>% filter(sample_id_clean %in% common) %>%
+    arrange(match(sample_id_clean, rownames(Mc)))
+  rownames(covc) <- covc$sample_id_clean
+  covc <- covc[rownames(Mc), ]
+
+  res <- list()
+  for (s in colnames(Mc)) {
+    if (var(Mc[, s]) == 0) next
+    df <- data.frame(
+      str = Mc[, s], group = covc$group, age = covc$age,
+      sex = covc$sex, EV1 = covc$EV1, EV2 = covc$EV2, EV3 = covc$EV3,
+      stringsAsFactors = FALSE)
+    fit <- tryCatch(glm(group ~ str + age + sex + EV1 + EV2 + EV3,
+                        data = df, family = binomial()),
+                    error = function(e) NULL)
+    if (is.null(fit)) next
+    cf <- tryCatch(summary(fit)$coefficients["str", ], error = function(e) NULL)
+    if (is.null(cf)) next
+    res[[s]] <- data.frame(STRs_ID = s,
+                           n_outliers = sum(Mc[, s] == 1),
+                           p_value = cf["Pr(>|z|)"],
+                           OR_per_expansion = exp(cf["Estimate"]),
+                           stringsAsFactors = FALSE)
+  }
+  out <- bind_rows(res)
+  out$q_value <- p.adjust(out$p_value, method = "BH")
+  out
+}
+
 run_gene_burden_test <- function(M, str_meta, covar) {
   common <- intersect(rownames(M), covar$sample_id_clean)
   Mc <- M[common, , drop = FALSE]
@@ -209,38 +273,6 @@ run_gene_burden_test <- function(M, str_meta, covar) {
   out
 }
 
-run_str_burden_test <- function(M, covar) {
-  common <- intersect(rownames(M), covar$sample_id_clean)
-  Mc <- M[common, , drop = FALSE]
-  covc <- covar %>% filter(sample_id_clean %in% common) %>%
-    arrange(match(sample_id_clean, rownames(Mc)))
-  rownames(covc) <- covc$sample_id_clean
-  covc <- covc[rownames(Mc), ]
-
-  res <- list()
-  for (s in colnames(Mc)) {
-    if (var(Mc[, s]) == 0) next
-    df <- data.frame(
-      str = Mc[, s], group = covc$group, age = covc$age,
-      sex = covc$sex, EV1 = covc$EV1, EV2 = covc$EV2, EV3 = covc$EV3,
-      stringsAsFactors = FALSE)
-    fit <- tryCatch(glm(group ~ str + age + sex + EV1 + EV2 + EV3,
-                        data = df, family = binomial()),
-                    error = function(e) NULL)
-    if (is.null(fit)) next
-    cf <- tryCatch(summary(fit)$coefficients["str", ], error = function(e) NULL)
-    if (is.null(cf)) next
-    res[[s]] <- data.frame(STRs_ID = s,
-                           n_outliers = sum(Mc[, s] == 1),
-                           p_value = cf["Pr(>|z|)"],
-                           OR_per_expansion = exp(cf["Estimate"]),
-                           stringsAsFactors = FALSE)
-  }
-  out <- bind_rows(res)
-  out$q_value <- p.adjust(out$p_value, method = "BH")
-  out
-}
-
 run_pipeline <- function(covar, outlier_long, str_meta) {
   if (remove_sample_outliers && nrow(outlier_long) > 0) {
     tmp <- build_matrix(covar, outlier_long)
@@ -255,7 +287,14 @@ run_pipeline <- function(covar, outlier_long, str_meta) {
     }
   }
   M <- build_matrix(covar, outlier_long)
-  cat("Matriz:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+  cat("Matriz GWAS-based:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+  cat("  [debug] outlier_long nrow =", nrow(outlier_long), "\n")
+  cat("  [debug] n de amostras unicas em outlier_long =",
+      length(unique(outlier_long$sample_id_clean)), "\n")
+  cat("  [debug] contagens por STR (colSums M):\n")
+  print(colSums(M))
+  cat("  [debug] head(outlier_long):\n")
+  print(head(outlier_long, 12))
 
   burden <- run_burden_global(M, covar, high_thresh_q)
   skat <- run_skat_per_gene(M, str_meta, covar, min_strs_per_gene, skat_kernel)
@@ -292,7 +331,7 @@ if (selftest) {
     STRs_ID = rep(paste0("STR", outs), each = 3),
     sample_id_clean = sample(covar$sample_id_clean, 120, TRUE),
     stringsAsFactors = FALSE) %>% distinct()
-  cat("=== SELFTEST ===\n")
+  cat("=== SELFTEST (GWAS-based) ===\n")
   res <- run_pipeline(covar, outlier_long, str_meta)
   print(res$burden)
   print(head(res$skat[order(res$skat$p_value), ]))
