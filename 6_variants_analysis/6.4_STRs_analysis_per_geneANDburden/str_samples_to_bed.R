@@ -5,18 +5,22 @@
 # Standalone: NAO depende de trackViewer / GenomicRanges / Gviz.
 # Rodar a partir de 7.4_scRNA-seq_analysis/ (onde STR_variants_UCSC_track.bed esta).
 #
-# Para cada um dos 8 loci de STR:
-#   - amostra COM variante  = coluna `outlier_samples` do CSV unificado
+# Para cada locus de STR com outlier (fonte AGNOSTICA = DBSCAN, e/ou
+# fonte HIPOTESE-DIRIGIDA = COVID-19 HG r7 suggestive):
+#   - amostra COM variante  = `outlier_samples` de outliers_per_str.tsv (DBSCAN)
+#       e/ou de suggestive_strs_outliers.tsv (GWAS), tagueadas em `source`
 #   - amostra SEM variante  = outro sample_id do MESMO STRs_ID em
 #       STRs_normalized_residuals.tsv, nao-outlier, com BAM+`.bai` indexado em
 #       bam_dir, de menor |allele2_residuals| (mais proximo do esperado).
-# name do BED = paste0(STRs_ID, "_", sample)  (formato variante_nomeamostra).
+# name do BED = paste0(STRs_ID, "_", sample, "_", source)  (ex.: variante_gwas).
 
-# ---- inputs (edite conforme o ambiente) ----
-variants_file <- '../7.3_STRs_filter/results/STR_vs_scRNA_overlap_unified.csv'
-bed_file      <- 'STR_variants_UCSC_track.bed'
-norm_file     <- '/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/5_dbscan/norm_test/STRs_normalized_residuals.tsv'
-bam_dir       <- '/storage/users/tulio/Projeto_Luy_COVID/results/recal/'
+# ---- inputs (RELATIVOS a partir do dir de execucao: 7.4_scRNA-seq_analysis/) ----
+REPO_ROOT <- '..'   # sobe 1 nivel; ajuste se a estrutura pos-reorg mudar
+dbscan_outliers_file <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/outliers_search/results_dbscan/outliers_per_str.tsv')  # agnostic: TODOS outliers DBSCAN
+gwas_outliers_file   <- file.path(REPO_ROOT, 'covid19hg_evaluation/dbscan_subset/results/suggestive_strs_outliers.tsv')       # hypothesis-driven (COVID-19 HG r7)
+norm_file            <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/norm_test/STRs_normalized_residuals.tsv')                # controles
+bed_file             <- 'STR_variants_UCSC_track.bed'
+bam_dir              <- '/storage/users/tulio/Projeto_Luy_COVID/results/recal/'   # mantido
 
 out_with      <- 'str_samples_with_variant.bed'
 out_without   <- 'str_samples_without_variant.bed'
@@ -24,17 +28,35 @@ out_without   <- 'str_samples_without_variant.bed'
 pad           <- 0      # 0 = janela exata do STR (do UCSC BED); use 20000 p/ +-20kb
 set.seed(20260813)
 
-stopifnot(file.exists(variants_file))
+stopifnot(file.exists(dbscan_outliers_file))
+stopifnot(file.exists(gwas_outliers_file))
 stopifnot(file.exists(norm_file))
+stopifnot(file.exists(bed_file))
 stopifnot(dir.exists(bam_dir))
 
-# ---- leitura do CSV de variantes ----
-if (requireNamespace('readr', quietly = TRUE)) {
-  ov <- readr::read_csv(variants_file, show_col_types = FALSE)
-} else {
-  ov <- read.csv(variants_file, stringsAsFactors = FALSE)
+# ---- leitura das fontes de outliers (agnostico DBSCAN + hipotese-dirigida GWAS) ----
+split_samples <- function(s) {
+  s <- trimws(as.character(s))
+  unlist(strsplit(s, ';|,|\\s+'))   # tolera separadores ; , espaco
 }
-variants <- ov[!duplicated(ov$STRs_ID), ]
+
+# agnostic: TODOS os outliers DBSCAN
+db <- read.delim(dbscan_outliers_file, header = TRUE, stringsAsFactors = FALSE)
+db$STRs_ID <- trimws(db$STRs_ID)
+db <- db[nzchar(trimws(db$outlier_samples)), ]
+agn <- data.frame(STRs_ID = rep(db$STRs_ID, lengths(lapply(db$outlier_samples, split_samples))),
+                  variant = unlist(lapply(db$outlier_samples, split_samples)),
+                  source  = 'agnostic', stringsAsFactors = FALSE)
+
+# hypothesis-driven: outliers sugestivos do COVID-19 HG r7
+gw <- read.delim(gwas_outliers_file, header = TRUE, stringsAsFactors = FALSE)
+gw$STRs_ID <- trimws(gw$STRs_ID)
+gw <- gw[nzchar(trimws(gw$outlier_samples)), ]
+gwd <- data.frame(STRs_ID = rep(gw$STRs_ID, lengths(lapply(gw$outlier_samples, split_samples))),
+                  variant = unlist(lapply(gw$outlier_samples, split_samples)),
+                  source  = 'gwas', stringsAsFactors = FALSE)
+
+variants <- unique(rbind(agn, gwd))   # cada linha = (locus, variant_sample, source)
 
 # STRs_ID codifica chr:pos:motif:copy (pos = 1-based start)
 id_parts <- strsplit(variants$STRs_ID, ':', fixed = TRUE)
@@ -43,7 +65,7 @@ variants$start1 <- as.integer(vapply(id_parts, function(x) x[2], character(1)))
 variants$motif  <- vapply(id_parts, function(x) x[3], character(1))
 variants$copy   <- as.integer(vapply(id_parts, function(x) x[4], character(1)))
 variants$start0 <- variants$start1 - 1
-variants$gene   <- variants$gene_name
+variants$gene   <- NA_character_
 
 # end: do BED do UCSC se existir, senao estima por motif*copy
 if (file.exists(bed_file)) {
@@ -84,7 +106,7 @@ find_bam <- function(bam_dir, sid) {
 clean_name <- function(sid) sub('\\.bam$', '', sid)
 
 verify_tab <- data.frame(
-  gene = character(), STRs_ID = character(),
+  gene = character(), STRs_ID = character(), source = character(),
   variant_sample = character(), variant_bam = character(),
   variant_indexed = logical(),
   control_sample = character(), control_bam = character(),
@@ -93,7 +115,7 @@ verify_tab <- data.frame(
 
 # mapeamento locus -> BAMs (caminhos absolutos) p/ carregar reads no IGV
 mapping <- data.frame(
-  gene = character(), STRs_ID = character(), chr = character(),
+  gene = character(), STRs_ID = character(), source = character(), chr = character(),
   start0 = integer(), end = integer(),
   variant_sample = character(), variant_bam = character(),
   control_sample = character(), control_bam = character(),
@@ -110,7 +132,7 @@ for (i in seq_len(nrow(variants))) {
   v_gene <- variants$gene[i]
 
   # ---- amostra COM a variante ----
-  v_sid_raw <- as.character(variants$outlier_samples[i])
+  v_sid_raw <- as.character(variants$variant[i])
   v_bam <- find_bam(bam_dir, v_sid_raw)
   v_indexed <- !is.null(v_bam)
   v_sample  <- clean_name(v_sid_raw)
@@ -142,10 +164,8 @@ for (i in seq_len(nrow(variants))) {
   if (!c_indexed)
     warning('Sem controle valido (BAM indexado) p/ locus: ', v_gene, ' (', v_strs, ')')
 
-  # score: |residual| escalado (variante usa abs_res do CSV; controle usa resid)
-  v_score <- if (!is.null(variants$abs_res)) {
-    s <- suppressWarnings(as.numeric(variants$abs_res[i])); s <- if (is.na(s)) 0 else round(abs(s) * 100)
-  } else 0
+  # score: |residual| escalado (controle usa resid de norm; variante sem score do CSV -> 0)
+  v_score <- 0
   c_score <- if (!is.na(c_sample)) {
     s <- norm[norm$STRs_ID == v_strs & clean_name(norm$sample_id) == c_sample, ]$resid
     s <- if (length(s) && !is.na(s[1])) round(abs(s[1]) * 100) else 0
@@ -157,18 +177,18 @@ for (i in seq_len(nrow(variants))) {
   if (v_indexed) {
     with_rows[[length(with_rows) + 1]] <- data.frame(
       chr = v_chr, start = s0, end = e0,
-      name = paste0(v_strs, '_', v_sample),
+      name = paste0(v_strs, '_', v_sample, '_', variants$source[i]),
       score = v_score, strand = '.', stringsAsFactors = FALSE)
   }
   if (c_indexed) {
     without_rows[[length(without_rows) + 1]] <- data.frame(
       chr = v_chr, start = s0, end = e0,
-      name = paste0(v_strs, '_', c_sample),
+      name = paste0(v_strs, '_', c_sample, '_', variants$source[i]),
       score = c_score, strand = '.', stringsAsFactors = FALSE)
   }
 
   verify_tab <- rbind(verify_tab, data.frame(
-    gene = v_gene, STRs_ID = v_strs,
+    gene = v_gene, STRs_ID = v_strs, source = variants$source[i],
     variant_sample = if (v_indexed) v_sample else NA_character_,
     variant_bam = if (v_indexed) basename(v_bam) else NA_character_,
     variant_indexed = v_indexed,
@@ -178,7 +198,7 @@ for (i in seq_len(nrow(variants))) {
     stringsAsFactors = FALSE))
 
   mapping <- rbind(mapping, data.frame(
-    gene = v_gene, STRs_ID = v_strs, chr = v_chr,
+    gene = v_gene, STRs_ID = v_strs, source = variants$source[i], chr = v_chr,
     start0 = v_s0, end = v_end,
     variant_sample = if (v_indexed) v_sample else NA_character_,
     variant_bam = if (v_indexed) v_bam else NA_character_,
