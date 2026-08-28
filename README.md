@@ -34,15 +34,24 @@ This analysis is based on COVID-19 sequencing data, the same dataset used for "R
 The analysis pipeline is organized as follows:
 
 ```
-#/home/matheusbomfim/projects/strs_paper
-├── strs_call/
-├── data_split/
-├── gtf_annot/
-├── ancestry/
-├── dbscan/
-├── scovid/
-└── variant_analysis/
-
+strs_paper/
+├── 1_strs_call/
+├── 2_data_split/
+├── 3_gtf_annot/
+├── 4_ancestry/
+├── 5_global_dbscan/
+├── 6_scovid_data/
+└── 6_variants_analysis/
+    ├── 6.1_merge_datasets/
+    ├── 6.2_desc_data_viz/
+    ├── 6.3_STRs_filter/
+    ├── 6.4_STRs_analysis_per_geneANDburden/
+    │   ├── 6.4.1_per_str_analysis/
+    │   ├── 6.4.2_burden_test/
+    │   ├── 6.4.3_analysis_scRNA_Seq.ipynb
+    │   ├── 6.4.4_igv_per_variant/
+    │   └── str_samples_to_bed.R
+    └── 6.5_ancestry_analysis/
 ```
 
 ---
@@ -160,7 +169,7 @@ Required Files
 
 ### Environment: micromamba - ethseq_vcf_run
 
-### Stage 5: DBSCAN Analysis (dbscan)
+### Stage 5: Global DBSCAN Analysis (`5_global_dbscan`)
 
 ## Purpose: 
 Normalization of STR alleles and outlier detection via DBSCAN.
@@ -227,7 +236,7 @@ Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 
 ### Required Files
 - path_annot: STRs_annotated_region.tsv (from gtf_annot)
-- path_dbscan: outliers_per_str.tsv (from dbscan)
+- path_dbscan: outliers_per_str.tsv (from 5_global_dbscan)
 - path_eth: EthSEQ_Results_3D/Report.txt (from ancestry)
 - path_groups: samples_infos.csv (demographic data)
 
@@ -362,6 +371,84 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 
 **Environment**: micromamba - `r_enrich_env`
 
+### 7.4.2: Genetic Association (burden / SKAT) (`6.4.2_burden_test/`)
+
+### Purpose
+Test whether **outlier STR status** is associated with **COVID-19 mortality**
+(binary case/control: fatal vs. survivor, both age < 60, no comorbidities) at
+the **gene level** (burden + SKAT) and at the **individual STR level**
+(logistic regression). All models adjust for covariates
+`age`, `sex`, and the 3 EthSEQ ancestry principal components (`EV1`–`EV3`).
+
+Two complementary strategies define what counts as an "outlier STR", both
+leveraging the DBSCAN outlier framework from Stage 5:
+
+- **Strategy A — DBSCAN-derived outliers** (`burden_association.R`):
+  uses `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv`
+  (outliers detected on the full normalized-residual space). Samples flagged
+  as global outliers by the article's >2 SD rule are removed
+  (`remove_sample_outliers = TRUE`).
+- **Strategy B — GWAS-based (COVID-19 HG r7) outliers** (`burden_association_gwas.R`):
+  uses only STRs located in **suggestive COVID-19 HG r7 genes** (p < 1e-5),
+  where the cohort has a DBSCAN outlier. Derived via
+  `6.4.1_per_str_analysis/6.4.1.2_dbscan_subset/` → `results/suggestive_strs_outliers.tsv`.
+  Because each STR carries exactly one outlier sample, global outlier removal is
+  **disabled** (`remove_sample_outliers = FALSE`) to preserve the signal.
+
+### Methods
+- **Gene-level burden**: count of outlier STRs per sample within each gene is
+  the predictor in a logistic regression (`age`, `sex`, `EV1`–`EV3` as
+  covariates). Genes with `< 2` outlier STRs are excluded from the burden.
+- **SKAT** (per gene, `SKAT::SKAT`, `linear.weighted`, `out_type = "D"`):
+  rare-variant aggregation test over all outlier STRs in a gene
+  (`min_strs_per_gene = 2`). Small-sample adjustment is applied automatically
+  (n = 168 < 2000).
+- **STR-level burden** (`run_str_burden_test`): univariate logistic regression
+  per STR (outlier present/absent) with the same covariates, yielding
+  `str_burden.tsv`.
+
+**Traceability**: every gene-level result carries a `str_ids` column
+(`;`-separated `STRs_ID` list) so hits can be traced back to specific STR loci.
+This is essential because **intergenic STRs have `gene_name = "."`** and are only
+identifiable via `STRs_ID`.
+
+### Scripts (`6.4.2_burden_test/`)
+| script | strategy | outlier source | `remove_sample_outliers` |
+|---|---|---|---|
+| `burden_association.R` | DBSCAN | `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv` | `TRUE` |
+| `burden_association_gwas.R` | GWAS-based | `6.4.1_per_str_analysis/6.4.1.2_dbscan_subset/results/suggestive_strs_outliers.tsv` | `FALSE` |
+| `submit_burden.pbs` | PBS wrapper for Strategy A | — | — |
+| `submit_burden_gwas.pbs` | PBS wrapper for Strategy B | — | — |
+
+> **Critical implementation note**: the sample×STR outlier matrix is built with
+> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
+> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
+> must be avoided when constructing the 0/1 burden matrix.
+
+### Outputs
+Both strategies write to `results/` (Strategy A) and `results_gwas/` (Strategy B):
+- `burden_global.tsv` — omnibus gene-burden test across all genes.
+- `skat_per_gene.tsv` — per-gene SKAT p-values (with `str_ids`).
+- `gene_burden.tsv` — per-gene burden logistic regression (with `str_ids`).
+- `str_burden.tsv` — per-STR logistic regression (`STRs_ID`).
+- `*_hits_uncorrected.tsv` / `*_hits_corrected.tsv` — significant genes/STRs
+  (BH q < 0.05).
+
+### How to run (cluster, env `dbscan-r`)
+```bash
+cd 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test
+qsub submit_burden.pbs          # Strategy A (DBSCAN)
+qsub submit_burden_gwas.pbs     # Strategy B (GWAS-based)
+```
+
+### Key results (pilot)
+- **Strategy A (DBSCAN)**: global gene burden p = 0.015, OR = 5.43 (published
+  pilot signal).
+- **Strategy B (GWAS-based)**: completed with correct matrix construction
+  (each STR contributes exactly one outlier sample; `colSums = 1` per STR).
+
+---
+
 ## Workflow Execution
 # 1. Environment setup using YAML configuration files:
 - str_env.yaml: STRling environment
@@ -385,75 +472,81 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 - Phenotype file: samples_infos.csv
 
 ### Recommended Execution Order
-1. STR Calling (strs_call)
-2. Data Stratification (data_split)
-3. Genomic Annotation (gtf_annot)
-4. Ancestry Assignment (ancestry)
-5. DBSCAN Analysis (dbscan)
-6. scRNA-seq Data Processing (scovid)
-7. Variant Analysis (variant_analysis)
+1. STR Calling (`1_strs_call`)
+2. Data Stratification (`2_data_split`)
+3. Genomic Annotation (`3_gtf_annot`)
+4. Ancestry Assignment (`4_ancestry`)
+5. Global DBSCAN Analysis (`5_global_dbscan`)
+6. scRNA-seq Data Processing (`6_scovid_data`)
+7. Variant Analysis (`6_variants_analysis`)
    7.1 Dataset Integration
    7.2 Descriptive Analysis & Genome Visualization
    7.3 STR Filtering & scRNA-seq Overlap
       7.3.1 STR-scRNA Overlap Import
       7.3.2 Statistical Filtering
-   7.4 scRNA-seq Overlap Visualization
+   7.4 Per-STR Analysis & scRNA-seq Overlap
+      7.4.1 Per-STR Analysis (`6.4.1_per_str_analysis/`)
+         6.4.1.1 COVID-19 HG × STRs overlap
+         6.4.1.2 DBSCAN subset cross-validation
+         6.4.1.3 LitCovid literature validation
+         6.4.1.4 Pathway cross-validation
+      7.4.2 Burden / SKAT (`6.4.2_burden_test/`)
+         Strategy A: DBSCAN-derived outliers
+         Strategy B: GWAS-based / COVID-19 HG r7 outliers
+      7.4.3 scRNA-seq Analysis (`6.4.3_analysis_scRNA_Seq.ipynb`)
+      7.4.4 IGV per variant (`6.4.4_igv_per_variant/`)
    7.5 Ancestry Analysis
-      7.5.1 Categorical Ancestry Comparison
-      7.5.2 High-Resolution Ancestry Correlation
-      7.5.3 Ancestry Data Visualization
+       7.5.1 Categorical Ancestry Comparison
+       7.5.2 High-Resolution Ancestry Correlation
+       7.5.3 Ancestry Data Visualization
 
 ## Output Structure
 All results are organized in the project directory with outputs generated at each stage:
 
 ```text
 strs_paper/
-├── samples/                       # Intermediate outputs from stages 1-3
-│   ├── global_STRs_filtered.tsv
-│   ├── summary_by_patient.tsv
-│   ├── summary_report_final.tsv
-│   ├── STRs_annotated_region.tsv
-│   ├── global_annotation_statistics.tsv
-│   └── others_regions_statistics.csv
-├── EthSEQ_Results_3D/             # Ancestry outputs (stage 4)
-│   └── Report.txt
-├── dbscan_outputs/                # DBSCAN results (stage 5)
-│   ├── normalized_strs.tsv
-│   └── outliers_per_str.tsv
-├── scovid_processed/              # scRNA-seq curated data (stage 6)
-│   ├── airway/
-│   ├── brain/
-│   └── lung/
-└── variant_analysis/              # Final integrated outputs (stage 7)
-    ├── STRs_analysis_dataset.tsv    # Master integrated dataset
-    ├── results/
-    │   ├── STR_vs_scRNA_overlap_GSE157344.csv   # 7.3.1: lung overlap
-    │   ├── STR_vs_scRNA_overlap_GSE159812.csv   # 7.3.1: brain overlap
-    │   ├── STR_vs_scRNA_overlap_unified.csv     # 7.3.1: merged with source_tissue
-    │   ├── overlap_allele2_Plot_Optimized.png   # 7.4: bubble plot
-    │   ├── overlap_mean_allele_Plot_Optimized.png
-    │   ├── STR_Centered_Quantitative_Table.html
-    │   ├── overlap_allele2_Table.html
-    │   ├── overlap_mean_allele_Table.html
-    │   └── STR_Impact_Final_Optimized.png
-    ├── results/categorical_data/                # 7.5.1: ancestry tests
-    │   ├── alleles_kruskal_results.csv
-    │   ├── dbscan_kruskal_results.csv
-    │   └── ...
-    ├── results/high_resolution/                 # 7.5.2: ancestry correlations
-    │   ├── correlation_full.csv
-    │   ├── plotdata_region_sample.csv
-    │   ├── ancestry_region_distribution_wide.csv
-    │   └── dataviz/                             # 7.5.3: plots & tables
-    │       ├── genomic_summary_per_region.html
-    │       ├── heatmap_correlation_outlier_prop.png
-    │       ├── heatmap_correlation_outlier_strength.png
-    │       └── comprehensive_correlation_table.html
-    ├── allele2_mw_significant_sheets_en.csv     # 7.3.2: statistical filtering
-    ├── mean_allele_mw_significant_raw_en.csv
-    ├── covid_targeted_no_overlap_allele_mean_no_threshold.csv
-    ├── top_10_unique_loci_outliers.csv
-    └── genome_viz.ipynb
+├── 1_strs_call/
+├── 2_data_split/
+├── 3_gtf_annot/                    # Intermediate outputs from stages 1-3
+│   └── samples/
+│       ├── global_STRs_filtered.tsv
+│       ├── summary_by_patient.tsv
+│       ├── summary_report_final.tsv
+│       ├── STRs_annotated_region.tsv
+│       ├── global_annotation_statistics.tsv
+│       └── others_regions_statistics.csv
+├── 4_ancestry/                     # Ancestry outputs (stage 4)
+│   └── EthSEQ_Results_3D/
+│       └── Report.txt
+├── 5_global_dbscan/                # DBSCAN results (stage 5)
+│   ├── norm_test/
+│   │   └── STRs_normalized_residuals.tsv
+│   └── outliers_search/
+│       └── results_dbscan/
+│           └── outliers_per_str.tsv
+├── 6_scovid_data/                  # scRNA-seq curated data (stage 6)
+│   ├── GSE157344/
+│   └── GSE159812/
+└── 6_variants_analysis/            # Variant analysis (stage 7)
+    ├── STRs_analysis_dataset.tsv   # Master integrated dataset
+    ├── 6.1_merge_datasets/
+    ├── 6.2_desc_data_viz/
+    ├── 6.3_STRs_filter/
+    ├── 6.4_STRs_analysis_per_geneANDburden/
+    │   ├── 6.4.1_per_str_analysis/
+    │   │   ├── 6.4.1.1_covid19hg_overlap/
+    │   │   ├── 6.4.1.2_dbscan_subset/
+    │   │   ├── 6.4.1.3_litcovid_validation/
+    │   │   └── 6.4.1.4_pathway_crossvalidation/
+    │   ├── 6.4.2_burden_test/
+    │   │   └── results/ / results_gwas/
+    │   ├── 6.4.3_analysis_scRNA_Seq.ipynb
+    │   └── 6.4.4_igv_per_variant/
+    └── 6.5_ancestry_analysis/
+        └── results/
+            ├── categorical_data/
+            ├── high_resolution/
+            └── dataviz/
 ```
 
 # References
@@ -463,6 +556,6 @@ strs_paper/
 4. AD_STR DBSCAN Approach: https://github.com/mhguo1/AD_STR/tree/main (https://github.com/mhguo1/AD_STR/tree/main)
 ---
 
-**Last Updated**: July 2026
+**Last Updated**: August 2026
 
 **Status**: Finalized workflow for 2026 publication on STR vs COVID-19 analysis

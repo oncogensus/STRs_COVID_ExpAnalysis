@@ -1,76 +1,91 @@
-# covid19hg_evaluation
+# 6.4.1 — Per-STR Analysis
 
-Cruzamento entre os **genes significativos do COVID-19 Host Genetics Initiative (r7)**
-e o **catálogo completo de STRs da coorte** (STRling).
+Análises dirigidas a genes/STRs específicos, combinando evidências de
+**associação genética (COVID-19 HG r7)**, **outliers DBSCAN**, **literatura
+COVID** e **vias biológicas**.
 
-## Objetivo
-1. Extrair, de forma *data-driven*, todos os genes com associação
-   genome-wide significativa no COVID-19 HG r7 (fenótipos A2 = infecção/susceptibilidade,
-   B2 = hospitalização, C2 = caso crítico).
-2. Verificar em quais desses genes a coorte tem STR(s).
+## Sub-etapas
 
-## Dados
-- **COVID-19 HG r7** ("full" `leave_23andme`, completos, sem 23andMe):
-  `COVID19_HGI_{A2,B2,C2}_ALL_leave_23andme_20220403.tsv.gz`
-  (base: `https://storage.googleapis.com/covid19-hg-public/freeze_7/results/20220403/main/sumstats/`).
-  `#CHR` é numérico (`3`, `10`, `X=23`).
-- **Genes hg38**: GENCODE v39 primary_assembly GTF.
-- **Catálogo de STR da coorte**: `STRs_analysis_dataset.tsv`
-  (saída STRling; colunas `chrom/left/right/repeatunit/sample`).
-  Ajuste `CATALOG` em `run_all.sh`.
+### 6.4.1.1 — COVID-19 HG × STRs da coorte (`6.4.1.1_covid19hg_overlap/`)
 
-## Método
-- SNPs com `p < 5e-8` são mapeados ao gene se caem no corpo do gene ou até
-  **50 kb** flanqueando (configurável: `--window`).
-- O catálogo de STR é deduplicado por locus (`chrom-left-right-repeatunit`) e
-  cada STR é cruzado por coordenada com os intervalos de gene (gene ± 50 kb).
-- Cruzamento coord-a-coord (sem depender de nome de gene).
+Cruzamento entre genes significativos do COVID-19 Host Genetics Initiative (r7)
+e o catálogo completo de STRs da coorte (STRling).
 
-## Scripts
-| script | função |
-|---|---|
-| `download_data.sh` | baixa summary stats + GTF para `./data` |
-| `build_gene_bed.py` | GTF → `genes.hg38.bed` (corpos gênicos) |
-| `extract_covid_genes.py` | summary → `covid_genes.tsv` |
-| `overlap_str_cohort.py` | `covid_genes.tsv` × catálogo → `covid_genes_with_cohort_STRs.tsv` |
-| `run_all.sh` | orquestra tudo |
+**Dados**: summary stats COVID-19 HG r7 (A2/B2/C2, `leave_23andme`), GENCODE v39,
+catálogo de STRs (`STRs_analysis_dataset.tsv`).
 
-## Como rodar (no cluster, env `igv`)
+**Método**: SNPs com `p < 5e-8` mapeados ao gene (corpo ± 50 kb); cruzamento
+coord-a-coord com catálogo de STRs.
+
+**Ordem de execução**:
+1. `1_download_data.sh` — baixa summary stats + GTF
+2. `2_build_gene_bed.py` — GTF → `genes.hg38.bed`
+3. `3_extract_covid_genes.py` — summary → `covid_genes.tsv`
+4. `4_overlap_str_cohort.py` — `covid_genes.tsv` × catálogo → `covid_genes_with_cohort_STRs.tsv`
+
+**Orquestração**: `run_all.sh` (sequencial) ou `submit_all.sh` (PBS encadeado).
+
+---
+
+### 6.4.1.2 — DBSCAN subset — cross-validation (`6.4.1.2_dbscan_subset/`)
+
+Re-execução do DBSCAN (mesmos parâmetros de `5_global_dbscan`) sobre STRs
+localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
+
+**Pré-requisito**: `6.4.1.1_covid19hg_overlap/` já rodado (precisa de
+`genes.hg38.bed` e `data/*.tsv.gz`); `5_global_dbscan/norm_test/STRs_normalized_residuals.tsv`.
+
+**Ordem de execução**:
+1. `1_overlap_suggestive_strs.py` — gene × STR sugestivo → `results/suggestive_gene_strs.tsv`
+2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`
+3. `3_summarize_subset.py` — filtra n_outliers > 0 → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
+4. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
+
+**Submissão PBS**: `submit_dbscan_subset.sh`.
+
+---
+
+### 6.4.1.3 — Validação por literatura — LitCovid (`6.4.1.3_litcovid_validation/`)
+
+Extração de literatura COVID que menciona genes dos STRs marcados como
+outliers pelo DBSCAN global.
+
+**Pré-requisito**: `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv`.
+
+**Ordem de execução**:
+1. `1_get_outlier_genes.py` — catálogo → `data/outlier_genes.txt`
+2. `2_download_litcovid.sh` — baixa `litcovid2pubtator.json.gz` (~2.3 GB)
+3. `3_gene_literature.py` — mapeia gene → artigos → `results/gene_literature_summary.tsv`
+
+**Submissão PBS**: `submit_litcovid.sh` ou `run_litcovid.sh`.
+
+---
+
+### 6.4.1.4 — Cross-validation de vias (`6.4.1.4_pathway_crossvalidation/`)
+
+Enriquecimento de vias biológicas nos genes outlier, com validação cruzada
+por sub-amostragem.
+
+**Ordem de execução**:
+1. `1_pathway_crossvalidation.R` — enriquecimento de vias
+2. `2_gene_crossvalidation.R` — validação cruzada por gene
+3. `3_plot_pathways.R` — visualização dos resultados
+
+**Submissão PBS**: `submit_pathway_crossvalidation.sh`, `submit_gene_crossvalidation.sh`.
+
+---
+
+## Orquestrador de validação cruzada
+
+`submit_validation.sh` (na raiz) encadeia as etapas 6.4.1.3 → 6.4.1.2 via PBS com
+dependência `afterok`:
+
 ```bash
-bash download_data.sh            # ou pule se já tiver ./data
-python3 build_gene_bed.py --gtf data/gencode.v39.primary_assembly.annotation.gtf.gz --out genes.hg38.bed
-python3 extract_covid_genes.py --sumstats data/*.leave_23andme_20220403.tsv.gz \
-        --gene-bed genes.hg38.bed --out covid_genes.tsv
-python3 overlap_str_cohort.py --catalog "$CATALOG" --covid-genes covid_genes.tsv \
-        --out covid_genes_with_cohort_STRs.tsv
-# ou simplesmente: bash run_all.sh   (ajuste CATALOG antes)
+bash submit_validation.sh
+# litcovid_validation (Parte 1) → dbscan_subset (Parte 2)
 ```
 
-## Verificação de sanidade
-`covid_genes.tsv` deve conter genes conhecidos do COVID-19 (ex.: `ACE2`, `OAS1`,
-`TMPRSS2`, `ABO`, `MUC5B`, `DPP9`, `TYK2`). Se faltarem, revise parse de colunas/p.
+## Ambiente
 
-## Caveats
-- Arquivos `leave_23andme` excluem a 23andMe (menos poder, mas são os
-  summary stats completos disponíveis).
-- Mapeamento SNP→gene por proximidade (±50 kb) pode atribuir a múltiplos genes
-  em regiões densas; janela configurável.
-- `STRs_analysis_dataset.tsv` é pós-QC do STRling (depth≥15, sem homopolímeros).
-- Todos os builds são hg38; cromossomos normalizados para `chrN` internamente.
-
-## PBS (job scheduler do cluster)
-Cada etapa tem um wrapper `.pbs` (fila `workq`, env `igv` via micromamba).
-Submissão em cadeia (com dependência `afterok`):
-
-```bash
-bash submit_all.sh
-# ou, manualmente:
-qsub download_data.pbs
-qsub build_gene_bed.pbs
-qsub extract_covid_genes.pbs
-qsub overlap_str_cohort.pbs
-```
-
-`submit_all.sh` roda no nó de login e encadeia as 4 etapas. O download
-(`download_data.pbs`) tem `walltime=12h`; ajuste se necessário. O caminho do
-catálogo de STR em `overlap_str_cohort.pbs`/`run_all.sh` deve bater com o seu.
+- `igv` (micromamba): scripts Python e download.
+- `dbscan-r` (micromamba): `2_run_dbscan_subset.R`.
