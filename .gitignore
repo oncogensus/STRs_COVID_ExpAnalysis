@@ -19,6 +19,11 @@ samples/*
 !7_variants_analysis/covid19hg_evaluation/dbscan_subset/*.pbs
 !7_variants_analysis/covid19hg_evaluation/pathway_crossvalidation/*.pbs
 *.gtf
+*.html
+*.bed
+*.json
+*.tsv.gz
+*.log
 
 # Ignore backup
 bk_6_scovid_data
@@ -55,3 +60,15 @@ gtf_annot/Homo_sapiens*.gtf
 # ignore results
 7_variants_analysis/7.4_scRNA-seq_analysis/results/*
 7_variants_analysis/7.4_scRNA-seq_analysis/results_reads_alignment_gviz/*
+data/
+*.gtf.gz
+*.tsv.gz
+*.json.gz
+*.bam
+*.fasta
+*.fa
+*.fai
+*.gds
+*.err
+*.out
+*.log
