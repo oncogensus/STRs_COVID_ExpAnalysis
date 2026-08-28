@@ -30,7 +30,12 @@ def main():
             dbscan[row['STRs_ID']] = (no, row.get('outlier_samples', ''),
                                       row.get('outlier_residuals', ''),
                                       row.get('n_clusters', ''),
-                                      row.get('noise_ratio', ''))
+                                      row.get('noise_ratio', ''),
+                                      row.get('eps', ''),
+                                      row.get('minPts', ''),
+                                      row.get('cutoff', ''),
+                                      row.get('max_residual', ''),
+                                      row.get('mean_residual', ''))
 
     n_out = 0
     with open(args.overlap) as fh, open(args.out, 'w', newline='') as out:
@@ -39,18 +44,20 @@ def main():
         w.writerow(['gene', 'chrom', 'gene_start', 'gene_end', 'best_p', 'phenotypes',
                     'lead_snp', 'strs_id', 'str_chrom', 'str_start', 'str_end',
                     'repeatunit', 'n_carriers', 'n_outliers', 'outlier_samples',
-                    'outlier_residuals', 'n_clusters', 'noise_ratio'])
+                    'outlier_residuals', 'n_clusters', 'noise_ratio', 'eps', 'minPts',
+                    'cutoff', 'max_residual', 'mean_residual'])
         for row in r:
             sid = row['strs_id']
             if sid not in dbscan:
                 continue
-            no, os_, ore, nc, nr = dbscan[sid]
+            no, os_, ore, nc, nr, eps, mpts, cut, mres, meres = dbscan[sid]
             if no <= 0:
                 continue
             w.writerow([row['gene'], row['chrom'], row['gene_start'], row['gene_end'],
                         row['best_p'], row['phenotypes'], row['lead_snp'], sid,
                         row['str_chrom'], row['str_start'], row['str_end'],
-                        row['repeatunit'], row['n_carriers'], no, os_, ore, nc, nr])
+                        row['repeatunit'], row['n_carriers'], no, os_, ore, nc, nr,
+                        eps, mpts, cut, mres, meres])
             n_out += 1
     sys.stderr.write(f"Escrevi {n_out} pares (gene sugestivo x STR outlier) -> {args.out}\n")
 

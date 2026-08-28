@@ -66,9 +66,14 @@ results <- data.frame(
   n_samples_valid  = NA,   # amostras com residuo nao-NA
   n_outliers       = NA,
   outlier_samples  = NA,   # amostras outlier (separadas por ;)
-  outlier_residuals = NA,  # residuos das amostras outlier
+  outlier_residuals = NA,  # residuos das amostras outlier (separados por ;)
   n_clusters       = NA,   # n de clusters nao-ruido
   noise_ratio      = NA,   # proporcao de ruido
+  eps              = NA_real_,  # raio DBSCAN (IQR dos residuos, piso 1e-6)
+  minPts           = NA_integer_,# minPts DBSCAN (cresce com log2(n_valid), piso 2)
+  cutoff           = NA_real_,  # limiar de residual p/ outlier (maior residual nao-ruido, piso 2)
+  max_residual     = NA_real_,  # maior |residuo| do STR (contexto dos residuos)
+  mean_residual    = NA_real_,  # residuo medio do STR
   stringsAsFactors = FALSE
 )
 
@@ -136,6 +141,12 @@ for (i in seq_along(str_list)) {
   results[i, "outlier_residuals"] <- paste(residuals[outlier_idx], collapse = ";")
   results[i, "n_clusters"] <- length(unique_clusters[unique_clusters != 0])
   results[i, "noise_ratio"] <- sum(clusters == 0) / n_valid
+  results[i, "eps"] <- eps_value
+  results[i, "minPts"] <- minPts
+  # cutoff Inf indica "sem separacao" -> NA para nao poluir o TSV com Inf
+  results[i, "cutoff"] <- ifelse(is.finite(cutoff), cutoff, NA_real_)
+  results[i, "max_residual"] <- max(residuals, na.rm = TRUE)
+  results[i, "mean_residual"] <- mean(residuals, na.rm = TRUE)
 
   # acumula contadores do resumo
   if (n_outliers > 0) {

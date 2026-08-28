@@ -45,6 +45,16 @@ $(c) in ids
 # R roda no env micromamba dbscan-r (tem data.table/dbscan)
 "$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
+echo "=== 3b/5 anota localizacao genomica (str_chrom/start/end/motif) ==="
+python3 annotate_location.py \
+  --in  data/suggestive_strs_residuals.tsv \
+  --overlap results/suggestive_gene_strs.tsv \
+  --out data/suggestive_strs_residuals.tsv
+python3 annotate_location.py \
+  --in  results/suggestive_strs_outliers.tsv \
+  --overlap results/suggestive_gene_strs.tsv \
+  --out results/suggestive_strs_outliers.tsv
+
 echo "=== 4/5 junta outliers ==="
 python3 summarize_subset.py \
   --overlap results/suggestive_gene_strs.tsv \

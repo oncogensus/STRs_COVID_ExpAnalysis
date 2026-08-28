@@ -14,8 +14,8 @@ e o catálogo completo de STRs da coorte (STRling).
 **Dados**: summary stats COVID-19 HG r7 (A2/B2/C2, `leave_23andme`), GENCODE v39,
 catálogo de STRs (`STRs_analysis_dataset.tsv`).
 
-**Método**: SNPs com `p < 5e-8` mapeados ao gene (corpo ± 50 kb); cruzamento
-coord-a-coord com catálogo de STRs.
+**Método**: SNPs com `p < 5e-8` mapeados ao gene **somente dentro do corpo do
+gene** (sem janela de flanco); cruzamento coord-a-coord com catálogo de STRs.
 
 **Ordem de execução**:
 1. `1_download_data.sh` — baixa summary stats + GTF
@@ -40,6 +40,18 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`
 3. `3_summarize_subset.py` — filtra n_outliers > 0 → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
 4. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
+
+**Arquivos gerados (enriquecidos com resíduos, métricas DBSCAN e localização genômica)**:
+- `data/suggestive_strs_residuals.tsv` — subset de `STRs_normalized_residuals.tsv`
+  (um residuo `allele2_residuals` por amostra/STR) + colunas de localização
+  (`str_chrom`, `str_start`, `str_end`, `repeatunit`, `str_locus`).
+- `results/suggestive_strs_outliers.tsv` — 1 linha por STR com métricas DBSCAN
+  (`n_samples`, `n_samples_valid`, `n_outliers`, `outlier_samples`,
+  `outlier_residuals`, `n_clusters`, `noise_ratio`, `eps`, `minPts`, `cutoff`,
+  `max_residual`, `mean_residual`) + localização genômica do STR.
+- `results/covid_suggestive_genes_with_outlier_STRs.tsv` — gene sugestivo × STR
+  outlier: traz localização completa (gene + STR) e todas as métricas/resíduos
+  acima. `annotate_location.py` adiciona a localização aos arquivos de residuos/outliers.
 
 **Submissão PBS**: `submit_dbscan_subset.sh`.
 
