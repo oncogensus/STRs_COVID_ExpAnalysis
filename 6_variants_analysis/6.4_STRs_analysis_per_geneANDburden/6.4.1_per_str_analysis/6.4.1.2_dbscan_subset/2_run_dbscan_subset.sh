@@ -30,13 +30,12 @@ python3 ../extract_covid_genes.py \
   --out results/covid_genes_suggestive.tsv \
   --window "$WINDOW" --p-thresh "$P_THRESH"
 
-echo "=== 2/5 overlap genes sugestivos x STRs da coorte ==="
+echo "=== 2/5 overlap genes sugestivos x STRs da coorte (somente dentro do gene) ==="
 python3 overlap_suggestive_strs.py \
   --catalog "$CATALOG" \
   --covid-genes results/covid_genes_suggestive.tsv \
   --out results/suggestive_gene_strs.tsv \
-  --ids-out data/suggestive_strs_ids.txt \
-  --window "$WINDOW"
+  --ids-out data/suggestive_strs_ids.txt
 
 echo "=== 3/5 subset de residuos + DBSCAN ==="
 awk -F'\t' '

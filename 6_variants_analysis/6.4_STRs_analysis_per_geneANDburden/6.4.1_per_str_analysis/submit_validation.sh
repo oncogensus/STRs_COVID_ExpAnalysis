@@ -9,17 +9,17 @@
 #
 # Para submeter manualmente, um a um:
 #   cd litcovid_validation && qsub litcovid.pbs
-#   cd ../dbscan_subset     && qsub -W depend=afterok:<JOB1> dbscan_subset.pbs
+#   cd ../6.4.1.2_dbscan_subset && qsub -W depend=afterok:<JOB1> 2_run_dbscan_subset.pbs
 cd "$(dirname "$0")"
 
 cd litcovid_validation
 L=$(qsub litcovid.pbs)
 echo "litcovid_validation -> $L"
 
-cd ../dbscan_subset
-D=$(qsub -W depend=afterok:$L dbscan_subset.pbs)
+cd ../6.4.1.2_dbscan_subset
+D=$(qsub -W depend=afterok:$L 2_run_dbscan_subset.pbs)
 echo "dbscan_subset       -> $D"
 
 echo
 echo "Acompanhe com:  qstat -u $USER"
-echo "Resultados: litcovid_validation/results/ e dbscan_subset/results/"
+echo "Resultados: litcovid_validation/results/ e 6.4.1.2_dbscan_subset/results/"

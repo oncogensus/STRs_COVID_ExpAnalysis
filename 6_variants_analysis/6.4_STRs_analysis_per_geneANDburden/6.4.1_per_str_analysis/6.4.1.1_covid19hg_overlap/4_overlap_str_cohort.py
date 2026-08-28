@@ -11,6 +11,11 @@
 #       --catalog /storage2/.../samples/STRs_analysis_dataset.tsv \
 #       --covid-genes covid_genes.tsv \
 #       --out covid_genes_with_cohort_STRs.tsv
+#       [--debug]
+#
+# DEBUG: com --debug, imprime no stderr o progresso do cruzamento, o numero
+#   de amostras identificadas (unicas e totais) e o detalhamento por
+#   localizacao (cromossomo) das STRs que caem em genes COVID.
 #
 # Colunas do catalogo sao auto-detectadas (chrom/left/right/repeatunit/sample);
 # sobrescreva com --col-chrom/--col-left/--col-right/--col-motif/--col-sample se preciso.
@@ -51,7 +56,14 @@ def main():
     ap.add_argument('--col-right', default=None)
     ap.add_argument('--col-motif', default=None)
     ap.add_argument('--col-sample', default=None)
+    ap.add_argument('--debug', action='store_true',
+                   help='Imprime debugs de progresso, amostras identificadas '
+                        'e detalhamento por localizacao (cromossomo).')
     args = ap.parse_args()
+
+    def dbg(msg):
+        if args.debug:
+            sys.stderr.write(f"[DEBUG] {msg}\n")
 
     # ---- carrega genes COVID ----
     covid = {}  # chrom -> list of [gstart_w, gend_w, name, best_p, pheno, lead]
@@ -66,6 +78,13 @@ def main():
             covid.setdefault(chrom, []).append(
                 [gs - args.window, ge + args.window, row['gene'],
                  row['best_p'], row['phenotypes'], row['lead_snp']])
+
+    n_genes = sum(len(v) for v in covid.values())
+    dbg(f"Genes COVID carregados: {n_genes} em {len(covid)} cromossomos.")
+    if args.debug:
+        per_chrom = ", ".join(f"{c}={len(v)}" for c, v in sorted(covid.items()))
+        dbg(f"Genes COVID por cromossomo: {per_chrom}")
+    sys.stderr.write(f"Genes COVID: {n_genes} (janela +/-{args.window} bp por gene)\n")
 
     # ---- le catalogo de STR ----
     with open(args.catalog) as fh:
@@ -102,10 +121,17 @@ def main():
                 loci[key][4].add(sample)
 
     sys.stderr.write(f"Catalogo: {nrows} linhas, {len(loci)} loci unicos de STR.\n")
+    dbg(f"Iniciando cruzamento coord-a-coord de {len(loci)} loci STR contra genes COVID...")
 
     # ---- cruzamento ----
     out_rows = []
-    for key, (chrom, s, e, motif, samples) in loci.items():
+    # acompanhamento para estatisticas de "amostras identificadas" e localizacao
+    all_samples = set()          # amostras unicas que carregam algum STR no gene
+    loci_hit = set()             # loci STR unicos que caem em algum gene COVID
+    carr_by_chrom = {}           # chrom -> [n_pares, n_loci_str_unicos, n_amostras_unicas]
+    for n_done, (key, (chrom, s, e, motif, samples)) in enumerate(loci.items(), 1):
+        if args.debug and n_done % 100000 == 0:
+            dbg(f"  processados {n_done}/{len(loci)} loci STR...")
         genes = covid.get(chrom, [])
         # candidatos: gstart_w <= e  (depois filtra gend_w >= s)
         for g in genes:
@@ -115,6 +141,12 @@ def main():
                     g[3], g[4], g[5],
                     f"{chrom}:{s}-{e}:{motif}", chrom, s, e, motif, len(samples)
                 ])
+                loci_hit.add(key)
+                all_samples |= samples
+                st = carr_by_chrom.setdefault(chrom, [0, set(), set()])
+                st[0] += 1
+                st[1].add(key)
+                st[2] |= samples
 
     out_rows.sort(key=lambda x: (x[0], float(x[4]) if x[4] != '' else 1.0))
     with open(args.out, 'w', newline='') as out:
@@ -124,11 +156,31 @@ def main():
                     'str_start', 'str_end', 'repeatunit', 'n_carriers'])
         w.writerows(out_rows)
 
+    # ---- resumo / debug de amostras identificadas e localizacao ----
+    total_carriers = sum(r[12] for r in out_rows)   # soma de ocorrencias (mesma amostra pode contar em >1 STR)
     genes_hit = sorted({r[0] for r in out_rows})
     sys.stderr.write(f"Escrevi {len(out_rows)} pares (gene COVID x STR coorte) -> {args.out}\n")
     sys.stderr.write(f"Genes COVID que TEM STR na coorte: {len(genes_hit)}\n")
     if genes_hit:
         sys.stderr.write("  " + ", ".join(genes_hit) + "\n")
+    sys.stderr.write(
+        f"AMOSTRAS IDENTIFICADAS: {len(all_samples)} unicas "
+        f"(somando portadores={total_carriers}) em {len(loci_hit)} loci STR "
+        f"distintos que caem em genes COVID.\n")
+
+    if args.debug:
+        dbg("Detalhamento por localizacao (cromossomo) das STRs que caem em genes COVID:")
+        for chrom in sorted(carr_by_chrom):
+            n_pairs, loci_set, samp_set = carr_by_chrom[chrom]
+            dbg(f"  {chrom}: {n_pairs} pares, {len(loci_set)} loci STR, "
+                f"{len(samp_set)} amostras unicas")
+        # top genes por numero de loci STR distintos
+        gene_to_loci = {}
+        for r in out_rows:
+            gene_to_loci.setdefault(r[0], set()).add((r[8], r[9], r[10], r[11]))
+        dbg("Top genes por nº de loci STR distintos que caem no gene:")
+        for gene, ls in sorted(gene_to_loci.items(), key=lambda kv: -len(kv[1]))[:10]:
+            dbg(f"  {gene}: {len(ls)} loci STR")
 
 if __name__ == '__main__':
     main()
