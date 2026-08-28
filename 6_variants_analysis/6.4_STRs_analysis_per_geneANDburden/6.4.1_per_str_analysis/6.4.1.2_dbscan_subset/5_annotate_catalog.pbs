@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6412_annotate
+#PBS -o 5_annotate_catalog.out
+#PBS -e 5_annotate_catalog.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+# Etapa 5 de 6.4.1.2: anota residuos e outliers com o catalogo completo da
+# coorte (ancestralidade/pop, region, gene_id, gene_name, type, etc.),
+# EXCETO as colunas DBSCAN globais.
+# Entrada: data/suggestive_strs_residuals.tsv (etapa 2, modo sample),
+#          results/suggestive_strs_outliers.tsv (etapa 2, modo str).
+# Saida:   os proprios arquivos de entrada enriquecidos com o catalogo.
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+
+micromamba activate igv
+
+PYBIN="$(command -v python3)"
+[ -x "$PYBIN" ] || { echo "ERRO: python3 ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p data results
+
+CATALOG="${CATALOG:-$REPO/samples/STRs_analysis_dataset.tsv}"
+[ -f "$CATALOG" ] || { echo "ERRO: catalogo $CATALOG ausente"; exit 1; }
+[ -f data/suggestive_strs_residuals.tsv ] || { echo "ERRO: data/suggestive_strs_residuals.tsv ausente (rode etapa 2)"; exit 1; }
+[ -f results/suggestive_strs_outliers.tsv ] || { echo "ERRO: results/suggestive_strs_outliers.tsv ausente (rode etapa 2)"; exit 1; }
+
+echo "=== 5/5 anota residuos e outliers com catalogo (sample + str, auto-detectado) ==="
+"$PYBIN" annotate_catalog.py --catalog "$CATALOG" \
+  --in  data/suggestive_strs_residuals.tsv \
+  --id-col strs_id --sample-col sample_id \
+  --out data/suggestive_strs_residuals.tsv
+"$PYBIN" annotate_catalog.py --catalog "$CATALOG" \
+  --in  results/suggestive_strs_outliers.tsv \
+  --id-col strs_id \
+  --out results/suggestive_strs_outliers.tsv
+echo "=== FIM ==="

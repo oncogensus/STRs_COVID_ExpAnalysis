@@ -45,15 +45,7 @@ $(c) in ids
 # R roda no env micromamba dbscan-r (tem data.table/dbscan)
 "$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
-echo "=== 3b/5 anota residuos e outliers com o catalogo (ancestralidade, region, gene) ==="
-python3 annotate_catalog.py --catalog "$CATALOG" \
-  --in  data/suggestive_strs_residuals.tsv \
-  --id-col strs_id --sample-col sample_id --mode sample \
-  --out data/suggestive_strs_residuals.tsv
-python3 annotate_catalog.py --catalog "$CATALOG" \
-  --in  results/suggestive_strs_outliers.tsv \
-  --id-col strs_id --mode str \
-  --out results/suggestive_strs_outliers.tsv
+echo "=== 3b/4 (anotacao do catalogo movida para 5_annotate_catalog.pbs) ==="
 
 echo "=== 4/5 junta outliers ==="
 python3 summarize_subset.py \

@@ -37,13 +37,14 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
 **Ordem de execução**:
 1. `1_overlap_suggestive_strs.py` — gene × STR sugestivo → `results/suggestive_gene_strs.tsv`
-2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`;
-   em seguida `annotate_catalog.py` enriquece resíduos e outliers com o catálogo completo da coorte.
-3. `3_summarize_subset.py` — filtra n_outliers > 0 e anexa anotação do catálogo
+2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`
+3. `5_annotate_catalog.pbs` — `annotate_catalog.py` enriquece resíduos (modo `sample`) e
+   outliers (modo `str`) com o catálogo completo da coorte.
+4. `3_summarize_subset.py` — filtra n_outliers > 0 e anexa anotação do catálogo
    (`gene_id`, `gene_name`, `region`, `type`, `pops`) → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
-4. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
+5. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
 
-**Anotação do catálogo** (`annotate_catalog.py`, em `2_run_dbscan_subset.sh`/`.pbs`):
+**Anotação do catálogo** (`annotate_catalog.py`, em `5_annotate_catalog.pbs`):
 junta `samples/STRs_analysis_dataset.tsv` (via `$CATALOG`) trazendo **TODAS** as
 colunas do catálogo **exceto** as métricas DBSCAN globais
 (`n_outliers`, `outlier_samples`, `outlier_residuals`, `n_clusters`, `noise_ratio`).
