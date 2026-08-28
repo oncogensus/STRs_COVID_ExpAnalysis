@@ -1,0 +1,269 @@
+suppressMessages({
+  library(data.table)
+  library(dplyr)
+  if (!requireNamespace("SKAT", quietly = TRUE)) {
+    install.packages("SKAT", repos = "https://cloud.r-project.org")
+  }
+  library(SKAT)
+})
+
+REPO_ROOT             <- "."
+norm_file             <- file.path(REPO_ROOT, "../../5_dbscan/norm_test/STRs_normalized_residuals.tsv")
+dbscan_out            <- file.path(REPO_ROOT, "../../5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
+pca_file              <- file.path(REPO_ROOT, "../../4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
+pheno_file            <- file.path(REPO_ROOT, "../../samples/samples_infos.csv")
+out_dir               <- file.path(REPO_ROOT, "burden_test/results")
+case_label           <- "case"
+control_label        <- "control"
+high_thresh_q         <- 0.95
+min_strs_per_gene     <- 2
+remove_sample_outliers <- TRUE
+skat_kernel           <- "linear.weighted"
+run_gene_burden       <- TRUE
+selftest              <- FALSE
+
+normalize_ids <- function(ids) {
+  ids <- as.character(ids)
+  ids <- toupper(ids)
+  ids <- sub("(?i)[._-]?\\d*BAM.*$", "", ids)
+  ids <- sub("(?<=\\d)-[0-9]$", "", ids, perl = TRUE)
+  ids <- sub("-0+([0-9]+)", "-\\1", ids)
+  trimws(ids)
+}
+
+load_inputs <- function() {
+  norm <- fread(norm_file, header = TRUE, sep = "\t", data.table = FALSE)
+  required <- c("STRs_ID", "sample_id", "sample_id_clean", "group",
+                "gene_id", "gene_name", "region")
+  if (!all(required %in% colnames(norm)))
+    stop("norm_file deve conter: ", paste(required, collapse = ", "))
+
+  id_map <- norm %>% distinct(sample_id, sample_id_clean)
+
+  dbs <- fread(dbscan_out, header = TRUE, sep = "\t", data.table = FALSE)
+  if (!all(c("STRs_ID", "outlier_samples") %in% colnames(dbs)))
+    stop("dbscan_out deve conter STRs_ID e outlier_samples")
+
+  outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
+  for (i in seq_len(nrow(dbs))) {
+    samps <- unlist(strsplit(as.character(dbs$outlier_samples[i]), ";"))
+    samps <- samps[nzchar(trimws(samps))]
+    if (length(samps) == 0) next
+    m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
+    m <- m[!is.na(m)]
+    if (length(m) == 0) next
+    outlier_long <- rbind(outlier_long,
+                          data.frame(STRs_ID = rep(dbs$STRs_ID[i], length(m)),
+                                     sample_id_clean = m, stringsAsFactors = FALSE))
+  }
+  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de dbscan_out")
+
+  str_meta <- norm %>% distinct(STRs_ID, gene_id, gene_name, region)
+
+  pheno <- fread(pheno_file, header = TRUE, sep = ",", data.table = FALSE)
+  pheno_col <- grep("^sample$", colnames(pheno), ignore.case = TRUE, value = TRUE)[1]
+  if (is.na(pheno_col)) stop("pheno_file deve ter coluna 'sample'")
+  pheno$sample_id_clean <- normalize_ids(pheno[[pheno_col]])
+  pheno <- pheno %>% select(sample_id_clean, age, sex, group) %>%
+    mutate(age = as.numeric(age), sex = as.factor(sex))
+
+  pca <- read.delim(pca_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  pca_col <- grep("^sample", colnames(pca), ignore.case = TRUE, value = TRUE)[1]
+  colnames(pca)[colnames(pca) == pca_col] <- "sample_id"
+  pca$sample_id_clean <- normalize_ids(pca$sample_id)
+  pca <- pca %>% select(sample_id_clean, EV1, EV2, EV3)
+
+  covar <- inner_join(pheno, pca, by = "sample_id_clean")
+  covar$group <- ifelse(covar$group %in% case_label, 1,
+                 ifelse(covar$group %in% control_label, 0, NA))
+  if (any(is.na(covar$group))) warning("Alguns grupos NA (nem case nem control): ",
+                                        sum(is.na(covar$group)))
+  covar <- covar %>% filter(!is.na(group))
+
+  list(covar = covar, outlier_long = outlier_long, str_meta = str_meta)
+}
+
+build_matrix <- function(covar, outlier_long) {
+  all_samples <- covar$sample_id_clean
+  all_strs <- unique(outlier_long$STRs_ID)
+  M <- matrix(0, nrow = length(all_samples), ncol = length(all_strs),
+              dimnames = list(all_samples, all_strs))
+  M[outlier_long$sample_id_clean, outlier_long$STRs_ID] <- 1
+  M
+}
+
+run_burden_global <- function(M, covar, high_thresh_q) {
+  count <- rowSums(M)
+  df <- data.frame(
+    sample_id_clean = rownames(M),
+    count = count,
+    group = covar$group[match(rownames(M), covar$sample_id_clean)],
+    age = covar$age[match(rownames(M), covar$sample_id_clean)],
+    sex = covar$sex[match(rownames(M), covar$sample_id_clean)],
+    EV1 = covar$EV1[match(rownames(M), covar$sample_id_clean)],
+    EV2 = covar$EV2[match(rownames(M), covar$sample_id_clean)],
+    EV3 = covar$EV3[match(rownames(M), covar$sample_id_clean)],
+    stringsAsFactors = FALSE
+  )
+  fit <- glm(group ~ count + age + sex + EV1 + EV2 + EV3,
+             data = df, family = binomial())
+  coefs <- summary(fit)$coefficients["count", , drop = FALSE]
+  or <- exp(coefs[, "Estimate"])
+  or_lo <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+  or_hi <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+
+  w <- wilcox.test(count ~ group, data = df)
+
+  hi <- quantile(df$count, high_thresh_q)
+  tbl <- table(df$count >= hi, df$group)
+  fisher_p <- if (all(dim(tbl) == c(2, 2))) fisher.test(tbl)$p.value else NA
+  or_hi_thr <- if (all(dim(tbl) == c(2, 2))) {
+    a <- tbl[2, 2]; b <- tbl[2, 1]; c <- tbl[1, 2]; d <- tbl[1, 1]
+    (a / (a + b)) / (c / (c + d))
+  } else NA
+
+  data.frame(
+    test = c("logistic_OR_per_expansion", "mann_whitney", "threshold_OR", "threshold_fisher"),
+    estimate = c(or, NA, or_hi_thr, NA),
+    ci_low = c(or_lo, NA, NA, NA),
+    ci_high = c(or_hi, NA, NA, NA),
+    p_value = c(coefs[, "Pr(>|z|)"], w$p.value, NA, fisher_p),
+    stringsAsFactors = FALSE
+  )
+}
+
+run_skat_per_gene <- function(M, str_meta, covar, min_strs_per_gene, skat_kernel) {
+  common <- intersect(rownames(M), covar$sample_id_clean)
+  Mc <- M[common, , drop = FALSE]
+  covc <- covar %>% filter(sample_id_clean %in% common) %>%
+    arrange(match(sample_id_clean, rownames(Mc)))
+  rownames(covc) <- covc$sample_id_clean
+  covc <- covc[rownames(Mc), ]
+
+  obj <- SKAT_Null_Model(group ~ age + sex + EV1 + EV2 + EV3,
+                         data = covc, out_type = "D")
+
+  genes <- unique(str_meta$gene_id[!is.na(str_meta$gene_id)])
+  res <- list()
+  for (g in genes) {
+    strs_g <- str_meta$STRs_ID[str_meta$gene_id == g &
+                               str_meta$STRs_ID %in% colnames(Mc)]
+    cols <- Mc[, strs_g, drop = FALSE]
+    keep <- which(apply(cols, 2, function(x) var(x) > 0))
+    if (length(keep) < min_strs_per_gene) {
+      res[[g]] <- data.frame(gene = g, gene_name = NA,
+                             n_variants = length(keep),
+                             p_value = NA, note = "fewer than min variants")
+      next
+    }
+    Z <- as.matrix(cols[, keep, drop = FALSE])
+    r <- tryCatch(SKAT(Z, obj, kernel = skat_kernel),
+                  error = function(e) NULL)
+    gname <- unique(str_meta$gene_name[str_meta$gene_id == g])
+    res[[g]] <- data.frame(gene = g,
+                           gene_name = ifelse(length(gname) > 0, gname[1], NA),
+                           n_variants = ncol(Z),
+                           p_value = ifelse(is.null(r), NA, r$p.value),
+                           note = ifelse(is.null(r), "SKAT error", ""))
+  }
+  out <- bind_rows(res)
+  out$q_value <- p.adjust(out$p_value, method = "BH")
+  out
+}
+
+run_gene_burden_test <- function(M, str_meta, covar) {
+  common <- intersect(rownames(M), covar$sample_id_clean)
+  Mc <- M[common, , drop = FALSE]
+  covc <- covar %>% filter(sample_id_clean %in% common) %>%
+    arrange(match(sample_id_clean, rownames(Mc)))
+  rownames(covc) <- covc$sample_id_clean
+  covc <- covc[rownames(Mc), ]
+
+  genes <- unique(str_meta$gene_id[!is.na(str_meta$gene_id)])
+  res <- list()
+  for (g in genes) {
+    strs_g <- str_meta$STRs_ID[str_meta$gene_id == g &
+                               str_meta$STRs_ID %in% colnames(Mc)]
+    if (length(strs_g) == 0) next
+    gcount <- rowSums(Mc[, strs_g, drop = FALSE])
+    if (var(gcount) == 0) next
+    df <- data.frame(
+      count = gcount, group = covc$group, age = covc$age,
+      sex = covc$sex, EV1 = covc$EV1, EV2 = covc$EV2, EV3 = covc$EV3,
+      stringsAsFactors = FALSE)
+    fit <- glm(group ~ count + age + sex + EV1 + EV2 + EV3,
+               data = df, family = binomial())
+    cf <- summary(fit)$coefficients["count", ]
+    gname <- unique(str_meta$gene_name[str_meta$gene_id == g])
+    res[[g]] <- data.frame(gene = g,
+                           gene_name = ifelse(length(gname) > 0, gname[1], NA),
+                           n_variants = length(strs_g),
+                           p_value = cf["Pr(>|z|)"],
+                           OR_per_expansion = exp(cf["Estimate"]),
+                           stringsAsFactors = FALSE)
+  }
+  out <- bind_rows(res)
+  out$q_value <- p.adjust(out$p_value, method = "BH")
+  out
+}
+
+run_pipeline <- function(covar, outlier_long, str_meta) {
+  if (remove_sample_outliers && nrow(outlier_long) > 0) {
+    tmp <- build_matrix(covar, outlier_long)
+    cnt <- rowSums(tmp)
+    thr <- mean(cnt) + 2 * sd(cnt)
+    bad <- rownames(tmp)[cnt > thr]
+    if (length(bad) > 0) {
+      cat("Removendo", length(bad), "amostras outlier (>2 DP de expansoes):",
+          paste(bad, collapse = ", "), "\n")
+      covar <- covar %>% filter(!sample_id_clean %in% bad)
+      outlier_long <- outlier_long %>% filter(!sample_id_clean %in% bad)
+    }
+  }
+  M <- build_matrix(covar, outlier_long)
+  cat("Matriz:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+
+  burden <- run_burden_global(M, covar, high_thresh_q)
+  skat <- run_skat_per_gene(M, str_meta, covar, min_strs_per_gene, skat_kernel)
+  out <- list(burden = burden, skat = skat)
+  if (run_gene_burden) out$gene_burden <- run_gene_burden_test(M, str_meta, covar)
+  out
+}
+
+if (selftest) {
+  set.seed(1)
+  n <- 300
+  covar <- data.frame(
+    sample_id_clean = paste0("S", 1:n),
+    age = rnorm(n, 60, 10),
+    sex = factor(sample(c("M", "F"), n, TRUE)),
+    group = rbinom(n, 1, 0.5),
+    EV1 = rnorm(n), EV2 = rnorm(n), EV3 = rnorm(n),
+    stringsAsFactors = FALSE)
+  genes <- rep(paste0("G", 1:20), each = 5)
+  str_meta <- data.frame(STRs_ID = paste0("STR", 1:100),
+                          gene_id = genes, gene_name = genes,
+                          region = "x", stringsAsFactors = FALSE)
+  outs <- sample(1:100, 40)
+  outlier_long <- data.frame(
+    STRs_ID = rep(paste0("STR", outs), each = 3),
+    sample_id_clean = sample(covar$sample_id_clean, 120, TRUE),
+    stringsAsFactors = FALSE) %>% distinct()
+  cat("=== SELFTEST ===\n")
+  res <- run_pipeline(covar, outlier_long, str_meta)
+  print(res$burden)
+  print(head(res$skat[order(res$skat$p_value), ]))
+  if (!is.null(res$gene_burden)) print(head(res$gene_burden[order(res$gene_burden$p_value), ]))
+} else {
+  inp <- load_inputs()
+  res <- run_pipeline(inp$covar, inp$outlier_long, inp$str_meta)
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  fwrite(res$burden, file.path(out_dir, "burden_global.tsv"), sep = "\t")
+  fwrite(res$skat, file.path(out_dir, "skat_per_gene.tsv"), sep = "\t")
+  if (!is.null(res$gene_burden))
+    fwrite(res$gene_burden, file.path(out_dir, "gene_burden.tsv"), sep = "\t")
+  cat("Resultados em:", out_dir, "\n")
+  cat("Burden global:\n"); print(res$burden)
+  cat("Top SKAT por gene (q<0.05):\n")
+  print(head(res$skat[res$skat$q_value < 0.05 & !is.na(res$skat$q_value), ], 20))
+}
