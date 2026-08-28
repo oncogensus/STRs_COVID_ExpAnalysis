@@ -37,7 +37,7 @@ dfA <- bind_rows(
 ) %>% filter(!is.na(pvalue) & pvalue < 0.05)
 
 if (!is.null(dfA) && nrow(dfA) > 0) {
-  cls <- tryCatch(read_delim("results/pathway_convergence_nominal.tsv", delim = "\t"), error = function(e) NULL)
+  cls <- tryCatch(read_delim("results/pathway_convergence_nominal_p005.tsv", delim = "\t"), error = function(e) NULL)
   if (!is.null(cls)) dfA <- left_join(dfA, cls %>% select(source, ID, class), by = c("source", "ID"))
   dfA <- dfA %>% mutate(n_gene = lengths(strsplit(geneID, "/")),
                         class = ifelse(is.na(.data$class), "None", as.character(.data$class)),
@@ -58,7 +58,7 @@ if (!is.null(dfA) && nrow(dfA) > 0) {
 ## FIG B: cnetplot das vias High-Confidence + heatmap de membership
 ## ======================================================================
 cls_master  <- tryCatch(read_delim("results/pathway_convergence.tsv", delim = "\t"), error = function(e) NULL)
-cls_nominal <- tryCatch(read_delim("results/pathway_convergence_nominal.tsv", delim = "\t"), error = function(e) NULL)
+cls_nominal <- tryCatch(read_delim("results/pathway_convergence_nominal_p005.tsv", delim = "\t"), error = function(e) NULL)
 if (!is.null(cls_nominal) && nrow(cls_nominal) > 0) {
   hc_k <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "KEGG"]
   hc_r <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "Reactome"]

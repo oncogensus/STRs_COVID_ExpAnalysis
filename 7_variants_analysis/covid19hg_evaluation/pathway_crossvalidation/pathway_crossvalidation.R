@@ -132,8 +132,8 @@ save_individual(re_p1, "Reactome_P1"); save_individual(re_p2, "Reactome_P2")
 ## ======================================================================
 ## 4. CLASSIFICACAO DE CROSS-VALIDATION (nivel via) POR THRESHOLD
 ##    - nominal: p bruto < 0.05
-##    - fdr01 : FDR (BH)  < 0.10
-##    - fdr05 : FDR (BH)  < 0.50
+##    - fdr005 : FDR (BH)  < 0.05
+##    - fdr001 : FDR (BH)  < 0.01
 ## Cada threshold gera seu proprio CSV/TSV (pedido do usuario).
 ## ======================================================================
 minna <- function(x) if (length(x) == 0) NA else min(x, na.rm = TRUE)
@@ -172,13 +172,13 @@ summarise_cls <- function(sig, tag) {
 }
 
 sig_nominal <- all_sig %>% filter(!is.na(pvalue) & pvalue < 0.05)
-sig_fdr01  <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.10)
-sig_fdr05  <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.50)
+sig_fdr005 <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.05)
+sig_fdr001 <- all_sig %>% filter(!is.na(p.adjust) & p.adjust < 0.01)
 
 cat("=== Cross-validation por threshold ===\n")
 build_convergence_nominal <- summarise_cls(sig_nominal, "nominal_p005")
-build_convergence_fdr01   <- summarise_cls(sig_fdr01,   "fdr01")
-build_convergence_fdr05   <- summarise_cls(sig_fdr05,   "fdr05")
+build_convergence_fdr005  <- summarise_cls(sig_fdr005,  "fdr005")
+build_convergence_fdr001  <- summarise_cls(sig_fdr001,  "fdr001")
 
 ## ======================================================================
 ## 5. TABELA-MAE unindo os tres thresholds (p bruto + FDR 0.1 + FDR 0.5)
@@ -193,10 +193,10 @@ master <- all_sig %>% group_by(source, ID) %>% summarise(
   in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
   pass_nominal = (in_p1 & !is.na(p1_pvalue) & p1_pvalue < 0.05) |
                  (in_p2 & !is.na(p2_pvalue) & p2_pvalue < 0.05),
-  pass_fdr01   = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.10) |
-                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.10),
-  pass_fdr05   = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.50) |
-                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.50),
+  pass_fdr005  = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.05) |
+                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.05),
+  pass_fdr001  = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.01) |
+                 (in_p2 & !is.na(p2_p.adjust) & p2_p.adjust < 0.01),
   class = case_when(in_p1 & in_p2 ~ "High-Confidence",
                     in_p1            ~ "Hypothesis-Driven",
                     in_p2            ~ "Agnostic-Specific",
