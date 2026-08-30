@@ -9,7 +9,7 @@ suppressMessages({
 
 REPO_ROOT  <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
-norm_file  <- file.path(REPO_ROOT, "5_dbscan/norm_test/STRs_normalized_residuals.tsv")
+norm_file  <- file.path(REPO_ROOT, "5_global_dbscan/norm_test/STRs_normalized_residuals.tsv")
 pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
 pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
 
