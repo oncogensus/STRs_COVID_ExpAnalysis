@@ -1,0 +1,21 @@
+#!/bin/bash
+#PBS -N burden_gwas
+#PBS -q workq
+#PBS -l nodes=1:ppn=1
+#PBS -e burden_gwas.err
+#PBS -o burden_gwas.log
+
+source /etc/profile.d/modules.sh
+module load micromamba
+
+eval "$(micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+REPO=/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis
+cd $REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test
+
+git stash
+git pull
+git stash pop || true
+
+Rscript burden_gwas.R
