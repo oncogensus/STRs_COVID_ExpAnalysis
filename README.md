@@ -208,24 +208,6 @@ Detect isolated points (outliers) using DBSCAN on normalized data.
 
 ---
 
-## Stage 6: scRNA-seq Data Processing (scovid)
-
-### Purpose
-Extraction and processing of differential expression data from scRNA-seq studies via the SCovid portal.
-
-
-### Data Sources
-- Portal: https://bio-computing.hrbmu.edu.cn/scovid/#/home
-- Tissues: Lung, airway, brain (manual curation)
-- Organization: Files stored by tissue type, with subfolders for GEO study codes
-- Content: CSV files containing cell type information
-
-## Processing Script
-- integrate_cell.py: Integrates curated scRNA-seq data
-
-
----
-
 ## Stage 6: Variant Analysis (`6_variants_analysis`)
 
 ### Purpose
