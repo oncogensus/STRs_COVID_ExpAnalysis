@@ -72,11 +72,12 @@ load_inputs <- function() {
     cat("[gwas_burden] Amostras com dosagem:", length(unique(dos$sample_id_clean)), "\n")
 
     dos_dt <- as.data.table(dos)
-    M_dosage <- dcast(dos_dt, sample_id_clean ~ STRs_ID, value.var = "allele2_est",
-                      fun.aggregate = function(x) x[1])
-    rownames(M_dosage) <- M_dosage$sample_id_clean
-    M_dosage$sample_id_clean <- NULL
-    M_dosage <- as.matrix(M_dosage)
+    wide <- dcast(dos_dt, sample_id_clean ~ STRs_ID, value.var = "allele2_est",
+                  fun.aggregate = function(x) x[1])
+    wide_df <- as.data.frame(wide)
+    rownames(wide_df) <- wide_df$sample_id_clean
+    wide_df$sample_id_clean <- NULL
+    M_dosage <- as.matrix(wide_df)
     M_dosage[is.na(M_dosage)] <- 0
 
   } else if (strategy == "gwas") {
