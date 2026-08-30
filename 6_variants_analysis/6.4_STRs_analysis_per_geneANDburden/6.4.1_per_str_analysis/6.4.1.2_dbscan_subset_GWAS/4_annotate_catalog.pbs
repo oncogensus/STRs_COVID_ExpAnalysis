@@ -15,7 +15,7 @@
 # Saida:   os proprios arquivos de entrada enriquecidos com o catalogo.
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset"
+WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
