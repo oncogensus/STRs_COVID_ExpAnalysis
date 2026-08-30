@@ -13,12 +13,19 @@ norm_file  <- file.path(REPO_ROOT, "5_global_dbscan/norm_test/STRs_normalized_re
 pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
 pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
 
-strategy <- "gwas"
+strategy <- "gwas_background"
+
+background_file <- file.path(REPO_ROOT,
+  "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv")
+outlier_file <- file.path(REPO_ROOT,
+  "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+outlier_col <- "outlier_samples"
 
 if (strategy == "gwas") {
-  outlier_file     <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
-  outlier_col      <- "outlier_samples"
   out_dir          <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas")
+  remove_sample_outliers <- FALSE
+} else if (strategy == "gwas_background") {
+  out_dir          <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas_bg")
   remove_sample_outliers <- FALSE
 } else {
   outlier_file     <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
@@ -53,29 +60,65 @@ load_inputs <- function() {
 
   id_map <- norm %>% distinct(sample_id, sample_id_clean)
 
-  if (!file.exists(outlier_file)) stop("outlier_file nao encontrado: ", outlier_file,
-    "\nAjuste 'outlier_file' ou 'strategy'.")
-  dbs <- fread(outlier_file, header = TRUE, sep = "\t", data.table = FALSE)
-  if (!all(c("STRs_ID", outlier_col) %in% colnames(dbs)))
-    stop("outlier_file deve conter STRs_ID e '", outlier_col, "'")
-
-  outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
-  for (i in seq_len(nrow(dbs))) {
-    raw <- as.character(dbs[[outlier_col]][i])
-    samps <- unlist(strsplit(raw, "[;,[:space:]]+"))
-    samps <- samps[nzchar(trimws(samps))]
-    if (length(samps) == 0) next
-    m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
-    if (all(is.na(m))) m <- id_map$sample_id_clean[match(samps, id_map$sample_id_clean)]
-    m <- m[!is.na(m)]
-    if (length(m) == 0) next
-    outlier_long <- rbind(outlier_long,
-                          data.frame(STRs_ID = rep(dbs$STRs_ID[i], length(m)),
-                                     sample_id_clean = m, stringsAsFactors = FALSE))
-  }
-  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de outlier_file")
-
   str_meta <- norm %>% distinct(STRs_ID, gene_id, gene_name, region)
+
+  if (strategy == "gwas_background") {
+    if (!file.exists(background_file)) stop("background_file nao encontrado: ", background_file)
+    bg <- fread(background_file, header = TRUE, sep = "\t", data.table = FALSE)
+    bg_strs <- unique(bg$strs_id)
+    cat("[gwas_background] STRs no background:", length(bg_strs), "\n")
+
+    if (!file.exists(outlier_file)) stop("outlier_file nao encontrado: ", outlier_file)
+    dbs <- fread(outlier_file, header = TRUE, sep = "\t", data.table = FALSE)
+    if (!all(c("STRs_ID", outlier_col) %in% colnames(dbs)))
+      stop("outlier_file deve conter STRs_ID e '", outlier_col, "'")
+
+    outlier_map <- setNames(dbs[[outlier_col]], dbs$STRs_ID)
+
+    outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
+    for (sid in bg_strs) {
+      raw <- as.character(outlier_map[sid])
+      if (is.na(raw) || !nzchar(trimws(raw))) next
+      samps <- unlist(strsplit(raw, "[;,[:space:]]+"))
+      samps <- samps[nzchar(trimws(samps))]
+      if (length(samps) == 0) next
+      m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
+      if (all(is.na(m))) m <- id_map$sample_id_clean[match(samps, id_map$sample_id_clean)]
+      m <- m[!is.na(m)]
+      if (length(m) == 0) next
+      outlier_long <- rbind(outlier_long,
+                            data.frame(STRs_ID = rep(sid, length(m)),
+                                       sample_id_clean = m, stringsAsFactors = FALSE))
+    }
+
+    all_strs <- bg_strs
+    cat("[gwas_background] STRs com outlier:", length(unique(outlier_long$STRs_ID)), "\n")
+    cat("[gwas_background] Outlier rows:", nrow(outlier_long), "\n")
+
+  } else {
+    if (!file.exists(outlier_file)) stop("outlier_file nao encontrado: ", outlier_file,
+      "\nAjuste 'outlier_file' ou 'strategy'.")
+    dbs <- fread(outlier_file, header = TRUE, sep = "\t", data.table = FALSE)
+    if (!all(c("STRs_ID", outlier_col) %in% colnames(dbs)))
+      stop("outlier_file deve conter STRs_ID e '", outlier_col, "'")
+
+    outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
+    for (i in seq_len(nrow(dbs))) {
+      raw <- as.character(dbs[[outlier_col]][i])
+      samps <- unlist(strsplit(raw, "[;,[:space:]]+"))
+      samps <- samps[nzchar(trimws(samps))]
+      if (length(samps) == 0) next
+      m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
+      if (all(is.na(m))) m <- id_map$sample_id_clean[match(samps, id_map$sample_id_clean)]
+      m <- m[!is.na(m)]
+      if (length(m) == 0) next
+      outlier_long <- rbind(outlier_long,
+                            data.frame(STRs_ID = rep(dbs$STRs_ID[i], length(m)),
+                                       sample_id_clean = m, stringsAsFactors = FALSE))
+    }
+    if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de outlier_file")
+    all_strs <- NULL
+  }
 
   pheno <- fread(pheno_file, header = TRUE, sep = ",", data.table = FALSE)
   pheno_col <- grep("^sample$", colnames(pheno), ignore.case = TRUE, value = TRUE)[1]
@@ -97,15 +140,22 @@ load_inputs <- function() {
                                         sum(is.na(covar$group)))
   covar <- covar %>% filter(!is.na(group))
 
-  list(covar = covar, outlier_long = outlier_long, str_meta = str_meta)
+  list(covar = covar, outlier_long = outlier_long, str_meta = str_meta, all_strs = all_strs)
 }
 
-build_matrix <- function(covar, outlier_long) {
+build_matrix <- function(covar, outlier_long, all_strs = NULL) {
   all_samples <- covar$sample_id_clean
-  all_strs <- unique(outlier_long$STRs_ID)
-  M <- matrix(0, nrow = length(all_samples), ncol = length(all_strs),
-              dimnames = list(all_samples, all_strs))
-  M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1
+  if (!is.null(all_strs)) {
+    all_strs_vec <- all_strs
+  } else {
+    all_strs_vec <- unique(outlier_long$STRs_ID)
+  }
+  M <- matrix(0, nrow = length(all_samples), ncol = length(all_strs_vec),
+              dimnames = list(all_samples, all_strs_vec))
+  if (nrow(outlier_long) > 0) {
+    valid <- outlier_long$STRs_ID %in% all_strs_vec
+    M[cbind(outlier_long$sample_id_clean[valid], outlier_long$STRs_ID[valid])] <- 1
+  }
   M
 }
 
@@ -281,9 +331,9 @@ run_str_burden_test <- function(M, covar) {
   out
 }
 
-run_pipeline <- function(covar, outlier_long, str_meta) {
+run_pipeline <- function(covar, outlier_long, str_meta, all_strs = NULL) {
   if (remove_sample_outliers && nrow(outlier_long) > 0) {
-    tmp <- build_matrix(covar, outlier_long)
+    tmp <- build_matrix(covar, outlier_long, all_strs)
     cnt <- rowSums(tmp)
     thr <- mean(cnt) + 2 * sd(cnt)
     bad <- rownames(tmp)[cnt > thr]
@@ -294,11 +344,12 @@ run_pipeline <- function(covar, outlier_long, str_meta) {
       outlier_long <- outlier_long %>% filter(!sample_id_clean %in% bad)
     }
   }
-  M <- build_matrix(covar, outlier_long)
-  cat("Matriz [", strategy, "]:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+  M <- build_matrix(covar, outlier_long, all_strs)
+  cat("Matriz [", strategy, "]:", nrow(M), "amostras x", ncol(M), "STRs\n")
   cat("  [debug] outlier_long nrow =", nrow(outlier_long), "\n")
   cat("  [debug] n de amostras unicas em outlier_long =",
       length(unique(outlier_long$sample_id_clean)), "\n")
+  cat("  [debug] STRs com outlier:", length(unique(outlier_long$STRs_ID)), "\n")
   cat("  [debug] contagens por STR (colSums M):\n")
   print(colSums(M))
   cat("  [debug] head(outlier_long):\n")
@@ -346,7 +397,7 @@ if (selftest) {
   if (!is.null(res$gene_burden)) print(head(res$gene_burden[order(res$gene_burden$p_value), ]))
 } else {
   inp <- load_inputs()
-  res <- run_pipeline(inp$covar, inp$outlier_long, inp$str_meta)
+  res <- run_pipeline(inp$covar, inp$outlier_long, inp$str_meta, inp$all_strs)
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   fwrite(res$burden, file.path(out_dir, "burden_global.tsv"), sep = "\t")
   fwrite(res$skat, file.path(out_dir, "skat_per_gene.tsv"), sep = "\t")
