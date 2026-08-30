@@ -18,18 +18,18 @@ strategy <- "gwas_burden"
 if (strategy == "gwas_burden") {
   background_file <- file.path(REPO_ROOT,
     "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv")
-  out_dir <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas_burden")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test/results_gwas_burden")
   remove_sample_outliers <- FALSE
 } else if (strategy == "gwas") {
   outlier_file <- file.path(REPO_ROOT,
     "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
   outlier_col <- "outlier_samples"
-  out_dir <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test/results_gwas")
   remove_sample_outliers <- FALSE
 } else {
   outlier_file <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
   outlier_col <- "outlier_samples"
-  out_dir <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test/results")
   remove_sample_outliers <- TRUE
 }
 

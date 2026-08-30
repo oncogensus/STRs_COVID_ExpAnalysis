@@ -44,14 +44,14 @@ strs_paper/
 └── 6_variants_analysis/
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
-    ├── 6.3_STRs_filter/
     ├── 6.4_STRs_analysis_per_geneANDburden/
     │   ├── 6.4.1_per_str_analysis/
     │   ├── 6.4.2_burden_test/
     │   ├── 6.4.3_analysis_scRNA_Seq.ipynb
     │   ├── 6.4.4_igv_per_variant/
     │   └── str_samples_to_bed.R
-    └── 6.5_ancestry_analysis/
+    ├── 6.5_STRs_filter/
+    └── 6.6_ancestry_analysis/
 ```
 
 ---
@@ -531,17 +531,18 @@ strs_paper/
     ├── STRs_analysis_dataset.tsv   # Master integrated dataset
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
-    ├── 6.3_STRs_filter/
     ├── 6.4_STRs_analysis_per_geneANDburden/
     │   ├── 6.4.1_per_str_analysis/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
     │   │   ├── 6.4.1.2_dbscan_subset_GWAS/
+    │   │   ├── 6.4.1.3_dbscan_subset_RNA/
     │   │   └── 6.4.1.4_pathway_crossvalidation/
     │   ├── 6.4.2_burden_test/
     │   │   └── results/ / results_gwas/
     │   ├── 6.4.3_analysis_scRNA_Seq.ipynb
     │   └── 6.4.4_igv_per_variant/
-    └── 6.5_ancestry_analysis/
+    ├── 6.5_STRs_filter/
+    └── 6.6_ancestry_analysis/
         └── results/
             ├── categorical_data/
             ├── high_resolution/
