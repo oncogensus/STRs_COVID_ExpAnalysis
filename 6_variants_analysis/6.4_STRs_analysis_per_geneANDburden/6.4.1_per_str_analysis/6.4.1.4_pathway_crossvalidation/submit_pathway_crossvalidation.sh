@@ -6,6 +6,15 @@
 #   bash submit_pathway_crossvalidation.sh
 cd "$(dirname "$0")"
 
+# --- Pre-verificacao: resultados de 6.4.1.2 precisam existir ---
+GWAS_DIR="../6.4.1.2_dbscan_subset_GWAS"
+
+[ -f "$GWAS_DIR/results/covid_suggestive_genes_with_outlier_STRs.tsv" ] || \
+  { echo "ERRO: rode 6.4.1.2_dbscan_subset_GWAS antes (results/covid_suggestive_genes_with_outlier_STRs.tsv ausente)"; exit 1; }
+
+[ -f "$GWAS_DIR/data/suggestive_strs_residuals.tsv" ] || \
+  { echo "ERRO: rode 6.4.1.2_dbscan_subset_GWAS antes (data/suggestive_strs_residuals.tsv ausente)"; exit 1; }
+
 O=$(qsub 0_get_outlier_genes.pbs)
 echo "0_get_outlier_genes      -> $O"
 
