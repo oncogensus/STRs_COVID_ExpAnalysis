@@ -15,7 +15,7 @@ suppressMessages({
 
 ROOT <- normalizePath("../../..")
 p1_file <- "../dbscan_subset/results/covid_suggestive_genes_with_outlier_STRs.tsv"
-p2_file <- "../litcovid_validation/data/outlier_genes.txt"
+p2_file <- "../data/outlier_genes.txt"
 catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)

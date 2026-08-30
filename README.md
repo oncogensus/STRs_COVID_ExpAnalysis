@@ -485,11 +485,10 @@ qsub submit_burden_gwas.pbs     # Strategy B (GWAS-based)
       7.3.1 STR-scRNA Overlap Import
       7.3.2 Statistical Filtering
    7.4 Per-STR Analysis & scRNA-seq Overlap
-      7.4.1 Per-STR Analysis (`6.4.1_per_str_analysis/`)
-         6.4.1.1 COVID-19 HG × STRs overlap
-         6.4.1.2 DBSCAN subset cross-validation
-         6.4.1.3 LitCovid literature validation
-         6.4.1.4 Pathway cross-validation
+       7.4.1 Per-STR Analysis (`6.4.1_per_str_analysis/`)
+          6.4.1.1 COVID-19 HG × STRs overlap
+          6.4.1.2 DBSCAN subset cross-validation
+          6.4.1.3 Pathway cross-validation
       7.4.2 Burden / SKAT (`6.4.2_burden_test/`)
          Strategy A: DBSCAN-derived outliers
          Strategy B: GWAS-based / COVID-19 HG r7 outliers
@@ -536,8 +535,7 @@ strs_paper/
     │   ├── 6.4.1_per_str_analysis/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
     │   │   ├── 6.4.1.2_dbscan_subset/
-    │   │   ├── 6.4.1.3_litcovid_validation/
-    │   │   └── 6.4.1.4_pathway_crossvalidation/
+    │   │   └── 6.4.1.3_pathway_crossvalidation/
     │   ├── 6.4.2_burden_test/
     │   │   └── results/ / results_gwas/
     │   ├── 6.4.3_analysis_scRNA_Seq.ipynb

@@ -28,7 +28,7 @@
 #                    gene_end, gene, best_p, phenotypes, lead_snp.
 #   --out            Tabela de saida gene x STR (results/suggestive_gene_strs.tsv).
 #   --ids-out        Lista de STRs_ID unicos (data/suggestive_strs_ids.txt) usada
-#                    pelo subset do DBSCAN e pelo crossvalidate LitCovid.
+#                    pelo subset do DBSCAN.
 #   --debug          Ativa mensagens de debug verbosas (progresso, contagens).
 #
 # SAIDAS

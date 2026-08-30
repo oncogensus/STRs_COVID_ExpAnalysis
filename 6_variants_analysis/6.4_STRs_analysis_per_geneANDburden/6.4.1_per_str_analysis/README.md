@@ -1,8 +1,8 @@
 # 6.4.1 — Per-STR Analysis
 
 Análises dirigidas a genes/STRs específicos, combinando evidências de
-**associação genética (COVID-19 HG r7)**, **outliers DBSCAN**, **literatura
-COVID** e **vias biológicas**.
+**associação genética (COVID-19 HG r7)**, **outliers DBSCAN** e **vias
+biológicas**.
 
 ## Sub-etapas
 
@@ -38,13 +38,12 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 **Ordem de execução**:
 1. `1_overlap_suggestive_strs.py` — gene × STR sugestivo → `results/suggestive_gene_strs.tsv`
 2. `2_run_dbscan_subset.sh` / `2_run_dbscan_subset.R` — DBSCAN no subset → `results/suggestive_strs_outliers.tsv`
-3. `5_annotate_catalog.pbs` — `annotate_catalog.py` enriquece resíduos (modo `sample`) e
-   outliers (modo `str`) com o catálogo completo da coorte.
-4. `3_summarize_subset.py` — filtra n_outliers > 0 e anexa anotação do catálogo
+3. `3_summarize_subset.py` — filtra n_outliers > 0 e anexa anotação do catálogo
    (`gene_id`, `gene_name`, `region`, `type`, `pops`) → `results/covid_suggestive_genes_with_outlier_STRs.tsv`
-5. `4_crossvalidate.py` — interseção com LitCovid → `results/crossvalidated_genes.tsv`
+4. `4_annotate_catalog.pbs` — `annotate_catalog.py` enriquece resíduos (modo `sample`) e
+   outliers (modo `str`) com o catálogo completo da coorte.
 
-**Anotação do catálogo** (`annotate_catalog.py`, em `5_annotate_catalog.pbs`):
+**Anotação do catálogo** (`annotate_catalog.py`, em `4_annotate_catalog.pbs`):
 junta `samples/STRs_analysis_dataset.tsv` (via `$CATALOG`) trazendo **TODAS** as
 colunas do catálogo **exceto** as métricas DBSCAN globais
 (`n_outliers`, `outlier_samples`, `outlier_residuals`, `n_clusters`, `noise_ratio`).
@@ -71,23 +70,7 @@ colunas do catálogo **exceto** as métricas DBSCAN globais
 
 ---
 
-### 6.4.1.3 — Validação por literatura — LitCovid (`6.4.1.3_litcovid_validation/`)
-
-Extração de literatura COVID que menciona genes dos STRs marcados como
-outliers pelo DBSCAN global.
-
-**Pré-requisito**: `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv`.
-
-**Ordem de execução**:
-1. `1_get_outlier_genes.py` — catálogo → `data/outlier_genes.txt`
-2. `2_download_litcovid.sh` — baixa `litcovid2pubtator.json.gz` (~2.3 GB)
-3. `3_gene_literature.py` — mapeia gene → artigos → `results/gene_literature_summary.tsv`
-
-**Submissão PBS**: `submit_litcovid.sh` ou `run_litcovid.sh`.
-
----
-
-### 6.4.1.4 — Cross-validation de vias (`6.4.1.4_pathway_crossvalidation/`)
+### 6.4.1.3 — Cross-validation de vias (`6.4.1.3_pathway_crossvalidation/`)
 
 Enriquecimento de vias biológicas nos genes outlier, com validação cruzada
 por sub-amostragem.
@@ -100,16 +83,6 @@ por sub-amostragem.
 **Submissão PBS**: `submit_pathway_crossvalidation.sh`, `submit_gene_crossvalidation.sh`.
 
 ---
-
-## Orquestrador de validação cruzada
-
-`submit_validation.sh` (na raiz) encadeia as etapas 6.4.1.3 → 6.4.1.2 via PBS com
-dependência `afterok`:
-
-```bash
-bash submit_validation.sh
-# litcovid_validation (Parte 1) → dbscan_subset (Parte 2)
-```
 
 ## Ambiente
 

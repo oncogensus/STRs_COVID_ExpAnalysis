@@ -1,10 +1,11 @@
 __pycache__/
 *.pyc
 
-# Validacao DBSCAN<->LitCovid: dados baixados e resultados (nao versionar)
-litcovid_validation/data/
-litcovid_validation/results/
+# Dados e resultados (nao versionar)
 dbscan_subset/data/
 dbscan_subset/results/
 pathway_crossvalidation/data/
 pathway_crossvalidation/results/
+
+# Pasta de arquivo local (nao versionar)
+litcovid_archive/

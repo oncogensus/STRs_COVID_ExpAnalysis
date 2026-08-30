@@ -19,7 +19,7 @@ CATALOG="${CATALOG:-$ROOT/samples/STRs_analysis_dataset.tsv}"
 RESIDUALS="${RESIDUALS:-$ROOT/5_global_dbscan/norm_test/STRs_normalized_residuals.tsv}"
 P_THRESH=1e-5
 
-echo "=== 1/5 extrai genes sugestivos COVID-19 HG (p<$P_THRESH) ==="
+echo "=== 1/4 extrai genes sugestivos COVID-19 HG (p<$P_THRESH) ==="
 python3 ../extract_covid_genes.py \
   --sumstats \
     ../data/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz \
@@ -29,14 +29,14 @@ python3 ../extract_covid_genes.py \
   --out results/covid_genes_suggestive.tsv \
   --p-thresh "$P_THRESH"
 
-echo "=== 2/5 overlap genes sugestivos x STRs da coorte (somente dentro do gene) ==="
+echo "=== 2/4 overlap genes sugestivos x STRs da coorte (somente dentro do gene) ==="
 python3 overlap_suggestive_strs.py \
   --catalog "$CATALOG" \
   --covid-genes results/covid_genes_suggestive.tsv \
   --out results/suggestive_gene_strs.tsv \
   --ids-out data/suggestive_strs_ids.txt
 
-echo "=== 3/5 subset de residuos + DBSCAN ==="
+echo "=== 3/4 subset de residuos + DBSCAN ==="
 awk -F'\t' '
 NR==FNR { ids[$1]; next }
 FNR==1  { for(i=1;i<=NF;i++) if($i=="STRs_ID") c=i; print; next }
@@ -45,21 +45,10 @@ $(c) in ids
 # R roda no env micromamba dbscan-r (tem data.table/dbscan)
 "$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
-echo "=== 3b/4 (anotacao do catalogo movida para 5_annotate_catalog.pbs) ==="
-
-echo "=== 4/5 junta outliers ==="
+echo "=== 4/4 junta outliers ==="
 python3 summarize_subset.py \
   --overlap results/suggestive_gene_strs.tsv \
   --dbscan results/suggestive_strs_outliers.tsv \
   --out results/covid_suggestive_genes_with_outlier_STRs.tsv
 
-echo "=== 5/5 cross-validation com LitCovid (se existir) ==="
-if [ -f ../litcovid_validation/results/gene_literature_summary.tsv ]; then
-  python3 crossvalidate.py \
-    --litcovid-summary ../litcovid_validation/results/gene_literature_summary.tsv \
-    --subset results/covid_suggestive_genes_with_outlier_STRs.tsv \
-    --out results/crossvalidated_genes.tsv
-else
-  echo "Aviso: resultados do LitCovid ausentes; rode litcovid_validation antes para gerar crossvalidated_genes.tsv"
-fi
 echo "Pronto."

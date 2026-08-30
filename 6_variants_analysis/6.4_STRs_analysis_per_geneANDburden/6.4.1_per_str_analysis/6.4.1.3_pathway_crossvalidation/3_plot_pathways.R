@@ -15,9 +15,8 @@ suppressMessages({
 
 ROOT <- normalizePath("../../..")
 p1_file    <- "../dbscan_subset/results/covid_suggestive_genes_with_outlier_STRs.tsv"
-p2_file    <- "../litcovid_validation/data/outlier_genes.txt"
+p2_file    <- "../data/outlier_genes.txt"
 resid_file <- "../dbscan_subset/data/suggestive_strs_residuals.tsv"
-cross_file <- "../dbscan_subset/results/crossvalidated_genes.tsv"
 
 ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GALNAC3")
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
@@ -121,9 +120,12 @@ tryCatch({
 ## ======================================================================
 ## FIGURAS SUPLEMENTARES (gene-level DBSCAN replication)
 ## ======================================================================
-if (file.exists(p1_file) && file.exists(cross_file) && file.exists(resid_file)) {
+if (file.exists(p1_file) && file.exists(resid_file)) {
   p1df <- read_delim(p1_file, delim = "\t")
-  cv7 <- unique(read_delim(cross_file, delim = "\t")$gene)
+  cv7 <- tryCatch({
+    gc <- read_delim("results/gene_convergence.tsv", delim = "\t")
+    gc$gene[gc$strategy == "Cross-validated"]
+  }, error = function(e) character(0))
   p1df <- p1df %>% mutate(
     chrom_n = case_when(chrom == "chrX" ~ 23, chrom == "chrY" ~ 24,
                         TRUE ~ suppressWarnings(as.integer(str_replace(chrom, "chr", "")))),
