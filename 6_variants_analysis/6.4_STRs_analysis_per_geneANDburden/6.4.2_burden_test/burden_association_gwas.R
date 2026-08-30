@@ -14,7 +14,7 @@ pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord
 pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
 
 # === Estrategia GWAS-based: ajuste o caminho e o nome da coluna de outliers ===
-gwas_out          <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+gwas_out          <- file.path(REPO_ROOT, "7_variants_analysis/covid19hg_evaluation/dbscan_subset/results/suggestive_strs_outliers.tsv")
 gwas_outlier_col  <- "outlier_samples"
 
 out_dir               <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas")
