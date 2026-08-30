@@ -6,8 +6,8 @@
 set -u
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
-TSV="data/str_samples_bams.tsv"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente."; echo "Gere os BEDs primeiro:"; echo "  cd data && qsub 0_generate_beds.pbs"; exit 1; }
+TSV="str_samples_bams.tsv"
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente."; echo "Gere os BEDs primeiro: qsub 0_generate_beds.pbs"; exit 1; }
 
 genes=($(awk -F'\t' 'NR>1{print $1}' "$TSV" | sort -u))
 [ ${#genes[@]} -eq 0 ] && { echo "Nenhum gene encontrado no TSV."; exit 1; }

@@ -6,14 +6,13 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada gene
 
 ```
 6.4.4_igv_per_variant/
-├── data/
-│   ├── 0_generate_beds.R          # gera BEDs + TSV (R)
-│   ├── 0_generate_beds.pbs        # PBS para rodar no cluster
-│   ├── str_samples_bams.tsv       # output: mapeamento gene->BAM
-│   ├── str_samples_with_variant.bed
-│   └── str_samples_without_variant.bed
-├── igv_variant.sh                 # IGV.js para 1 gene
-├── run_all.sh                     # IGV.js para todos os genes
+├── 0_generate_beds.R          # gera BEDs + TSV (R)
+├── 0_generate_beds.pbs        # PBS para rodar no cluster
+├── str_samples_bams.tsv       # output: mapeamento gene->BAM
+├── str_samples_with_variant.bed
+├── str_samples_without_variant.bed
+├── igv_variant.sh             # IGV.js para 1 gene
+├── run_all.sh                 # IGV.js para todos os genes
 └── README.md
 ```
 
@@ -22,7 +21,7 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada gene
 ```
 suggestive_strs_outliers.tsv (6.4.1.2)
     ↓
-data/0_generate_beds.R  →  data/*.bed + data/str_samples_bams.tsv
+0_generate_beds.R  →  *.bed + str_samples_bams.tsv
     ↓
 igv_variant.sh GENE  →  IGV.js via HTTP
 ```
@@ -30,7 +29,7 @@ igv_variant.sh GENE  →  IGV.js via HTTP
 ## 1. Gerar BEDs (no cluster)
 
 ```bash
-cd 6.4.4_igv_per_variant/data
+cd 6.4.4_igv_per_variant
 qsub 0_generate_beds.pbs
 ```
 
@@ -67,6 +66,6 @@ Abra no navegador: `http://localhost:8201/tmp/igvjs_GENE/index.html`
 - Internet no PC para carregar igv.js do CDN
 
 ## Notas
-- Os scripts são data-driven: leem `data/str_samples_bams.tsv` em runtime.
+- Os scripts são data-driven: leem `str_samples_bams.tsv` em runtime.
 - BAMs sao extraidos por regiao (+/- 1000 bp) — nao servem BAM inteiro.
 - Para remover arquivos temporarios: `rm -rf /tmp/igvjs_*`.
