@@ -1,12 +1,15 @@
 #!/bin/bash
 # submit_pathway_crossvalidation.sh  (roda NO NODE DE LOGIN, nao como PBS job)
-# Submete as 3 etapas de 6.4.1.4 em cadeia via PBS:
-#   1_pathway -> 2_gene -> 3_plots
+# Submete as 4 etapas de 6.4.1.4 em cadeia via PBS:
+#   0_outlier_genes -> 1_pathway -> 2_gene -> 3_plots
 #
 #   bash submit_pathway_crossvalidation.sh
 cd "$(dirname "$0")"
 
-P=$(qsub 1_pathway_crossvalidation.pbs)
+O=$(qsub 0_get_outlier_genes.pbs)
+echo "0_get_outlier_genes      -> $O"
+
+P=$(qsub -W depend=afterok:$O 1_pathway_crossvalidation.pbs)
 echo "1_pathway_crossvalidation -> $P"
 
 G=$(qsub -W depend=afterok:$P 2_gene_crossvalidation.pbs)
