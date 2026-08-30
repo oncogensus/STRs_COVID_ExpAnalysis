@@ -1,12 +1,12 @@
 #!/bin/bash
 # submit_pathway_crossvalidation.sh  (roda NO NODE DE LOGIN, nao como PBS job)
-# Submete as 4 etapas de 6.4.1.4 em cadeia via PBS:
+# Submete as 4 etapas de 6.4.4 em cadeia via PBS:
 #   0_outlier_genes -> 1_pathway -> 2_gene -> 3_plots
 #
 #   bash submit_pathway_crossvalidation.sh
 cd "$(dirname "$0")"
 
-GWAS_DIR="../6.4.1.2_dbscan_subset_GWAS"
+GWAS_DIR="../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS"
 
 # --- Corrigir results/results/ duplicado (se existir) ---
 if [ -d "$GWAS_DIR/results/results" ]; then

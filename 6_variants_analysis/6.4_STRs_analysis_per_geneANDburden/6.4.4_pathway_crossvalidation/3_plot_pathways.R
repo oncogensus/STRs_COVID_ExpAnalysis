@@ -14,10 +14,10 @@ suppressMessages({
   library(UpSetR)
 })
 
-ROOT <- normalizePath("../../..")
-p1_file    <- "../6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
+ROOT <- normalizePath("../../../..")
+p1_file    <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
 p2_file    <- "../data/outlier_genes.txt"
-resid_file <- "../6.4.1.2_dbscan_subset_GWAS/data/suggestive_strs_residuals.tsv"
+resid_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/data/suggestive_strs_residuals.tsv"
 
 ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GALNAC3")
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # 0_generate_beds.R
-# Gera BEDs + mapeamento BAM para IGV.js (6.4.4).
+# Gera BEDs + mapeamento BAM para IGV.js (6.4.5).
 # Outputs sao escritos no dir de execucao (data/).
 #
 # Para cada STR com outlier em suggestive_strs_outliers.tsv:
@@ -12,7 +12,7 @@
 REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
 outlier_file <- file.path(REPO_ROOT,
-  "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+  "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
 norm_file <- file.path(REPO_ROOT,
   "5_global_dbscan/norm_test/STRs_normalized_residuals.tsv")
 bam_dir <- "/storage/users/tulio/Projeto_Luy_COVID/results/recal/"
