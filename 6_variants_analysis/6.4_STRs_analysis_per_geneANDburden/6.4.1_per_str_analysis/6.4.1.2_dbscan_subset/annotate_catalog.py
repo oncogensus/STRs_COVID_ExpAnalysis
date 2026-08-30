@@ -83,13 +83,16 @@ def main():
     sys.stderr.write(f"Catalogo: {len(sample_map)} (id,sample); {len(str_map)} STRs unicos. "
                      f"Modo={'sample' if use_sample else 'str'}; colunas a acrescentar={len(add_cols)}\n")
 
+    # Le tudo para memoria primeiro (seguro quando --in == --out, truncate antes de ler)
+    with open(args.inp) as fh:
+        rows = list(csv.DictReader(fh, delimiter='\t'))
+
     n_ann = 0
-    with open(args.inp) as fh, open(args.out, 'w', newline='') as out:
-        r = csv.DictReader(fh, delimiter='\t')
+    with open(args.out, 'w', newline='') as out:
         w = csv.DictWriter(out, delimiter='\t', fieldnames=in_cols + add_cols,
                            restval='', extrasaction='ignore')
         w.writeheader()
-        for row in r:
+        for row in rows:
             sid = get_ci(row, args.id_col) or ''
             cat = None
             if use_sample:
