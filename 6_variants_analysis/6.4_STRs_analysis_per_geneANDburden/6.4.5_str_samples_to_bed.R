@@ -17,7 +17,7 @@
 # ---- inputs (RELATIVOS a partir do dir de execucao: 7.4_scRNA-seq_analysis/) ----
 REPO_ROOT <- '..'   # sobe 1 nivel; ajuste se a estrutura pos-reorg mudar
 dbscan_outliers_file <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/outliers_search/results_dbscan/outliers_per_str.tsv')  # agnostic: TODOS outliers DBSCAN
-gwas_outliers_file   <- file.path(REPO_ROOT, 'covid19hg_evaluation/dbscan_subset/results/suggestive_strs_outliers.tsv')       # hypothesis-driven (COVID-19 HG r7)
+gwas_outliers_file   <- file.path(REPO_ROOT, '6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv')       # hypothesis-driven (COVID-19 HG r7)
 norm_file            <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/norm_test/STRs_normalized_residuals.tsv')                # controles
 bed_file             <- 'STR_variants_UCSC_track.bed'
 bam_dir              <- '/storage/users/tulio/Projeto_Luy_COVID/results/recal/'   # mantido
