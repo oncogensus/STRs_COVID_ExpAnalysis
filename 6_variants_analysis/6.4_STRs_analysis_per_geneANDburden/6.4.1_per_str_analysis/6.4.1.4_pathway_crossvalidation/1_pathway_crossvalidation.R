@@ -15,7 +15,7 @@ suppressMessages({
 })
 
 ROOT <- normalizePath("../../..")
-p1_file <- "../dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
+p1_file <- "../6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
 p2_file <- "../data/outlier_genes.txt"
 catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 
