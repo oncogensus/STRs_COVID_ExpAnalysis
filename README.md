@@ -45,7 +45,10 @@ strs_paper/
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
     ├── 6.4_STRs_analysis_per_geneANDburden/
+    │   ├── .gitignore
     │   ├── 6.4.1_dbscan_subset_GWAS/
+    │   │   ├── 6.4.1.1_covid19hg_overlap/
+    │   │   └── 6.4.1.2_dbscan_subset_GWAS/
     │   ├── 6.4.2_dbscan_subset_RNA/
     │   ├── 6.4.3_burden_test/
     │   ├── 6.4.4_pathway_crossvalidation/
@@ -223,12 +226,12 @@ Extraction and processing of differential expression data from scRNA-seq studies
 
 ---
 
-## Stage 7: Variant Analysis (variant_analysis)
+## Stage 6: Variant Analysis (`6_variants_analysis`)
 
 ### Purpose
 Integrated description, visualization, and filtering of identified variants.
 
-### 7.1: Dataset Integration
+### 6.1: Dataset Integration (`6.1_merge_datasets/`)
 
 ## Purpose: 
 Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
@@ -241,7 +244,7 @@ Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 - path_eth: EthSEQ_Results_3D/Report.txt (from ancestry)
 - path_groups: samples_infos.csv (demographic data)
 
-### 7.2: Genome Visualization
+### 6.2: Genome Visualization (`6.2_desc_data_viz/`)
 
 ## Purpose: 
 Generate genome-wide STR distribution plots.
@@ -252,13 +255,170 @@ Generate genome-wide STR distribution plots.
 - Localization of complete STR dataset: STRs_analysis_dataset.tsv
 - Environment: micromamba - r_viz
 
-### 7.3: STR Filtering and scRNA-seq Overlap
+### 6.4: Per-STR Analysis, Burden Test & Related Pipelines (`6.4_STRs_analysis_per_geneANDburden/`)
 
-#### 7.3.1: STR-scRNA Overlap Import
+This section covers the core analytical pipelines for identifying STRs associated with COVID-19 mortality.
+
+#### 6.4.1: DBSCAN Subset — GWAS & COVID-19 HG Overlap (`6.4.1_dbscan_subset_GWAS/`)
+
+Cross-references COVID-19 HG GWAS summary statistics with cohort STRs, and runs DBSCAN outlier detection on the GWAS-gene subset.
+
+##### 6.4.1.1: COVID-19 HG × STRs Overlap (`6.4.1.1_covid19hg_overlap/`)
+
+Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts significant genes (p < 5e-8), and overlaps with cohort STR catalog.
+
+**Scripts**:
+- `1_download_data.sh` — download COVID-19 HG GWAS files
+- `2_build_gene_bed.py` — build gene BED from GTF
+- `3_extract_covid_genes.py` / `.pbs` — extract COVID-significant genes
+- `4_overlap_str_cohort.py` / `.pbs` — overlap genes × STR catalog
+
+**Environment**: micromamba - `igv`
+
+##### 6.4.1.2: DBSCAN Subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+
+Takes the GWAS-significant genes from 6.4.1.1, subsets normalized residuals to those loci, re-runs DBSCAN, summarizes results, and annotates with full STR catalog.
+
+**Scripts**:
+- `1_overlap_suggestive_strs.py` / `.pbs` — overlap suggestive genes × STRs
+- `2_run_dbscan_subset.R` / `.sh` / `.pbs` — re-run DBSCAN on subset
+- `3_summarize_subset.py` / `.pbs` — merge overlap + DBSCAN outliers
+- `4_annotate_catalog.pbs` / `annotate_catalog.py` — annotate with STR catalog
+
+**Outputs** (`results/`):
+- `suggestive_gene_strs.tsv` — 290 genes with suggestive STRs
+- `suggestive_strs_outliers.tsv` — STRs with DBSCAN outliers
+- `covid_suggestive_genes_with_outlier_STRs.tsv` — final annotated table
+
+**Environment**: micromamba - `igv` (overlap), `dbscan-r` (DBSCAN)
+
+#### 6.4.2: DBSCAN Subset — RNA (`6.4.2_dbscan_subset_RNA/`)
+
+Reserved for RNA-seq-based DBSCAN subset analysis (placeholder).
+
+#### 6.4.3: Burden Test / SKAT (`6.4.3_burden_test/`)
+
+### Purpose
+Test whether **outlier STR status** is associated with **COVID-19 mortality**
+(binary case/control: fatal vs. survivor, both age < 60, no comorbidities) at
+the **gene level** (burden + SKAT) and at the **individual STR level**
+(logistic regression). All models adjust for covariates
+`age`, `sex`, and the 3 EthSEQ ancestry principal components (`EV1`–`EV3`).
+
+### Methods
+- **Gene-level burden**: count of outlier STRs per sample within each gene is
+  the predictor in a logistic regression (`age`, `sex`, `EV1`–`EV3` as
+  covariates). Genes with `< 2` outlier STRs are excluded from the burden.
+- **SKAT** (per gene, `SKAT::SKAT`, `linear.weighted`, `out_type = "D"`):
+  rare-variant aggregation test over all outlier STRs in a gene
+  (`min_strs_per_gene = 2`). Small-sample adjustment is applied automatically
+  (n = 168 < 2000).
+- **STR-level burden** (`run_str_burden_test`): univariate logistic regression
+  per STR (outlier present/absent) with the same covariates, yielding
+  `str_burden.tsv`.
+
+**Traceability**: every gene-level result carries a `str_ids` column
+(`;`-separated `STRs_ID` list) so hits can be traced back to specific STR loci.
+This is essential because **intergenic STRs have `gene_name = "."`** and are only
+identifiable via `STRs_ID`.
+
+### Script (`6.4.3_burden_test/`)
+| script | strategy | outlier source | `remove_sample_outliers` |
+|---|---|---|---|
+| `burden_gwas.R` (`strategy="gwas_burden"`) | GWAS-based (SKAT contínuo) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv` | `FALSE` |
+| `burden_gwas.R` (`strategy="gwas"`) | GWAS-based (binário) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv` | `FALSE` |
+| `burden_gwas.R` (`strategy="gwas_background"`) | Background (todos STRs) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv` | `TRUE` |
+| `burden_gwas.pbs` | PBS wrapper | — | — |
+
+> **Critical implementation note**: the sample×STR outlier matrix is built with
+> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
+> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
+> must be avoided when constructing the 0/1 burden matrix.
+
+### Outputs (`results_gwas_burden/`, `results_gwas/`, or `results/`)
+- `burden_global.tsv` — omnibus gene-burden test across all genes.
+- `skat_per_gene.tsv` — per-gene SKAT p-values (with `str_ids`).
+- `gene_burden.tsv` — per-gene burden logistic regression (with `str_ids`).
+- `str_burden.tsv` — per-STR logistic regression (`STRs_ID`).
+- `*_hits_uncorrected.tsv` / `*_hits_corrected.tsv` — significant genes/STRs
+  (BH q < 0.05).
+
+### How to run (cluster, env `r_enrich_env`)
+```bash
+cd 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.3_burden_test
+qsub burden_gwas.pbs
+```
+
+#### 6.4.4: Pathway Cross-Validation (`6.4.4_pathway_crossvalidation/`)
+
+Cross-validates enriched pathways (KEGG + Reactome) between two outlier strategies: GWAS-filtered (P1) and genome-wide agnostic (P2). Generates tables, gene convergence analysis, and publication figures.
+
+**Scripts**:
+- `0_get_outlier_genes.py` / `.pbs` — extract genes with ≥1 outlier STR from global catalog
+- `1_pathway_crossvalidation.R` / `.pbs` — enrichment analysis (KEGG + Reactome)
+- `2_gene_crossvalidation.R` / `.pbs` — gene-level convergence (P1 × P2)
+- `3_plot_pathways.R` / `.pbs` — all publication figures (dotplots, upset, barplots)
+- `submit_pathway_crossvalidation.sh` — submit all steps in chain via PBS
+
+**Required Inputs**:
+- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
+- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/data/suggestive_strs_residuals.tsv`
+- `samples/STRs_analysis_dataset.tsv`
+
+**Outputs** (`results/`):
+- `enrichment_P1.tsv`, `enrichment_P2.tsv` — pathway enrichment per strategy
+- `pathway_convergence.tsv` — shared/unique pathways
+- `gene_convergence.tsv` — gene classification (original 8, cross-validated, novel)
+- Figures: dotplots, UpSet, barplots in `figures/`
+
+**Environment**: micromamba - `r_enrich_env`
+
+#### 6.4.5: IGV Per Variant (`6.4.5_igv_per_variant/`)
+
+Generates BED files and IGV.js scripts for visual inspection of STR variants. For each STR with outlier, produces a BED with the variant sample and a matched control sample.
+
+**Scripts**:
+- `0_generate_beds.R` / `.pbs` — generate BEDs + BAM mapping from outliers
+- `igv_variant.sh` — run IGV.js viewer for a single gene
+- `run_all.sh` — generate per-gene scripts in `scripts/`
+
+**Required Inputs**:
+- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
+- `5_global_dbscan/norm_test/STRs_normalized_residuals.tsv`
+
+**Outputs**:
+- `str_samples_bams.tsv` — gene × sample BAM mapping
+- `str_samples_with_variant.bed` — BED with variant samples
+- `str_samples_without_variant.bed` — BED with control samples
+- `scripts/igv_GENE.sh` — per-gene IGV scripts
+
+**Environment**: micromamba - `igv`
+
+#### 6.4.6: scRNA-seq Analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+
+Generate cell-type-level visualizations of STR-scRNA overlaps.
+
+**Required Input Files**:
+- Unified overlap CSV from STR filtering: `STR_vs_scRNA_overlap_unified.csv`
+- Full STR dataset: `STRs_analysis_dataset.tsv`
+
+**Output**
+- `overlap_allele2_Plot_Optimized.png` (Bubble plot: non-overlap variants, largest allele)
+- `overlap_mean_allele_Plot_Optimized.png` (Bubble plot: non-overlap variants, mean allele)
+- `STR_Centered_Quantitative_Table.html` (STR impact table)
+- `overlap_allele2_Table.html` (Largest allele overlap table)
+- `overlap_mean_allele_Table.html` (Mean allele overlap table)
+- `STR_Impact_Final_Optimized.png` (Final STR impact bubble plot)
+
+**Environment**: micromamba - `r_enrich_env`
+
+### 6.5: STR Filtering and scRNA-seq Overlap (`6.5_STRs_filter/`)
+
+#### 6.5.1: STR-scRNA Overlap Import
 
 Cross-reference DBSCAN outlier STRs with scRNA-seq differentially expressed genes.
 
-**Script**: `7.3.1_scRNA_Seq_df_import.r`
+**Script**: `6.3.1_scRNA_Seq_df_import.r`
 
 **Required Input Files**
 - `str_path`: `STRs_analysis_dataset.tsv` (integrated STR dataset)
@@ -279,11 +439,11 @@ Cross-reference DBSCAN outlier STRs with scRNA-seq differentially expressed gene
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 7.3.2: Statistical Filtering
+#### 6.5.2: Statistical Filtering
 
 Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criteria.
 
-**Script**: `7.3.2_statistical_filt.ipynb`
+**Script**: `6.3.2_statistical_filt.ipynb`
 
 **Required Input Files**
 - Integrated dataset: `STRs_analysis_dataset.tsv`
@@ -294,33 +454,13 @@ Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criter
 - `covid_targeted_no_overlap_allele_mean_no_threshold.csv` (Non-overlap signature in scRNA-seq genes)
 - `top_10_unique_loci_outliers.csv` (Top 10 outlier loci)
 
-### 7.4: scRNA-seq Overlap Visualization
+### 6.6: Ancestry Analysis (`6.6_ancestry_analysis/`)
 
-Generate cell-type-level visualizations of STR-scRNA overlaps.
-
-**Script**: `7.4.2_analysis_scRNA_Seq.ipynb`
-
-**Required Input Files**
-- Unified overlap CSV from step 7.3.1: `results/STR_vs_scRNA_overlap_unified.csv`
-- Full STR dataset: `STRs_analysis_dataset.tsv`
-
-**Output**
-- `overlap_allele2_Plot_Optimized.png` (Bubble plot: non-overlap variants, largest allele)
-- `overlap_mean_allele_Plot_Optimized.png` (Bubble plot: non-overlap variants, mean allele)
-- `STR_Centered_Quantitative_Table.html` (STR impact table)
-- `overlap_allele2_Table.html` (Largest allele overlap table)
-- `overlap_mean_allele_Table.html` (Mean allele overlap table)
-- `STR_Impact_Final_Optimized.png` (Final STR impact bubble plot)
-
-**Environment**: micromamba - `r_enrich_env`
-
-### 7.5: Ancestry Analysis
-
-#### 7.5.1: Categorical Ancestry Comparison
+#### 6.6.1: Categorical Ancestry Comparison
 
 Compare STR allele distributions and DBSCAN outlier burden across categorical ancestry populations via Kruskal-Wallis and Dunn post-hoc tests.
 
-**Script**: `7.5.1_ancestry_comparation_cat.r`
+**Script**: `6.5.1_ancestry_comparation_cat.r`
 
 **Required Input Files**
 - `STRs_analysis_dataset.tsv` (integrated STR dataset)
@@ -338,14 +478,14 @@ Compare STR allele distributions and DBSCAN outlier burden across categorical an
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 7.5.2: High-Resolution Ancestry Correlation
+#### 6.6.2: High-Resolution Ancestry Correlation
 
 Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
 
-**Script**: `7.5.2_ancestry_comparation_high_resolution.r`
+**Script**: `6.5.2_ancestry_comparation_high_resolution.r`
 
 **Required Input Files**
-- Same as 7.5.1
+- Same as 6.6.1
 
 **Output** (`results/high_resolution/`)
 - `plotdata_region_sample.csv` (region-level outlier metrics by sample)
@@ -354,14 +494,14 @@ Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (pr
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 7.5.3: Ancestry Data Visualization
+#### 6.6.3: Ancestry Data Visualization
 
 Generate publication-ready tables and heatmaps from ancestry analysis results.
 
-**Script**: `7.5.3_ancestry_dataviz.ipynb`
+**Script**: `6.5.3_ancestry_dataviz.ipynb`
 
 **Required Input Files**
-- CSV outputs from 7.5.1 and 7.5.2
+- CSV outputs from 6.6.1 and 6.6.2
 
 **Output** (`results/high_resolution/dataviz/`)
 - `genomic_summary_per_region.html` (regional ancestry + outlier metrics table)
@@ -372,107 +512,32 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 
 **Environment**: micromamba - `r_enrich_env`
 
-### 7.4.2: Genetic Association (burden / SKAT) (`6.4.2_burden_test/`)
-
-### Purpose
-Test whether **outlier STR status** is associated with **COVID-19 mortality**
-(binary case/control: fatal vs. survivor, both age < 60, no comorbidities) at
-the **gene level** (burden + SKAT) and at the **individual STR level**
-(logistic regression). All models adjust for covariates
-`age`, `sex`, and the 3 EthSEQ ancestry principal components (`EV1`–`EV3`).
-
-Two complementary strategies define what counts as an "outlier STR", both
-leveraging the DBSCAN outlier framework from Stage 5:
-
-- **Strategy A — DBSCAN-derived outliers** (`burden_association.R`):
-  uses `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv`
-  (outliers detected on the full normalized-residual space). Samples flagged
-  as global outliers by the article's >2 SD rule are removed
-  (`remove_sample_outliers = TRUE`).
-- **Strategy B — GWAS-based (COVID-19 HG r7) outliers** (`burden_association_gwas.R`):
-  uses only STRs located in **suggestive COVID-19 HG r7 genes** (p < 1e-5),
-  where the cohort has a DBSCAN outlier. Derived via
-  `6.4.1_per_str_analysis/6.4.1.2_dbscan_subset/` → `results/suggestive_strs_outliers.tsv`.
-  Because each STR carries exactly one outlier sample, global outlier removal is
-  **disabled** (`remove_sample_outliers = FALSE`) to preserve the signal.
-
-### Methods
-- **Gene-level burden**: count of outlier STRs per sample within each gene is
-  the predictor in a logistic regression (`age`, `sex`, `EV1`–`EV3` as
-  covariates). Genes with `< 2` outlier STRs are excluded from the burden.
-- **SKAT** (per gene, `SKAT::SKAT`, `linear.weighted`, `out_type = "D"`):
-  rare-variant aggregation test over all outlier STRs in a gene
-  (`min_strs_per_gene = 2`). Small-sample adjustment is applied automatically
-  (n = 168 < 2000).
-- **STR-level burden** (`run_str_burden_test`): univariate logistic regression
-  per STR (outlier present/absent) with the same covariates, yielding
-  `str_burden.tsv`.
-
-**Traceability**: every gene-level result carries a `str_ids` column
-(`;`-separated `STRs_ID` list) so hits can be traced back to specific STR loci.
-This is essential because **intergenic STRs have `gene_name = "."`** and are only
-identifiable via `STRs_ID`.
-
-### Scripts (`6.4.2_burden_test/`)
-| script | strategy | outlier source | `remove_sample_outliers` |
-|---|---|---|---|
-| `burden_association.R` | DBSCAN | `5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv` | `TRUE` |
-| `burden_association_gwas.R` | GWAS-based | `6.4.1_per_str_analysis/6.4.1.2_dbscan_subset/results/suggestive_strs_outliers.tsv` | `FALSE` |
-| `submit_burden.pbs` | PBS wrapper for Strategy A | — | — |
-| `submit_burden_gwas.pbs` | PBS wrapper for Strategy B | — | — |
-
-> **Critical implementation note**: the sample×STR outlier matrix is built with
-> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
-> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
-> must be avoided when constructing the 0/1 burden matrix.
-
-### Outputs
-Both strategies write to `results/` (Strategy A) and `results_gwas/` (Strategy B):
-- `burden_global.tsv` — omnibus gene-burden test across all genes.
-- `skat_per_gene.tsv` — per-gene SKAT p-values (with `str_ids`).
-- `gene_burden.tsv` — per-gene burden logistic regression (with `str_ids`).
-- `str_burden.tsv` — per-STR logistic regression (`STRs_ID`).
-- `*_hits_uncorrected.tsv` / `*_hits_corrected.tsv` — significant genes/STRs
-  (BH q < 0.05).
-
-### How to run (cluster, env `dbscan-r`)
-```bash
-cd 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test
-qsub submit_burden.pbs          # Strategy A (DBSCAN)
-qsub submit_burden_gwas.pbs     # Strategy B (GWAS-based)
-```
-
-### Key results (pilot)
-- **Strategy A (DBSCAN)**: global gene burden p = 0.015, OR = 5.43 (published
-  pilot signal).
-- **Strategy B (GWAS-based)**: completed with correct matrix construction
-  (each STR contributes exactly one outlier sample; `colSums = 1` per STR).
-
 ---
 
 ## Workflow Execution
-# 1. Environment setup using YAML configuration files:
-- str_env.yaml: STRling environment
-- r_env.yaml: R environment for general analysis
-- r_viz.yaml: R environment for visualization
-- r_enrich_env.yaml: R environment for enrichment analysis
-- dbscan-r.yaml: DBSCAN analysis environment
-- ethseq_vcf_run.yaml: EthSEQ ancestry environment
 
+### 1. Environment setup using YAML configuration files:
+- `str_env.yaml`: STRling environment
+- `r_env.yaml`: R environment for general analysis
+- `r_viz.yaml`: R environment for visualization
+- `r_enrich_env.yaml`: R environment for enrichment analysis
+- `dbscan-r.yaml`: DBSCAN analysis environment
+- `ethseq_vcf_run.yaml`: EthSEQ ancestry environment
 
-# 2. Prepare reference files:
-- Reference genome: hg38.fa
-- Reference STR annotations: hg38.fa.str
-- GTF annotations: Homo_sapiens.GRCh38.98.gtf
-- Genome file: 
-   - Generated via grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt
+### 2. Prepare reference files:
+- Reference genome: `hg38.fa`
+- Reference STR annotations: `hg38.fa.str`
+- GTF annotations: `Homo_sapiens.GRCh38.98.gtf`
+- Genome file:
+  - Generated via: `grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt`
 
-# 3. Prepare input data:
+### 3. Prepare input data:
 - BAM files for all samples
-- Sample grouping file: grupos.csv
-- Phenotype file: samples_infos.csv
+- Sample grouping file: `grupos.csv`
+- Phenotype file: `samples_infos.csv`
 
-### Recommended Execution Order
+## Recommended Execution Order
+
 1. STR Calling (`1_strs_call`)
 2. Data Stratification (`2_data_split`)
 3. Genomic Annotation (`3_gtf_annot`)
@@ -480,26 +545,25 @@ qsub submit_burden_gwas.pbs     # Strategy B (GWAS-based)
 5. Global DBSCAN Analysis (`5_global_dbscan`)
 6. scRNA-seq Data Processing (`6_scovid_data`)
 7. Variant Analysis (`6_variants_analysis`)
-   7.1 Dataset Integration
-   7.2 Descriptive Analysis & Genome Visualization
-   7.3 STR Filtering & scRNA-seq Overlap
-      7.3.1 STR-scRNA Overlap Import
-      7.3.2 Statistical Filtering
-   7.4 Per-STR Analysis & scRNA-seq Overlap
-       7.4.1 Per-STR Analysis (`6.4.1_per_str_analysis/`)
-          6.4.1.1 COVID-19 HG × STRs overlap
-          6.4.1.2 DBSCAN subset GWAS
-          6.4.1.3 (reserved)
-          6.4.1.4 Pathway cross-validation
-      7.4.2 Burden / SKAT (`6.4.2_burden_test/`)
-         Strategy A: DBSCAN-derived outliers
-         Strategy B: GWAS-based / COVID-19 HG r7 outliers
-      7.4.3 scRNA-seq Analysis (`6.4.3_analysis_scRNA_Seq.ipynb`)
-      7.4.4 IGV per variant (`6.4.4_igv_per_variant/`)
-   7.5 Ancestry Analysis
-       7.5.1 Categorical Ancestry Comparison
-       7.5.2 High-Resolution Ancestry Correlation
-       7.5.3 Ancestry Data Visualization
+   - 7.1 Dataset Integration (`6.1_merge_datasets/`)
+   - 7.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
+   - 7.3 Per-STR Analysis & Burden Test (`6.4_STRs_analysis_per_geneANDburden/`)
+     - 7.3.1 COVID-19 HG × STRs overlap (`6.4.1.1_covid19hg_overlap/`)
+     - 7.3.2 DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+     - 7.3.3 Burden / SKAT (`6.4.3_burden_test/`)
+       - Strategy A: GWAS-based SKAT (continuous)
+       - Strategy B: GWAS-based (binary)
+       - Strategy C: Background (all STRs)
+     - 7.3.4 Pathway cross-validation (`6.4.4_pathway_crossvalidation/`)
+     - 7.3.5 IGV per variant (`6.4.5_igv_per_variant/`)
+     - 7.3.6 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+   - 7.4 STR Filtering & scRNA-seq Overlap (`6.5_STRs_filter/`)
+     - 7.4.1 STR-scRNA Overlap Import
+     - 7.4.2 Statistical Filtering
+   - 7.5 Ancestry Analysis (`6.6_ancestry_analysis/`)
+     - 7.5.1 Categorical Ancestry Comparison
+     - 7.5.2 High-Resolution Ancestry Correlation
+     - 7.5.3 Ancestry Data Visualization
 
 ## Output Structure
 All results are organized in the project directory with outputs generated at each stage:
@@ -533,16 +597,32 @@ strs_paper/
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
     ├── 6.4_STRs_analysis_per_geneANDburden/
+    │   ├── .gitignore
     │   ├── 6.4.1_dbscan_subset_GWAS/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
+    │   │   │   ├── data/            # COVID-19 HG GWAS files + gene BED
+    │   │   │   └── results/         # covid_genes.tsv, overlap tables
     │   │   └── 6.4.1.2_dbscan_subset_GWAS/
-    │   ├── 6.4.2_dbscan_subset_RNA/
+    │   │       ├── data/            # suggestive_strs_residuals.tsv
+    │   │       └── results/         # suggestive_gene_strs.tsv, outliers
+    │   ├── 6.4.2_dbscan_subset_RNA/ (placeholder)
     │   ├── 6.4.3_burden_test/
-    │   │   └── results/ / results_gwas/
+    │   │   ├── results/
+    │   │   ├── results_gwas/
+    │   │   └── results_gwas_burden/
     │   ├── 6.4.4_pathway_crossvalidation/
+    │   │   ├── results/             # enrichment, convergence tables
+    │   │   └── figures/             # publication figures
     │   ├── 6.4.5_igv_per_variant/
+    │   │   ├── str_samples_bams.tsv
+    │   │   ├── str_samples_with_variant.bed
+    │   │   ├── str_samples_without_variant.bed
+    │   │   └── scripts/             # per-gene IGV scripts
     │   └── 6.4.6_analysis_scRNA_Seq.ipynb
     ├── 6.5_STRs_filter/
+    │   └── results/
+    │       ├── STR_vs_scRNA_overlap_*.csv
+    │       └── statistical_filtering/
     └── 6.6_ancestry_analysis/
         └── results/
             ├── categorical_data/
@@ -557,6 +637,6 @@ strs_paper/
 4. AD_STR DBSCAN Approach: https://github.com/mhguo1/AD_STR/tree/main (https://github.com/mhguo1/AD_STR/tree/main)
 ---
 
-**Last Updated**: August 2026
+**Last Updated**: August 30, 2026
 
 **Status**: Finalized workflow for 2026 publication on STR vs COVID-19 analysis
