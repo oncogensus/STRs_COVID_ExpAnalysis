@@ -86,8 +86,34 @@ def main():
     # Le tudo para memoria primeiro (seguro quando --in == --out, truncate antes de ler)
     with open(args.inp) as fh:
         rows = list(csv.DictReader(fh, delimiter='\t'))
+    sys.stderr.write(f"[DEBUG] Linhas lidas do input: {len(rows)}\n")
+    if rows:
+        sample_keys_in = set()
+        str_keys_in = set()
+        for row in rows[:5]:
+            sid = get_ci(row, args.id_col) or ''
+            sys.stderr.write(f"[DEBUG]   input row id_col='{args.id_col}' -> '{sid}'\n")
+        for row in rows:
+            sid = get_ci(row, args.id_col) or ''
+            str_keys_in.add(sid)
+            if use_sample:
+                samp = get_ci(row, args.sample_col) or ''
+                sample_keys_in.add((sid, samp))
+        n_hit_sample = sum(1 for k in sample_keys_in if k in sample_map) if use_sample else 0
+        n_hit_str = sum(1 for k in str_keys_in if k in str_map)
+        sys.stderr.write(f"[DEBUG] Chaves unicas no input: {len(str_keys_in)} STRs"
+                         + (f", {len(sample_keys_in)} (id,sample)" if use_sample else "")
+                         + f"\n[DEBUG] Match no catalog: {n_hit_str}/{len(str_keys_in)} STRs"
+                         + (f"; {n_hit_sample}/{len(sample_keys_in)} (id,sample)" if use_sample else "")
+                         + "\n")
+        if n_hit_str == 0 and len(str_keys_in) > 0:
+            sample_sids = list(str_keys_in)[:3]
+            cat_sids = list(str_map.keys())[:3]
+            sys.stderr.write(f"[DEBUG] AMOSTRAS input:  {sample_sids}\n"
+                             f"[DEBUG] AMOSTRAS catalog: {cat_sids}\n")
 
     n_ann = 0
+    n_no_match = 0
     with open(args.out, 'w', newline='') as out:
         w = csv.DictWriter(out, delimiter='\t', fieldnames=in_cols + add_cols,
                            restval='', extrasaction='ignore')
@@ -107,8 +133,10 @@ def main():
                 for c in add_cols:
                     row[c] = cat.get(c, '')
                 n_ann += 1
+            else:
+                n_no_match += 1
             w.writerow(row)
-    sys.stderr.write(f"Anotadas {n_ann} linhas -> {args.out}\n")
+    sys.stderr.write(f"Anotadas {n_ann} linhas (sem match: {n_no_match}) -> {args.out}\n")
 
 
 if __name__ == '__main__':
