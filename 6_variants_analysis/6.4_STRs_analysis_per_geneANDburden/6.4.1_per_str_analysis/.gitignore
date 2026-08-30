@@ -2,8 +2,8 @@ __pycache__/
 *.pyc
 
 # Dados e resultados (nao versionar)
-dbscan_subset/data/
-dbscan_subset/results/
+dbscan_subset_GWAS/data/
+dbscan_subset_GWAS/results/
 pathway_crossvalidation/data/
 pathway_crossvalidation/results/
 

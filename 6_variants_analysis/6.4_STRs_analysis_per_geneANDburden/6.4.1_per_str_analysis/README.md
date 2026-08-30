@@ -27,7 +27,7 @@ gene** (sem janela de flanco); cruzamento coord-a-coord com catálogo de STRs.
 
 ---
 
-### 6.4.1.2 — DBSCAN subset — cross-validation (`6.4.1.2_dbscan_subset/`)
+### 6.4.1.2 — DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
 
 Re-execução do DBSCAN (mesmos parâmetros de `5_global_dbscan`) sobre STRs
 localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
@@ -70,7 +70,11 @@ colunas do catálogo **exceto** as métricas DBSCAN globais
 
 ---
 
-### 6.4.1.3 — Cross-validation de vias (`6.4.1.3_pathway_crossvalidation/`)
+### 6.4.1.3 — (reservado)
+
+---
+
+### 6.4.1.4 — Cross-validation de vias (`6.4.1.4_pathway_crossvalidation/`)
 
 Enriquecimento de vias biológicas nos genes outlier, com validação cruzada
 por sub-amostragem.
