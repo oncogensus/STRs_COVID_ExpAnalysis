@@ -21,7 +21,8 @@ samples/*
 !6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/*.pbs
 !6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.4_pathway_crossvalidation/*.pbs
 !6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.2_burden_test/*.pbs
-!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.5_str_samples_to_bed.pbs
+!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.4_igv_per_variant/data/*.pbs
+!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.4_igv_per_variant/data/*.R
 *.gtf
 *.html
 *.bed
@@ -65,6 +66,7 @@ gtf_annot/Homo_sapiens*.gtf
 7_variants_analysis/7.4_scRNA-seq_analysis/results/*
 7_variants_analysis/7.4_scRNA-seq_analysis/results_reads_alignment_gviz/*
 data/
+!6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.4_igv_per_variant/data/
 *.gtf.gz
 *.tsv.gz
 *.json.gz

@@ -1,18 +1,13 @@
 #!/usr/bin/env Rscript
-# str_samples_to_bed.R
+# 0_generate_beds.R
 # Gera BEDs + mapeamento BAM para IGV.js (6.4.4).
-# Rodar a partir de qualquer dir; paths sao absolutos (cluster).
+# Outputs sao escritos no dir de execucao (data/).
 #
 # Para cada STR com outlier em suggestive_strs_outliers.tsv:
 #   - amostra COM variante  = outlier_samples
 #   - amostra SEM variante  = outro sample_id do MESMO STRs_ID em
 #       STRs_normalized_residuals.tsv, nao-outlier, com BAM indexado em
 #       bam_dir, de menor |allele2_residuals| (mais proximo do esperado).
-#
-# Outputs (no dir de execucao):
-#   str_samples_with_variant.bed
-#   str_samples_without_variant.bed
-#   str_samples_bams.tsv
 
 REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
@@ -41,6 +36,8 @@ split_samples <- function(s) {
 db <- read.delim(outlier_file, header = TRUE, stringsAsFactors = FALSE)
 db$STRs_ID <- trimws(db$STRs_ID)
 db <- db[nzchar(trimws(db$outlier_samples)), ]
+
+cat("[0_generate_beds] STRs com outlier:", nrow(db), "\n")
 
 variants <- data.frame(
   STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples, split_samples))),

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # run_all.sh — Sobe IGV.js para todos os genes com outlier.
-# Le genes unicos de str_samples_bams.tsv e inicia igv_variant.sh para cada um.
+# Verifica se data/str_samples_bams.tsv existe; se nao, avisa.
+# Le genes unicos do TSV e inicia igv_variant.sh para cada um.
 # Portas: 8201, 8202, ... (ordem alfabeta dos genes).
 set -u
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
-TSV="str_samples_bams.tsv"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 6.4.5_str_samples_to_bed.R)."; exit 1; }
+TSV="data/str_samples_bams.tsv"
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente."; echo "Gere os BEDs primeiro:"; echo "  cd data && qsub 0_generate_beds.pbs"; exit 1; }
 
 genes=($(awk -F'\t' 'NR>1{print $1}' "$TSV" | sort -u))
 [ ${#genes[@]} -eq 0 ] && { echo "Nenhum gene encontrado no TSV."; exit 1; }

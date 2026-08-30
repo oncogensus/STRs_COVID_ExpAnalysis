@@ -10,9 +10,9 @@ FLANK=1000
 
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
-TSV="str_samples_bams.tsv"
-ANN="str_samples_with_variant.bed"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 6.4.5_str_samples_to_bed.R)."; exit 1; }
+TSV="data/str_samples_bams.tsv"
+ANN="data/str_samples_with_variant.bed"
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript data/0_generate_beds.R)."; exit 1; }
 [ -f "$ANN" ] || echo "WARN: $ANN ausente; anotacao pode faltar." >&2
 
 row="$(awk -F'\t' -v g="$GENE" '$1==g' "$TSV")"
