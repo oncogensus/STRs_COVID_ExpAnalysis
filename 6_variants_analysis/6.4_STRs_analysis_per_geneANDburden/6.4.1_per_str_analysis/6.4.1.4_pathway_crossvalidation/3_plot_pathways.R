@@ -11,6 +11,7 @@ suppressMessages({
   library(ggplot2)
   library(patchwork)
   library(clusterProfiler)
+  library(UpSetR)
 })
 
 ROOT <- normalizePath("../../..")
@@ -156,5 +157,19 @@ if (file.exists(p1_file) && file.exists(resid_file)) {
   ggsave("results/fig_genelevel_residual.png", pRes, width = 12, height = 8, dpi = 300, bg = "white")
   cat("Figuras gene-level ok\n")
 } else cat("Inputs gene-level ausentes; pulando suplementares.\n")
+
+## ======================================================================
+## FIG D: UpSet — sobreposicao P1 x P2 (genes com STR-outlier)
+## ======================================================================
+tryCatch({
+  upset_lst <- list(`GWAS-filtered` = p1_sym, `Agnostic` = p2_sym)
+  png("results/fig_gene_upset.png", width = 8, height = 6, units = "in", res = 300, bg = "white")
+  upset(fromList(upset_lst), sets = c("GWAS-filtered", "Agnostic"),
+        order.by = "freq", number.angles = 30,
+        text.scale = c(1.4, 1.2, 1.2, 1, 1.4, 1.2),
+        mainbar.y.label = "Genes por intersecao", sets.x.label = "Total por estrategia")
+  dev.off()
+  cat("Fig D UpSet ok\n")
+}, error = function(e) cat("UpSet falhou:", conditionMessage(e), "\n"))
 
 cat("\n=== Pronto: figuras em results/ ===\n")

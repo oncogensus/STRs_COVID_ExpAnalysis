@@ -3,14 +3,13 @@
 ## Cruza os genes com STR-outlier de duas estrategias:
 ##   P1 (GWAS-filtrado): outliers DBSCAN restritos a genes COVID GWAS-suggestivos (p<1e-5)
 ##   P2 (agnostico)    : outliers DBSCAN genome-wide
-## Gera results/gene_convergence.tsv/.csv (classes) + fig_gene_upset.png (UpSet).
+## Gera results/gene_convergence.tsv/.csv (classes). Figuras ficam em 3_plot_pathways.R.
 suppressMessages({
   library(stringr)
   library(dplyr)
   library(tidyr)
   library(readr)
   library(org.Hs.eg.db)
-  library(UpSetR)
 })
 
 ROOT <- normalizePath("../../..")
@@ -71,16 +70,4 @@ cat("GWAS-filtered-only:", sum(gene_conv$strategy == "GWAS-filtered-only"), "\n"
 cat("Agnostic-only     :", sum(gene_conv$strategy == "Agnostic-only"), "\n")
 cat("Dentre os 8 genes STR originais presentes:", sum(gene_conv$original_8), "\n")
 
-## ======================================================================
-## 4. FIGURA UpSet (sobreposicao P1 x P2)
-## ======================================================================
-lst <- list(`GWAS-filtered` = p1_sym, `Agnostic` = p2_sym)
-png("results/fig_gene_upset.png", width = 8, height = 6, units = "in", res = 300, bg = "white")
-upset(fromList(lst), sets = c("GWAS-filtered", "Agnostic"),
-      order.by = "freq", number.angles = 30,
-      text.scale = c(1.4, 1.2, 1.2, 1, 1.4, 1.2),
-      mainbar.y.label = "Genes por intersecao", sets.x.label = "Total por estrategia")
-dev.off()
-cat("Fig gene UpSet ok: results/fig_gene_upset.png\n")
-
-cat("\n=== Pronto: results/gene_convergence.tsv + fig_gene_upset.png ===\n")
+cat("\n=== Pronto: results/gene_convergence.tsv ===\n")
