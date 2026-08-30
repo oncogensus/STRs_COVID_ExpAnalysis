@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# run_all.sh — Sobe IGV.js para todos os genes com outlier.
-# Verifica se data/str_samples_bams.tsv existe; se nao, avisa.
-# Le genes unicos do TSV e inicia igv_variant.sh para cada um.
-# Portas: 8201, 8202, ... (ordem alfabeta dos genes).
+# run_all.sh — Gera scripts bash para IGV.js de cada gene com outlier.
+# Le genes unicos de str_samples_bams.tsv e cria um .sh por gene.
+# Uso: bash run_all.sh
 set -u
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
@@ -12,18 +11,26 @@ TSV="str_samples_bams.tsv"
 genes=($(awk -F'\t' 'NR>1{print $1}' "$TSV" | sort -u))
 [ ${#genes[@]} -eq 0 ] && { echo "Nenhum gene encontrado no TSV."; exit 1; }
 
+mkdir -p scripts
+
 PORT=8201
 for g in "${genes[@]}"; do
-  echo "Iniciando $g na porta $PORT ..."
-  bash "$(dirname "${BASH_SOURCE[0]}")/igv_variant.sh" "$g" "$PORT" &
+  script="scripts/igv_${g}.sh"
+  cat > "$script" <<EOF
+#!/usr/bin/env bash
+# IGV.js para ${g}
+# Uso: bash $script
+cd "$BASE"
+bash igv_variant.sh "$g" $PORT
+EOF
+  chmod +x "$script"
+  echo "Gerado: $script (porta $PORT)"
   PORT=$((PORT + 1))
 done
 
 echo
 echo "============================================================"
-echo "Servidores IGV.js: ${#genes[@]} genes (portas 8201-$((PORT-1)))."
-echo "No PC:  ssh -L 8201-$((PORT-1)):localhost:8201-$((PORT-1)) Carlos_Chagas"
-echo "Ctrl+C encerra todos."
+echo "Scripts gerados em scripts/ para ${#genes[@]} genes."
+echo "Para rodar todos:"
+echo "  for f in scripts/igv_*.sh; do bash \"\$f\" & done"
 echo "============================================================"
-
-wait
