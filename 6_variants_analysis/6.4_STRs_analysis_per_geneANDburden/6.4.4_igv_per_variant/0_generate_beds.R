@@ -58,6 +58,12 @@ norm$STRs_ID   <- trimws(norm$STRs_ID)
 norm$sample_id <- trimws(norm$sample_id)
 norm$resid     <- suppressWarnings(as.numeric(norm$allele2_residuals))
 
+gene_map <- norm[!is.na(norm$gene_name) & nzchar(norm$gene_name),
+                 c("STRs_ID", "gene_name")]
+gene_map <- gene_map[!duplicated(gene_map$STRs_ID), ]
+variants$gene <- gene_map$gene_name[match(variants$STRs_ID, gene_map$STRs_ID)]
+variants$gene[is.na(variants$gene)] <- "UNKNOWN"
+
 find_bam <- function(bam_dir, sid) {
   cands <- unique(c(sid, paste0(sid, ".bam"), sub("\\.bam$", "", sid)))
   for (b in cands) {
