@@ -7,20 +7,33 @@ suppressMessages({
   library(SKAT)
 })
 
-REPO_ROOT             <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
-norm_file             <- file.path(REPO_ROOT, "5_dbscan/norm_test/STRs_normalized_residuals.tsv")
-dbscan_out            <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
-pca_file              <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
-pheno_file            <- file.path(REPO_ROOT, "samples/samples_infos.csv")
-out_dir               <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results")
+REPO_ROOT  <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+
+norm_file  <- file.path(REPO_ROOT, "5_dbscan/norm_test/STRs_normalized_residuals.tsv")
+pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
+pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
+
+strategy <- "gwas"
+
+if (strategy == "gwas") {
+  outlier_file     <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+  outlier_col      <- "outlier_samples"
+  out_dir          <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results_gwas")
+  remove_sample_outliers <- FALSE
+} else {
+  outlier_file     <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
+  outlier_col      <- "outlier_samples"
+  out_dir          <- file.path(REPO_ROOT, "7_variants_analysis/burden_test/results")
+  remove_sample_outliers <- TRUE
+}
+
 case_label           <- "case"
 control_label        <- "control"
-high_thresh_q         <- 0.95
-min_strs_per_gene     <- 2
-remove_sample_outliers <- TRUE
-skat_kernel           <- "linear.weighted"
-run_gene_burden       <- TRUE
-selftest              <- FALSE
+high_thresh_q        <- 0.95
+min_strs_per_gene    <- 2
+skat_kernel          <- "linear.weighted"
+run_gene_burden      <- TRUE
+selftest             <- FALSE
 
 normalize_ids <- function(ids) {
   ids <- as.character(ids)
@@ -40,23 +53,27 @@ load_inputs <- function() {
 
   id_map <- norm %>% distinct(sample_id, sample_id_clean)
 
-  dbs <- fread(dbscan_out, header = TRUE, sep = "\t", data.table = FALSE)
-  if (!all(c("STRs_ID", "outlier_samples") %in% colnames(dbs)))
-    stop("dbscan_out deve conter STRs_ID e outlier_samples")
+  if (!file.exists(outlier_file)) stop("outlier_file nao encontrado: ", outlier_file,
+    "\nAjuste 'outlier_file' ou 'strategy'.")
+  dbs <- fread(outlier_file, header = TRUE, sep = "\t", data.table = FALSE)
+  if (!all(c("STRs_ID", outlier_col) %in% colnames(dbs)))
+    stop("outlier_file deve conter STRs_ID e '", outlier_col, "'")
 
   outlier_long <- data.frame(STRs_ID = character(0), sample_id_clean = character(0))
   for (i in seq_len(nrow(dbs))) {
-    samps <- unlist(strsplit(as.character(dbs$outlier_samples[i]), ";"))
+    raw <- as.character(dbs[[outlier_col]][i])
+    samps <- unlist(strsplit(raw, "[;,[:space:]]+"))
     samps <- samps[nzchar(trimws(samps))]
     if (length(samps) == 0) next
     m <- id_map$sample_id_clean[match(samps, id_map$sample_id)]
+    if (all(is.na(m))) m <- id_map$sample_id_clean[match(samps, id_map$sample_id_clean)]
     m <- m[!is.na(m)]
     if (length(m) == 0) next
     outlier_long <- rbind(outlier_long,
                           data.frame(STRs_ID = rep(dbs$STRs_ID[i], length(m)),
                                      sample_id_clean = m, stringsAsFactors = FALSE))
   }
-  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de dbscan_out")
+  if (nrow(outlier_long) == 0) stop("Nenhum outlier mapeado de outlier_file")
 
   str_meta <- norm %>% distinct(STRs_ID, gene_id, gene_name, region)
 
@@ -94,6 +111,10 @@ build_matrix <- function(covar, outlier_long) {
 
 run_burden_global <- function(M, covar, high_thresh_q) {
   count <- rowSums(M)
+  cat("  [burden_global] range(count)=", range(count),
+      " n_zero=", sum(count == 0), " n_nonzero=", sum(count > 0), "\n")
+  cat("  [burden_global] table(group)=", table(covar$group[match(rownames(M), covar$sample_id_clean)]), "\n")
+
   df <- data.frame(
     sample_id_clean = rownames(M),
     count = count,
@@ -105,9 +126,28 @@ run_burden_global <- function(M, covar, high_thresh_q) {
     EV3 = covar$EV3[match(rownames(M), covar$sample_id_clean)],
     stringsAsFactors = FALSE
   )
-  fit <- glm(group ~ count + age + sex + EV1 + EV2 + EV3,
-             data = df, family = binomial())
-  coefs <- summary(fit)$coefficients["count", , drop = FALSE]
+
+  empty_row <- data.frame(
+    test = c("logistic_OR_per_expansion", "mann_whitney", "threshold_OR", "threshold_fisher"),
+    estimate = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
+    p_value = NA_real_, stringsAsFactors = FALSE)
+
+  if (var(count) == 0 || length(unique(df$group)) < 2) {
+    cat("  [burden_global] count sem variancia ou grupo unico: retornando NA\n")
+    return(empty_row)
+  }
+
+  fit <- tryCatch(
+    glm(group ~ count + age + sex + EV1 + EV2 + EV3,
+        data = df, family = binomial()),
+    error = function(e) { cat("  [burden_global] glm erro:", conditionMessage(e), "\n"); NULL })
+  if (is.null(fit)) return(empty_row)
+  coefs <- tryCatch(summary(fit)$coefficients["count", , drop = FALSE],
+                    error = function(e) NULL)
+  if (is.null(coefs) || !"count" %in% rownames(coefs)) {
+    cat("  [burden_global] 'count' nao estimavel (modelo colapsou): retornando NA\n")
+    return(empty_row)
+  }
   or <- exp(coefs[, "Estimate"])
   or_lo <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
   or_hi <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
@@ -255,7 +295,14 @@ run_pipeline <- function(covar, outlier_long, str_meta) {
     }
   }
   M <- build_matrix(covar, outlier_long)
-  cat("Matriz:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+  cat("Matriz [", strategy, "]:", nrow(M), "amostras x", ncol(M), "STRs com expansao\n")
+  cat("  [debug] outlier_long nrow =", nrow(outlier_long), "\n")
+  cat("  [debug] n de amostras unicas em outlier_long =",
+      length(unique(outlier_long$sample_id_clean)), "\n")
+  cat("  [debug] contagens por STR (colSums M):\n")
+  print(colSums(M))
+  cat("  [debug] head(outlier_long):\n")
+  print(head(outlier_long, 12))
 
   burden <- run_burden_global(M, covar, high_thresh_q)
   skat <- run_skat_per_gene(M, str_meta, covar, min_strs_per_gene, skat_kernel)
@@ -292,7 +339,7 @@ if (selftest) {
     STRs_ID = rep(paste0("STR", outs), each = 3),
     sample_id_clean = sample(covar$sample_id_clean, 120, TRUE),
     stringsAsFactors = FALSE) %>% distinct()
-  cat("=== SELFTEST ===\n")
+  cat("=== SELFTEST [", strategy, "] ===\n")
   res <- run_pipeline(covar, outlier_long, str_meta)
   print(res$burden)
   print(head(res$skat[order(res$skat$p_value), ]))
