@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# Sobe os 8 servidores IGV.js (um por variante) de uma vez.
-# Cada variante fica em sua propria porta (8201-8208).
+# run_all.sh — Sobe IGV.js para todos os genes com outlier.
+# Le genes unicos de str_samples_bams.tsv e inicia igv_variant.sh para cada um.
+# Portas: 8201, 8202, ... (ordem alfabeta dos genes).
 set -u
-BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$BASE"
+BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
-for g in ROBO2 ANK3 CDH12 NKAIN2 SEMA6D KCNH1 KCNQ5 ST6GALNAC3; do
-  bash "igv_per_variant/$g.sh" &
+TSV="str_samples_bams.tsv"
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 6.4.5_str_samples_to_bed.R)."; exit 1; }
+
+genes=($(awk -F'\t' 'NR>1{print $1}' "$TSV" | sort -u))
+[ ${#genes[@]} -eq 0 ] && { echo "Nenhum gene encontrado no TSV."; exit 1; }
+
+PORT=8201
+for g in "${genes[@]}"; do
+  echo "Iniciando $g na porta $PORT ..."
+  bash "$(dirname "${BASH_SOURCE[0]}")/igv_variant.sh" "$g" "$PORT" &
+  PORT=$((PORT + 1))
 done
 
 echo
 echo "============================================================"
-echo "Servidores IGV.js nas portas 8201-8208 (uma por variante)."
-echo "No PC:  ssh -L 8201-8208:localhost:8201-8208 Carlos_Chagas"
-echo "Abra no navegador: http://localhost:8201  (ROBO2), 8202 (ANK3), ..."
+echo "Servidores IGV.js: ${#genes[@]} genes (portas 8201-$((PORT-1)))."
+echo "No PC:  ssh -L 8201-$((PORT-1)):localhost:8201-$((PORT-1)) Carlos_Chagas"
 echo "Ctrl+C encerra todos."
 echo "============================================================"
 

@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# IGV.js (navegador) para a variante ROBO2.
-# Anotacao so da amostra com variante + reads (BAMs) das duas amostras.
-# Os BAMs sao EXTRAIDOS para a regiao do locus (+/- FLANK). Tenta regiao
-# (rapido, precisa de indice); se falhar, faz streaming + filtro por coordenada.
-# O contig e renomeado p/ "chrN" (padrao hg38 do IGV.js) caso o BAM original
-# use nomenclatura sem "chr" (ex.: "10" em vez de "chr10").
-# Uso: bash igv_per_variant/ROBO2.sh   (requer samtools + str_samples_bams.tsv)
+# igv_variant.sh — IGV.js para um gene/variante STR.
+# Recebe GENE como argumento; le str_samples_bams.tsv para mappings.
+# Uso: bash igv_variant.sh ROBO2 [PORT]
 set -u
 
-GENE="ROBO2"; PORT="8201"; FLANK=1000
-BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$BASE"
+GENE="${1:?Uso: $0 GENE [PORT]}"
+PORT="${2:-0}"
+FLANK=1000
+
+BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
 TSV="str_samples_bams.tsv"
 ANN="str_samples_with_variant.bed"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript str_samples_to_bed.R)."; exit 1; }
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 6.4.5_str_samples_to_bed.R)."; exit 1; }
 [ -f "$ANN" ] || echo "WARN: $ANN ausente; anotacao pode faltar." >&2
 
 row="$(awk -F'\t' -v g="$GENE" '$1==g' "$TSV")"
@@ -23,17 +22,20 @@ vbam="$(echo "$row" | cut -f7 | sed 's|//*|/|g')"
 cbam="$(echo "$row" | cut -f9 | sed 's|//*|/|g')"
 s1=$((start0 + 1))
 
-command -v samtools >/dev/null 2>&1 || { echo "ERRO: samtools ausente. Instale: micromamba install -n igv -c bioconda samtools"; exit 1; }
+if [ "$PORT" -eq 0 ]; then
+  hash=$(echo -n "$GENE" | md5sum | head -c 4)
+  PORT=$((8200 + (16#${hash} % 9900 + 100)))
+fi
+
+command -v samtools >/dev/null 2>&1 || { echo "ERRO: samtools ausente."; exit 1; }
 command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
 
 OUT="/tmp/igvjs_${GENE}"; mkdir -p "$OUT"
 
-# BED so deste locus (fallback: BED inteiro)
 awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/$GENE.bed"
 if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
 BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
 
-# contig como aparece no HEADER do BAM
 bam_chr() {
   local bam="$1" want="$2" hit=""
   hit="$(samtools view -H "$bam" | awk -v w="$want" -F'\t' '{for(i=1;i<=NF;i++) if($i=="SN:"w){print w; exit}}')"
@@ -43,7 +45,6 @@ bam_chr() {
   if [ -n "$hit" ]; then echo "$alt"; else echo "$want"; fi
 }
 
-# renomeia o contig do BAM extraido para $chr (padrao hg38), se necessario
 norm_chr() {
   local bam="$1" cur="$2" want="$3"
   if [ "$cur" = "$want" ]; then
@@ -55,9 +56,9 @@ norm_chr() {
          if ($1 ~ /^@SQ/) sub("SN:"cur"\t","SN:"want"\t",$0);
          else if ($1 !~ /^@/ && $3==cur) $3=want;
          print }' \
-    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igv_${GENE}_samtools.log" \
+    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igvjs_${GENE}_samtools.log" \
     && mv "${bam}.tmp" "$bam"
-  samtools index "$bam" 2>>"/tmp/igv_${GENE}_samtools.log"
+  samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
 }
 
 extract_bam() {
@@ -68,20 +69,18 @@ extract_bam() {
   local fend=$(( end + FLANK ))
   local outb="$OUT/$GENE.$label.bam"
   echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}" >&2
-  # 1) tenta regiao (rapido)
-  if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igv_${GENE}_samtools.log"; then
+  if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"; then
     if [ -s "$outb" ]; then
       norm_chr "$outb" "$cur" "$chr"
       echo "$outb $outb.bai"; return
     fi
   fi
-  # 2) fallback: streaming + filtro por coordenada (nao precisa de indice)
   echo "WARN: regiao falhou p/ $full; usando streaming (pode demorar)..." >&2
   samtools view -h "$full" \
     | awk -v c="$cur" -v a="$fstart" -v b="$fend" 'BEGIN{FS=OFS="\t"} {
          if ($1 ~ /^@/) { print; next }
          if ($3==c && $4>=a && $4<=b) print }' \
-    | samtools view -b - > "$outb" 2>>"/tmp/igv_${GENE}_samtools.log"
+    | samtools view -b - > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
   if [ -s "$outb" ]; then
     norm_chr "$outb" "$cur" "$chr"
     echo "$outb $outb.bai"
@@ -92,7 +91,6 @@ extract_bam() {
 read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
 read -r cb_out cb_idx <<< "$(extract_bam "$cbam" control)"
 
-# tracks.json (sem virgula inicial; paste insere o separador)
 tt="$(mktemp)"
 echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
 add_extracted() {
@@ -108,7 +106,6 @@ add_extracted "$cb_out" "$cb_idx" "$(basename "$cbam")"
 { echo "["; paste -sd, "$tt"; echo "]"; } > "$OUT/tracks.json"
 rm -f "$tt"
 
-# index.html (igv.js via CDN)
 sed "s/__LOCUS__/${chr}:${s1}-${end}/" > "$OUT/index.html" <<'HTML'
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -133,7 +130,6 @@ fetch('tracks.json')
 </html>
 HTML
 
-# Servidor HTTP a partir da raiz (/) com CORS. Sem kwargs directory/bind (compat. Python antigo).
 python - "$PORT" <<'PY' >"/tmp/igvjs_${GENE}.log" 2>&1 &
 import sys, http.server, socketserver, os
 port = int(sys.argv[1])
@@ -167,7 +163,7 @@ echo "BAM variante extraido: $vb_out"
 echo "BAM controle extraido: $cb_out"
 echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igv_${GENE}_samtools.log"
+echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igvjs_${GENE}_samtools.log"
 echo "============================================================"
 
 wait "$PID"

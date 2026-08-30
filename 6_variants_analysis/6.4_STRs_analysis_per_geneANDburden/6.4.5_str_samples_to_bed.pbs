@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N str_samples_to_bed
+#PBS -o str_samples_to_bed.out
+#PBS -e str_samples_to_bed.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.4_STRs_analysis_per_geneANDburden"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+"$R_BIN" 6.4.5_str_samples_to_bed.R

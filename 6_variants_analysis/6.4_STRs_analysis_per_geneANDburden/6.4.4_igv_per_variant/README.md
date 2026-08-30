@@ -1,64 +1,59 @@
 # IGV.js por variante (navegador)
 
-Página IGV.js para cada variante STR, sem necessidade de VNC.
-Cada variante mostra:
-- **anotação** apenas da amostra **com** a variante (`str_samples_with_variant.bed`, restrito a este locus)
-- **reads (BAMs)** das **duas** amostras: variante + controle
+Script generico IGV.js para qualquer gene com outlier STR.
+Le `str_samples_bams.tsv` em runtime — funciona para qualquer gene sem hardcoded.
 
-## Pré-requisitos (no cluster)
-- env `igv` ativo (ou `igv`/`python` no PATH)
-- ter gerado `str_samples_bams.tsv` e `str_samples_with_variant.bed`:
-  ```bash
-  micromamba activate igv
-  Rscript str_samples_to_bed.R
-  ```
-- `python` 3.7+ (suporte a Range, necessário para os BAMs)
-- `samtools` (extrai a região do locus de cada BAM); instale se faltar:
-  `micromamba install -n igv -c bioconda samtools`
-- internet no PC para carregar o igv.js do CDN
+## Pipeline
+
+```
+6.4.1.2 (DBSCAN subset) → suggestive_strs_outliers.tsv
+    ↓
+6.4.5_str_samples_to_bed.R → str_samples_bams.tsv + str_samples_with_variant.bed
+    ↓
+6.4.4_igv_per_variant/ → IGV.js para cada gene
+```
+
+## Gerar os dados (no cluster)
+
+```bash
+cd /storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis
+qsub 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.5_str_samples_to_bed.pbs
+```
+
+Ou localmente (se BAM dir acessivel):
+```bash
+Rscript 6.4.5_str_samples_to_bed.R
+```
+
+## Rodar IGV.js — todos os genes
+
+No cluster:
+```bash
+cd 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.4_igv_per_variant
+bash run_all.sh
+```
+
+No PC (PowerShell):
+```powershell
+ssh -L 8201-82XX:localhost:8201-82XX Carlos_Chagas
+```
+
+Abra no navegador: `http://localhost:8201/tmp/igvjs_GENE/index.html`
+
+## Rodar IGV.js — um gene
+
+```bash
+bash igv_variant.sh KCNQ5
+bash igv_variant.sh KCNQ5 9000   # porta especifica
+```
 
 ## O que o script faz com os BAMs
-Em vez de servir o BAM inteiro (que pode ter dezenas de GB), o script extrai
-só a região do locus com `samtools view -b -h <bam> <chr>:inicio-fim` (flanco
-de `+/-1000 bp`, ajustável pela variável `FLANK` no topo de cada script) e
-reindexa. O IGV.js carrega então um BAM pequeno e rápido. Se a extração vier
-vazia, ele usa o BAM completo como fallback.
-
-## Uso — uma variante
-No cluster:
-```bash
-bash igv_per_variant/ROBO2.sh
-```
-No seu PC (PowerShell):
-```powershell
-ssh -L 8201:localhost:8201 Carlos_Chagas
-```
-Abra no navegador: **http://localhost:8201/tmp/igvjs_ROBO2/index.html**
-
-## Uso — todas de uma vez
-No cluster:
-```bash
-bash igv_per_variant/run_all.sh
-```
-No PC:
-```powershell
-ssh -L 8201-8208:localhost:8201-8208 Carlos_Chagas
-```
-Abra as páginas em abas: `http://localhost:8201/tmp/igvjs_ROBO2/index.html` (ROBO2), `8202`→`/tmp/igvjs_ANK3/index.html`, … `8208`→`/tmp/igvjs_ST6GALNAC3/index.html`.
-
-## Mapeamento variante → porta
-| gene | porta |
-|------|-------|
-| ROBO2 | 8201 |
-| ANK3 | 8202 |
-| CDH12 | 8203 |
-| NKAIN2 | 8204 |
-| SEMA6D | 8205 |
-| KCNH1 | 8206 |
-| KCNQ5 | 8207 |
-| ST6GALNAC3 | 8208 |
+Em vez de servir o BAM inteiro, extrai so a regiao do locus com
+`samtools view -b -h <bam> <chr>:inicio-fim` (flanco +/-1000 bp) e
+reindexa. O IGV.js carrega um BAM pequeno e rapido.
 
 ## Notas
-- Os scripts são estáticos, mas data-driven: leem `str_samples_bams.tsv` em runtime, então continuam corretos se os BAMs mudarem.
-- Ao fechar o script (Ctrl+C) o servidor HTTP daquela variante é encerrado.
-- Para remover os arquivos temporários: `rm -rf /tmp/igvjs_*`.
+- Os scripts sao data-driven: leem `str_samples_bams.tsv` em runtime.
+- Ao fechar o script (Ctrl+C) o servidor HTTP daquela variante e encerrado.
+- Para remover arquivos temporarios: `rm -rf /tmp/igvjs_*`.
+- BAM dir: `/storage/users/tulio/Projeto_Luy_COVID/results/recal/` (ajustavel em 6.4.5).

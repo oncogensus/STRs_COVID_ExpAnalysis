@@ -1,127 +1,92 @@
 #!/usr/bin/env Rscript
 # str_samples_to_bed.R
-# Gera BEDs das amostras COM e SEM a variante, reutilizando a logica da
-# celula 8 do 7.4.3.2_trackviewer_STR_viz.ipynb (alinhamento BAM variante vs controle).
-# Standalone: NAO depende de trackViewer / GenomicRanges / Gviz.
-# Rodar a partir de 7.4_scRNA-seq_analysis/ (onde STR_variants_UCSC_track.bed esta).
+# Gera BEDs + mapeamento BAM para IGV.js (6.4.4).
+# Rodar a partir de qualquer dir; paths sao absolutos (cluster).
 #
-# Para cada locus de STR com outlier (fonte AGNOSTICA = DBSCAN, e/ou
-# fonte HIPOTESE-DIRIGIDA = COVID-19 HG r7 suggestive):
-#   - amostra COM variante  = `outlier_samples` de outliers_per_str.tsv (DBSCAN)
-#       e/ou de suggestive_strs_outliers.tsv (GWAS), tagueadas em `source`
+# Para cada STR com outlier em suggestive_strs_outliers.tsv:
+#   - amostra COM variante  = outlier_samples
 #   - amostra SEM variante  = outro sample_id do MESMO STRs_ID em
-#       STRs_normalized_residuals.tsv, nao-outlier, com BAM+`.bai` indexado em
+#       STRs_normalized_residuals.tsv, nao-outlier, com BAM indexado em
 #       bam_dir, de menor |allele2_residuals| (mais proximo do esperado).
-# name do BED = paste0(STRs_ID, "_", sample, "_", source)  (ex.: variante_gwas).
+#
+# Outputs (no dir de execucao):
+#   str_samples_with_variant.bed
+#   str_samples_without_variant.bed
+#   str_samples_bams.tsv
 
-# ---- inputs (RELATIVOS a partir do dir de execucao: 7.4_scRNA-seq_analysis/) ----
-REPO_ROOT <- '..'   # sobe 1 nivel; ajuste se a estrutura pos-reorg mudar
-dbscan_outliers_file <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/outliers_search/results_dbscan/outliers_per_str.tsv')  # agnostic: TODOS outliers DBSCAN
-gwas_outliers_file   <- file.path(REPO_ROOT, 'covid19hg_evaluation/dbscan_subset/results/suggestive_strs_outliers.tsv')       # hypothesis-driven (COVID-19 HG r7)
-norm_file            <- file.path(REPO_ROOT, '7.4.1_per_str_analysis/norm_test/STRs_normalized_residuals.tsv')                # controles
-bed_file             <- 'STR_variants_UCSC_track.bed'
-bam_dir              <- '/storage/users/tulio/Projeto_Luy_COVID/results/recal/'   # mantido
+REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
-out_with      <- 'str_samples_with_variant.bed'
-out_without   <- 'str_samples_without_variant.bed'
+outlier_file <- file.path(REPO_ROOT,
+  "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_per_str_analysis/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+norm_file <- file.path(REPO_ROOT,
+  "5_global_dbscan/norm_test/STRs_normalized_residuals.tsv")
+bam_dir <- "/storage/users/tulio/Projeto_Luy_COVID/results/recal/"
 
-pad           <- 0      # 0 = janela exata do STR (do UCSC BED); use 20000 p/ +-20kb
+out_with    <- "str_samples_with_variant.bed"
+out_without <- "str_samples_without_variant.bed"
+out_map     <- "str_samples_bams.tsv"
+
+pad <- 0
 set.seed(20260813)
 
-stopifnot(file.exists(dbscan_outliers_file))
-stopifnot(file.exists(gwas_outliers_file))
+stopifnot(file.exists(outlier_file))
 stopifnot(file.exists(norm_file))
-stopifnot(file.exists(bed_file))
 stopifnot(dir.exists(bam_dir))
 
-# ---- leitura das fontes de outliers (agnostico DBSCAN + hipotese-dirigida GWAS) ----
 split_samples <- function(s) {
   s <- trimws(as.character(s))
-  unlist(strsplit(s, ';|,|\\s+'))   # tolera separadores ; , espaco
+  unlist(strsplit(s, "[;,[:space:]]+"))
 }
 
-# agnostic: TODOS os outliers DBSCAN
-db <- read.delim(dbscan_outliers_file, header = TRUE, stringsAsFactors = FALSE)
+db <- read.delim(outlier_file, header = TRUE, stringsAsFactors = FALSE)
 db$STRs_ID <- trimws(db$STRs_ID)
 db <- db[nzchar(trimws(db$outlier_samples)), ]
-agn <- data.frame(STRs_ID = rep(db$STRs_ID, lengths(lapply(db$outlier_samples, split_samples))),
-                  variant = unlist(lapply(db$outlier_samples, split_samples)),
-                  source  = 'agnostic', stringsAsFactors = FALSE)
 
-# hypothesis-driven: outliers sugestivos do COVID-19 HG r7
-gw <- read.delim(gwas_outliers_file, header = TRUE, stringsAsFactors = FALSE)
-gw$STRs_ID <- trimws(gw$STRs_ID)
-gw <- gw[nzchar(trimws(gw$outlier_samples)), ]
-gwd <- data.frame(STRs_ID = rep(gw$STRs_ID, lengths(lapply(gw$outlier_samples, split_samples))),
-                  variant = unlist(lapply(gw$outlier_samples, split_samples)),
-                  source  = 'gwas', stringsAsFactors = FALSE)
+variants <- data.frame(
+  STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples, split_samples))),
+  variant  = unlist(lapply(db$outlier_samples, split_samples)),
+  stringsAsFactors = FALSE)
 
-variants <- unique(rbind(agn, gwd))   # cada linha = (locus, variant_sample, source)
-
-# STRs_ID codifica chr:pos:motif:copy (pos = 1-based start)
-id_parts <- strsplit(variants$STRs_ID, ':', fixed = TRUE)
+id_parts <- strsplit(variants$STRs_ID, ":", fixed = TRUE)
 variants$chr    <- vapply(id_parts, function(x) x[1], character(1))
 variants$start1 <- as.integer(vapply(id_parts, function(x) x[2], character(1)))
 variants$motif  <- vapply(id_parts, function(x) x[3], character(1))
 variants$copy   <- as.integer(vapply(id_parts, function(x) x[4], character(1)))
 variants$start0 <- variants$start1 - 1
+variants$end    <- variants$start0 + nchar(variants$motif) * variants$copy
 variants$gene   <- NA_character_
 
-# end: do BED do UCSC se existir, senao estima por motif*copy
-if (file.exists(bed_file)) {
-  bed <- read.delim(bed_file, comment.char = '#', header = FALSE, fill = TRUE,
-                    col.names = c('chr', 'start0', 'end', 'name'))
-  bed <- bed[grepl('^chr', bed$chr), ]
-  bed$STRs_ID <- sub('^[^_]+_', '', bed$name)  # name = <gene>_<STRs_ID>
-  bed <- bed[bed$STRs_ID %in% variants$STRs_ID, c('STRs_ID', 'end')]
-  variants$end <- bed$end[match(variants$STRs_ID, bed$STRs_ID)]
-  if (anyNA(variants$end)) {
-    warning('Alguns loci ausentes no BED; estimando end por motivo*copy')
-    na <- is.na(variants$end)
-    variants$end[na] <- variants$start0[na] + nchar(variants$motif[na]) * variants$copy[na]
-  }
-} else {
-  cat('BED nao encontrado; estimando end por motivo*copy\n')
-  variants$end <- variants$start0 + nchar(variants$motif) * variants$copy
-}
-
-# ---- leitura dos residuos normalizados (fonte dos controles) ----
 norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)
 norm$sample_id <- trimws(norm$sample_id)
 norm$resid     <- suppressWarnings(as.numeric(norm$allele2_residuals))
 
-# ---- helper: acha BAM+`.bai` indexado a partir de um sample id ----
-# testa `sid`, `sid.bam` e a base sem extensao; retorna o caminho do BAM ou NULL
 find_bam <- function(bam_dir, sid) {
-  cands <- unique(c(sid, paste0(sid, '.bam'), sub('\\.bam$', '', sid)))
+  cands <- unique(c(sid, paste0(sid, ".bam"), sub("\\.bam$", "", sid)))
   for (b in cands) {
     bfull   <- file.path(bam_dir, b)
-    baifull <- sub('\\.bam$', '.bai', bfull)
+    baifull <- sub("\\.bam$", ".bai", bfull)
     if (file.exists(bfull) && file.exists(baifull)) return(bfull)
   }
   NULL
 }
-# nome "limpo" (sem .bam) para o identificador do BED
-clean_name <- function(sid) sub('\\.bam$', '', sid)
+
+clean_name <- function(sid) sub("\\.bam$", "", sid)
 
 verify_tab <- data.frame(
-  gene = character(), STRs_ID = character(), source = character(),
-  variant_sample = character(), variant_bam = character(),
-  variant_indexed = logical(),
-  control_sample = character(), control_bam = character(),
-  control_indexed = logical(),
+  gene = character(), STRs_ID = character(),
+  variant_sample = character(), variant_bam = character(), variant_indexed = logical(),
+  control_sample = character(), control_bam = character(), control_indexed = logical(),
   stringsAsFactors = FALSE)
 
-# mapeamento locus -> BAMs (caminhos absolutos) p/ carregar reads no IGV
 mapping <- data.frame(
-  gene = character(), STRs_ID = character(), source = character(), chr = character(),
+  gene = character(), STRs_ID = character(), chr = character(),
   start0 = integer(), end = integer(),
   variant_sample = character(), variant_bam = character(),
   control_sample = character(), control_bam = character(),
   stringsAsFactors = FALSE)
 
-with_rows  <- list()
+with_rows    <- list()
 without_rows <- list()
 
 for (i in seq_len(nrow(variants))) {
@@ -131,13 +96,11 @@ for (i in seq_len(nrow(variants))) {
   v_end  <- variants$end[i]
   v_gene <- variants$gene[i]
 
-  # ---- amostra COM a variante ----
   v_sid_raw <- as.character(variants$variant[i])
   v_bam <- find_bam(bam_dir, v_sid_raw)
   v_indexed <- !is.null(v_bam)
   v_sample  <- clean_name(v_sid_raw)
 
-  # ---- amostra SEM a variante (controle) ----
   c_sample <- NA_character_
   c_bam    <- NULL
   sub <- norm[norm$STRs_ID == v_strs, ]
@@ -160,11 +123,10 @@ for (i in seq_len(nrow(variants))) {
   c_indexed <- !is.null(c_bam)
 
   if (!v_indexed)
-    warning('Sem BAM indexado p/ amostra-com-variante: ', v_sample, ' (', v_strs, ')')
+    warning("Sem BAM indexado p/ amostra-com-variante: ", v_sample, " (", v_strs, ")")
   if (!c_indexed)
-    warning('Sem controle valido (BAM indexado) p/ locus: ', v_gene, ' (', v_strs, ')')
+    warning("Sem controle valido (BAM indexado) p/ locus: ", v_gene, " (", v_strs, ")")
 
-  # score: |residual| escalado (controle usa resid de norm; variante sem score do CSV -> 0)
   v_score <- 0
   c_score <- if (!is.na(c_sample)) {
     s <- norm[norm$STRs_ID == v_strs & clean_name(norm$sample_id) == c_sample, ]$resid
@@ -177,18 +139,18 @@ for (i in seq_len(nrow(variants))) {
   if (v_indexed) {
     with_rows[[length(with_rows) + 1]] <- data.frame(
       chr = v_chr, start = s0, end = e0,
-      name = paste0(v_strs, '_', v_sample, '_', variants$source[i]),
-      score = v_score, strand = '.', stringsAsFactors = FALSE)
+      name = paste0(v_strs, "_", v_sample),
+      score = v_score, strand = ".", stringsAsFactors = FALSE)
   }
   if (c_indexed) {
     without_rows[[length(without_rows) + 1]] <- data.frame(
       chr = v_chr, start = s0, end = e0,
-      name = paste0(v_strs, '_', c_sample, '_', variants$source[i]),
-      score = c_score, strand = '.', stringsAsFactors = FALSE)
+      name = paste0(v_strs, "_", c_sample),
+      score = c_score, strand = ".", stringsAsFactors = FALSE)
   }
 
   verify_tab <- rbind(verify_tab, data.frame(
-    gene = v_gene, STRs_ID = v_strs, source = variants$source[i],
+    gene = v_gene, STRs_ID = v_strs,
     variant_sample = if (v_indexed) v_sample else NA_character_,
     variant_bam = if (v_indexed) basename(v_bam) else NA_character_,
     variant_indexed = v_indexed,
@@ -198,7 +160,7 @@ for (i in seq_len(nrow(variants))) {
     stringsAsFactors = FALSE))
 
   mapping <- rbind(mapping, data.frame(
-    gene = v_gene, STRs_ID = v_strs, source = variants$source[i], chr = v_chr,
+    gene = v_gene, STRs_ID = v_strs, chr = v_chr,
     start0 = v_s0, end = v_end,
     variant_sample = if (v_indexed) v_sample else NA_character_,
     variant_bam = if (v_indexed) v_bam else NA_character_,
@@ -209,25 +171,21 @@ for (i in seq_len(nrow(variants))) {
 
 write_bed <- function(rows, out) {
   if (length(rows) == 0) {
-    cat('Nenhuma linha valida p/', out, '- arquivo NAO escrito.\n')
+    cat("Nenhuma linha valida p/", out, "- arquivo NAO escrito.\n")
     return(0)
   }
   df <- do.call(rbind, rows)
   df <- df[order(df$chr, df$start), ]
-  write.table(df, out, sep = '\t', row.names = FALSE, col.names = FALSE, quote = FALSE)
-  cat('Escrevi', nrow(df), 'loci ->', out, '\n')
+  write.table(df, out, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+  cat("Escrevi", nrow(df), "loci ->", out, "\n")
   nrow(df)
 }
 
 n_with    <- write_bed(with_rows, out_with)
 n_without <- write_bed(without_rows, out_without)
 
-out_map <- 'str_samples_bams.tsv'
-write.table(mapping, out_map, sep = '\t', row.names = FALSE, quote = FALSE)
-cat('Escrevi', nrow(mapping), 'loci ->', out_map, '\n')
+write.table(mapping, out_map, sep = "\t", row.names = FALSE, quote = FALSE)
+cat("Escrevi", nrow(mapping), "loci ->", out_map, "\n")
 
-cat('\n=== Resumo (verify_tab) ===\n')
+cat("\n=== Resumo (verify_tab) ===\n")
 print(verify_tab)
-
-cat('\nNo IGV: File > Load from File ->', out_with, 'e', out_without, '\n')
-cat('Dica: sobreponha aos bigWigs/bigBeds de external_tracks/.\n')
