@@ -1,4 +1,4 @@
-# STR Analysis Workflow Development
+﻿# STR Analysis Workflow Development
 
 ## Overview
 
@@ -44,7 +44,7 @@ strs_paper/
 └── 6_variants_analysis/
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
-    ├── 6.4_STRs_analysis_per_geneANDburden/
+    ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
     │   ├── 6.4.1_dbscan_subset_GWAS/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
@@ -54,8 +54,8 @@ strs_paper/
     │   ├── 6.4.4_pathway_crossvalidation/
     │   ├── 6.4.5_igv_per_variant/
     │   └── 6.4.6_analysis_scRNA_Seq.ipynb
-    ├── 6.5_STRs_filter/
-    └── 6.6_ancestry_analysis/
+    ├── 6.4_STRs_filter/
+    └── 6.5_ancestry_analysis/
 ```
 
 ---
@@ -237,7 +237,7 @@ Generate genome-wide STR distribution plots.
 - Localization of complete STR dataset: STRs_analysis_dataset.tsv
 - Environment: micromamba - r_viz
 
-### 6.4: Per-STR Analysis, Burden Test & Related Pipelines (`6.4_STRs_analysis_per_geneANDburden/`)
+### 6.4: Per-STR Analysis, Burden Test & Related Pipelines (`6.3_STRs_analysis_per_geneANDburden/`)
 
 This section covers the core analytical pipelines for identifying STRs associated with COVID-19 mortality.
 
@@ -327,7 +327,7 @@ identifiable via `STRs_ID`.
 
 ### How to run (cluster, env `r_enrich_env`)
 ```bash
-cd 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.3_burden_test
+cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test
 qsub burden_gwas.pbs
 ```
 
@@ -394,7 +394,7 @@ Generate cell-type-level visualizations of STR-scRNA overlaps.
 
 **Environment**: micromamba - `r_enrich_env`
 
-### 6.5: STR Filtering and scRNA-seq Overlap (`6.5_STRs_filter/`)
+### 6.5: STR Filtering and scRNA-seq Overlap (`6.4_STRs_filter/`)
 
 #### 6.5.1: STR-scRNA Overlap Import
 
@@ -436,7 +436,7 @@ Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criter
 - `covid_targeted_no_overlap_allele_mean_no_threshold.csv` (Non-overlap signature in scRNA-seq genes)
 - `top_10_unique_loci_outliers.csv` (Top 10 outlier loci)
 
-### 6.6: Ancestry Analysis (`6.6_ancestry_analysis/`)
+### 6.6: Ancestry Analysis (`6.5_ancestry_analysis/`)
 
 #### 6.6.1: Categorical Ancestry Comparison
 
@@ -529,7 +529,7 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 7. Variant Analysis (`6_variants_analysis`)
    - 7.1 Dataset Integration (`6.1_merge_datasets/`)
    - 7.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
-   - 7.3 Per-STR Analysis & Burden Test (`6.4_STRs_analysis_per_geneANDburden/`)
+   - 7.3 Per-STR Analysis & Burden Test (`6.3_STRs_analysis_per_geneANDburden/`)
      - 7.3.1 COVID-19 HG × STRs overlap (`6.4.1.1_covid19hg_overlap/`)
      - 7.3.2 DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
      - 7.3.3 Burden / SKAT (`6.4.3_burden_test/`)
@@ -539,10 +539,10 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
      - 7.3.4 Pathway cross-validation (`6.4.4_pathway_crossvalidation/`)
      - 7.3.5 IGV per variant (`6.4.5_igv_per_variant/`)
      - 7.3.6 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
-   - 7.4 STR Filtering & scRNA-seq Overlap (`6.5_STRs_filter/`)
+   - 7.4 STR Filtering & scRNA-seq Overlap (`6.4_STRs_filter/`)
      - 7.4.1 STR-scRNA Overlap Import
      - 7.4.2 Statistical Filtering
-   - 7.5 Ancestry Analysis (`6.6_ancestry_analysis/`)
+   - 7.5 Ancestry Analysis (`6.5_ancestry_analysis/`)
      - 7.5.1 Categorical Ancestry Comparison
      - 7.5.2 High-Resolution Ancestry Correlation
      - 7.5.3 Ancestry Data Visualization
@@ -578,7 +578,7 @@ strs_paper/
     ├── STRs_analysis_dataset.tsv   # Master integrated dataset
     ├── 6.1_merge_datasets/
     ├── 6.2_desc_data_viz/
-    ├── 6.4_STRs_analysis_per_geneANDburden/
+    ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
     │   ├── 6.4.1_dbscan_subset_GWAS/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
@@ -601,11 +601,11 @@ strs_paper/
     │   │   ├── str_samples_without_variant.bed
     │   │   └── scripts/             # per-gene IGV scripts
     │   └── 6.4.6_analysis_scRNA_Seq.ipynb
-    ├── 6.5_STRs_filter/
+    ├── 6.4_STRs_filter/
     │   └── results/
     │       ├── STR_vs_scRNA_overlap_*.csv
     │       └── statistical_filtering/
-    └── 6.6_ancestry_analysis/
+    └── 6.5_ancestry_analysis/
         └── results/
             ├── categorical_data/
             ├── high_resolution/

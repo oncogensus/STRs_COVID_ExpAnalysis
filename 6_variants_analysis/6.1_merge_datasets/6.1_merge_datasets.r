@@ -106,7 +106,12 @@ cat(strrep("=", 42), "\n")
 dat.final <- dat.annot %>%
   left_join(dat.groups %>% select(sample_id_clean, group, age, sex), by = "sample_id_clean") %>%
   left_join(dat.eth %>% select(sample_id_clean, pop, contribution, type), by = "sample_id_clean") %>%
-  left_join(dat.dbscan %>% select(STRs_ID, n_outliers, outlier_samples, outlier_residuals, n_clusters, noise_ratio), 
+  left_join(dat.dbscan %>% select(STRs_ID, 
+                                    n_outliers_dbscan_global = n_outliers, 
+                                    outlier_samples_dbscan_global = outlier_samples, 
+                                    outlier_residuals_dbscan_global = outlier_residuals, 
+                                    n_clusters_dbscan_global = n_clusters, 
+                                    noise_ratio_dbscan_global = noise_ratio), 
             by = "STRs_ID")
 
 # ==========================================
@@ -128,8 +133,8 @@ dat.final <- dat.final %>%
     # Population Genetics
     pop, contribution, type,
     
-    # Outlier Metrics
-    n_outliers, outlier_samples, outlier_residuals, n_clusters, noise_ratio
+    # Outlier Metrics (DBSCAN Global)
+    n_outliers_dbscan_global, outlier_samples_dbscan_global, outlier_residuals_dbscan_global, n_clusters_dbscan_global, noise_ratio_dbscan_global
   )
 
 fwrite(dat.final, output_file, sep="\t")

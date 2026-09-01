@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N cross_DEGs_STRs
+#PBS -o cross_DEGs_STRs.out
+#PBS -e cross_DEGs_STRs.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate str
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+python3 cross_DEGs_STRs.py \
+    --deg-dir . \
+    --str-catalog ../../../../samples/STRs_analysis_dataset.tsv \
+    --gwas-outliers ../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv \
+    --out-dir results

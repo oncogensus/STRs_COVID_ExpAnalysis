@@ -1,4 +1,4 @@
-suppressMessages({
+﻿suppressMessages({
   library(data.table)
   library(dplyr)
   if (!requireNamespace("SKAT", quietly = TRUE)) {
@@ -17,19 +17,19 @@ strategy <- "gwas_burden"
 
 if (strategy == "gwas_burden") {
   background_file <- file.path(REPO_ROOT,
-    "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv")
-  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas_burden")
+    "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas_burden")
   remove_sample_outliers <- FALSE
 } else if (strategy == "gwas") {
   outlier_file <- file.path(REPO_ROOT,
-    "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+    "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
   outlier_col <- "outlier_samples"
-  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas")
   remove_sample_outliers <- FALSE
 } else {
   outlier_file <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
   outlier_col <- "outlier_samples"
-  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.4_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results")
   remove_sample_outliers <- TRUE
 }
 

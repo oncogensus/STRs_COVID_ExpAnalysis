@@ -1,0 +1,23 @@
+﻿#!/bin/bash
+#PBS -q workq
+#PBS -N burden_gwas
+#PBS -o burden_gwas.out
+#PBS -e burden_gwas.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+"$R_BIN" burden_gwas.R

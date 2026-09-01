@@ -1,0 +1,35 @@
+﻿#!/bin/bash
+#PBS -q workq
+#PBS -N STR6411_overlap
+#PBS -o 4_overlap_str_cohort.out
+#PBS -e 4_overlap_str_cohort.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=02:00:00
+
+# Etapa 4/4 de 6.4.1.1: genes COVID x catalogo de STRs da coorte.
+# Entrada: covid_genes.tsv (etapa 3), catalogo de STR da coorte ($CATALOG)
+# Saida:   covid_genes_with_cohort_STRs.tsv
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.1_covid19hg_overlap"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+PYBIN="$(command -v python3)"
+[ -x "$PYBIN" ] || { echo "ERRO: python3 ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+CATALOG="${CATALOG:-$REPO/samples/STRs_analysis_dataset.tsv}"
+[ -f "$CATALOG" ] || { echo "ERRO: catalogo $CATALOG ausente"; exit 1; }
+[ -f covid_genes.tsv ] || { echo "ERRO: covid_genes.tsv ausente (rode etapa 3/4)"; exit 1; }
+
+echo "=== 4/4 overlap genes COVID x STRs da coorte (somente dentro do gene) ==="
+"$PYBIN" 4_overlap_str_cohort.py \
+  --catalog "$CATALOG" \
+  --covid-genes covid_genes.tsv \
+  --out covid_genes_with_cohort_STRs.tsv
+echo "=== FIM ==="

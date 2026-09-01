@@ -1,0 +1,24 @@
+﻿#!/bin/bash
+#PBS -q workq
+#PBS -N STR6414_plots
+#PBS -o 3_plot_pathways.out
+#PBS -e 3_plot_pathways.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.4_pathway_crossvalidation"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+echo "=== 3/3 figuras (todas as visualizacoes) ==="
+"$R_BIN" 3_plot_pathways.R
+echo "=== FIM ==="
