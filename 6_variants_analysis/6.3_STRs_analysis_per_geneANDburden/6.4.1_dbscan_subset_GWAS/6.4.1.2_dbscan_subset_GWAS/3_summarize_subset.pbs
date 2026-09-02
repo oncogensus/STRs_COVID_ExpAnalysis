@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #PBS -q workq
 #PBS -N STR6412_summarize
 #PBS -o 3_summarize_subset.out

@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #PBS -q workq
 #PBS -N STR6412_overlap
 #PBS -o 1_overlap_suggestive_strs.out

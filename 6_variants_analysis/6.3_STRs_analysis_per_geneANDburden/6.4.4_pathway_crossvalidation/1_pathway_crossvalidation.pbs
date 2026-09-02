@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #PBS -q workq
 #PBS -N STR6414_pathways
 #PBS -o 1_pathway_crossvalidation.out

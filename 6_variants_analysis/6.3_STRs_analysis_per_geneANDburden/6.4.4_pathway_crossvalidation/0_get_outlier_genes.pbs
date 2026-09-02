@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #PBS -q workq
 #PBS -N STR6414_outlier_genes
 #PBS -o 0_get_outlier_genes.out

@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #PBS -q workq
 #PBS -N STR6412_dbscan
 #PBS -o 2_run_dbscan_subset.out
