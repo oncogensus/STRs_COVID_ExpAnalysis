@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6411_download
+#PBS -o 1_download_data.out
+#PBS -e 1_download_data.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=06:00:00
+
+# Etapa 1/4 de 6.4.1.1: baixa summary stats COVID-19 HG r7 + GENCODE v39 GTF.
+# Saida: data/COVID19_HGI_*.tsv.gz, data/gencode.v39.primary_assembly.annotation.gtf.gz
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.1_covid19hg_overlap"
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+echo "=== 1/4 download summary stats + GTF ==="
+bash 1_download_data.sh
+echo "=== FIM ==="

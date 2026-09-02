@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6411_build_bed
+#PBS -o 2_build_gene_bed.out
+#PBS -e 2_build_gene_bed.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=02:00:00
+
+# Etapa 2/4 de 6.4.1.1: GTF -> genes.hg38.bed (corpos gênicos).
+# Entrada: data/gencode.v39.primary_assembly.annotation.gtf.gz (etapa 1)
+# Saida:   genes.hg38.bed
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.1_covid19hg_overlap"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate igv
+
+PYBIN="$(command -v python3)"
+[ -x "$PYBIN" ] || { echo "ERRO: python3 ausente no env igv"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+[ -f data/gencode.v39.primary_assembly.annotation.gtf.gz ] || \
+  { echo "ERRO: GTF ausente (rode etapa 1/4 download)"; exit 1; }
+
+echo "=== 2/4 gene BED ==="
+"$PYBIN" 2_build_gene_bed.py \
+  --gtf data/gencode.v39.primary_assembly.annotation.gtf.gz \
+  --out genes.hg38.bed
+echo "=== FIM ==="
