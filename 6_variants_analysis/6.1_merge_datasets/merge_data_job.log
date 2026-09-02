@@ -1,7 +1,7 @@
 ==========================================
 STR Data Integration Pipeline (Merge)
-Start time: Fri May 15 18:17:41 -03 2026
-Working directory: /home/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/7_variants_analysis/7.1_merge_datasets
+Start time: Tue Sep  1 20:57:19 -03 2026
+Working directory: /storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/6_variants_analysis/6.1_merge_datasets
 ==========================================
 Executing R merge script...
 
@@ -55,6 +55,6 @@ Final dataset generated with 495844 rows.
 Output path:  ../../samples/STRs_analysis_dataset.tsv 
 ========================================== 
 ==========================================
-SUCCESS: Integration completed at Fri May 15 18:17:46 -03 2026
+SUCCESS: Integration completed at Tue Sep  1 20:57:24 -03 2026
 Output file generated: STRs_analysis_dataset.tsv
 ==========================================

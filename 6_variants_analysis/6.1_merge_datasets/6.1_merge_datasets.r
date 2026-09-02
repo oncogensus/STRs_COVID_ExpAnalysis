@@ -11,7 +11,7 @@ cat(strrep("=", 42), "\n")
 
 # Paths based on project structure
 path_annot  <- "../../samples/STRs_annotated_region.tsv"
-path_dbscan <- "../../5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv"
+path_dbscan <- "../../5_global_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv"
 path_eth    <- "../../4_ancestry/EthSEQ_Results_3D/Report.txt"
 path_groups <- "../../samples/samples_infos.csv"
 
