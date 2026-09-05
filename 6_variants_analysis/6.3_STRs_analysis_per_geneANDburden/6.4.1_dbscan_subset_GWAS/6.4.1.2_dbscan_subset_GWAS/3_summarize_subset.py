@@ -224,9 +224,11 @@ def main():
         sub_mres = sub[8] if sub else ''
         sub_meres = sub[9] if sub else ''
 
+        gwas_significance = 'significant' if is_sig else 'suggestive_only'
+
         out_rows.append([
             gene, info['chrom'], info['start'], info['end'],
-            info['gwas_p'], info['gwas_phenotypes'], info['gwas_lead_snp'],
+            info['gwas_p'], gwas_significance, info['gwas_phenotypes'], info['gwas_lead_snp'],
             sid, info['region'], info['repeat_unit'],
             info['global_outliers'], signal,
             sub_no, sub_os, sub_ore, sub_nc, sub_nr,
@@ -238,7 +240,7 @@ def main():
     with open(args.out, 'w', newline='') as f:
         w = csv.writer(f, delimiter='\t')
         w.writerow(['gene', 'chrom', 'gene_start', 'gene_end',
-                     'gwas_p', 'gwas_phenotypes', 'gwas_lead_snp',
+                     'gwas_p', 'gwas_significance', 'gwas_phenotypes', 'gwas_lead_snp',
                      'strs_id', 'region', 'repeat_unit',
                      'global_outliers', 'signal_type',
                      'subset_n_outliers', 'subset_outlier_samples',
@@ -250,7 +252,37 @@ def main():
     sys.stderr.write(f"Escrevi {len(out_rows)} STRs com outlier no subset -> {args.out}\n")
 
     # ----------------------------------------------------------------------
-    # 5) Resumo comparativo
+    # 5) Quebra por fenotipo (A2, B2, C2 e combinacoes)
+    # ----------------------------------------------------------------------
+    from collections import defaultdict
+    pheno_genes = defaultdict(set)       # pheno -> set(genes)
+    pheno_strs = defaultdict(set)        # pheno -> set(strs_id)
+    pheno_global = defaultdict(set)      # pheno -> set(strs_id com global outlier)
+    pheno_subset = defaultdict(set)      # pheno -> set(strs_id com subset outlier)
+
+    for sid, info in str_info.items():
+        if info['gwas_hit'] != '1':
+            continue
+        phenos_raw = info.get('gwas_phenotypes', '')
+        if not phenos_raw:
+            continue
+        # Fenotipos podem ser "A2" ou "A2,B2" ou "A2,B2,C2"
+        phenos = [p.strip() for p in phenos_raw.split(',') if p.strip()]
+        has_global = info['global_outliers'] >= 1
+        has_subset = sid in subset_outliers
+        for ph in phenos:
+            pheno_genes[ph].add(info['gene_name'])
+            pheno_strs[ph].add(sid)
+            if has_global:
+                pheno_global[ph].add(sid)
+            if has_subset:
+                pheno_subset[ph].add(sid)
+
+    # Ordena fenotipos por nome
+    sorted_phenos = sorted(pheno_genes.keys())
+
+    # ----------------------------------------------------------------------
+    # 6) Resumo comparativo
     # ----------------------------------------------------------------------
     total_genes_sugg = len(gwas_hit_genes)
     total_genes_sig = len(sig_genes)
@@ -301,6 +333,13 @@ def main():
         add('global_outliers', 'instances_in_suggestive', global_outliers_in_suggestive,
             global_outliers_in_significant, total_global_outlier_instances,
             total_global_outlier_instances)
+        # Fenotipos
+        for ph in sorted_phenos:
+            w.writerow(['phenotype', ph,
+                         len(pheno_genes[ph]), '',
+                         '', '',
+                         f"genes={len(pheno_genes[ph])};strs={len(pheno_strs[ph])};"
+                         f"global={len(pheno_global[ph])};subset={len(pheno_subset[ph])}"])
 
     # Imprime resumo formatado no stderr
     sep = "=" * 55
@@ -341,7 +380,14 @@ def main():
     sys.stderr.write(f"  STRs com outlier global:          {total_strs_with_global_outliers:>10,}\n")
     sys.stderr.write(f"  Total instancias outlier:         {total_global_outlier_instances:>10,}\n")
     sys.stderr.write(f"  Em genes sugestivos:    {strs_with_global_in_suggestive:>6d} STRs  ({global_outliers_in_suggestive:>6d} instancias)  [{pct(strs_with_global_in_suggestive, total_strs_with_global_outliers)}%]\n")
-    sys.stderr.write(f"  Em genes significativos: {strs_with_global_in_significant:>6d} STRs  ({global_outliers_in_significant:>6d} instancias)  [{pct(strs_with_global_in_significant, total_strs_with_global_outliers)}%]\n")
+    sys.stderr.write(f"  Em genes significativos: {strs_with_global_in_significant:>6d} STRs  ({global_outliers_in_significant:>6d} instancias)  [{pct(strs_with_global_in_significant, total_strs_with_global_outliers)}%]\n\n")
+
+    sys.stderr.write("[Fenotipos — genes sugestivos com GWAS hit]\n")
+    sys.stderr.write(f"  {'Fenotipo':10s} {'Genes':>8s} {'STRs':>8s} {'Global':>8s} {'Subset':>8s}\n")
+    for ph in sorted_phenos:
+        sys.stderr.write(f"  {ph:10s} {len(pheno_genes[ph]):>8d} {len(pheno_strs[ph]):>8d} "
+                         f"{len(pheno_global[ph]):>8d} {len(pheno_subset[ph]):>8d}\n")
+
     sys.stderr.write(f"\n{sep}\n")
     sys.stderr.write(f"  Saida: {args.out}\n")
     sys.stderr.write(f"  Resumo: {args.summary}\n")
