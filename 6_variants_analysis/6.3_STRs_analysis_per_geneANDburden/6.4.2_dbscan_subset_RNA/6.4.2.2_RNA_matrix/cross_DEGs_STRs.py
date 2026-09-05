@@ -14,6 +14,10 @@ Saidas:
                                   covid_suggestive_genes_with_outlier_STRs.tsv),
                                   com acesso GSE de origem
   5) rna_outlier_genes_by_study.tsv – contagem de STRs outlier por (gene, GSE)
+   6) rna_summary_by_study.tsv        – resumo pos-estudo por (estudo, gene):
+                                        STRs identificadas e se ha sobreposicao
+                                        do maior alelo entre grupos
+                                        (sim/nao/sem_dados)
 
 Uso:
   python3 cross_DEGs_STRs.py \
@@ -361,24 +365,117 @@ def main():
             w.writerow([gene, gse, n])
     sys.stderr.write(f"Escrito: {out_pg} ({len(per_gse)} pares gene x GSE)\n")
 
-    sys.stderr.write("\n=== Resumo por gene ===\n")
-    genes_summary = {}
-    for m in all_matches:
-        g = m['gene_name']
-        if g not in genes_summary:
-            genes_summary[g] = {'total': 0, 'outliers': 0, 'datasets': set()}
-        genes_summary[g]['total'] += 1
-        genes_summary[g]['datasets'].add(m['dataset'])
-    for m in outlier_matches:
-        g = m['gene_name']
-        if g in genes_summary:
-            genes_summary[g]['outliers'] += 1
+    # 6) rna_summary_by_study.tsv — resumo pos-estudo por (estudo, gene):
+    #    quantas STRs foram identificadas e se ha sobreposicao ou NAO do
+    #    tamanho do alelo maior (maior valor entre allele1_est/allele2_est;
+    #    na pratica allele2_est) entre grupos (coluna group do catalogo).
+    def num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
 
-    for gene in sorted(genes_summary.keys()):
-        info = genes_summary[gene]
-        ds = ', '.join(sorted(info['datasets']))
-        sys.stderr.write(f"  {gene}: {info['total']} STRs, "
-                         f"{info['outliers']} outliers ({ds})\n")
+    def largest_allele(m):
+        a1 = num(m.get('allele1_est'))
+        a2 = num(m.get('allele2_est'))
+        if a1 is None and a2 is None:
+            return None
+        if a1 is None:
+            return a2
+        if a2 is None:
+            return a1
+        return max(a1, a2)
+
+    # Valores do maior alelo por grupo, por STR locus (linhas = amostra x STR).
+    locus_group_vals = {}
+    for m in all_matches:
+        sid = m['STRs_ID']
+        g = (m.get('group') or '').strip()
+        big = largest_allele(m)
+        if not g or big is None:
+            continue
+        locus_group_vals.setdefault(sid, {}).setdefault(g, []).append(big)
+
+    def locus_overlap(sid):
+        groups = locus_group_vals.get(sid, {})
+        labels = [g for g, vals in groups.items() if vals]
+        if len(labels) < 2:
+            return None
+        ranges = {g: (min(groups[g]), max(groups[g])) for g in labels}
+        for i in range(len(labels)):
+            for j in range(i + 1, len(labels)):
+                a = ranges[labels[i]]
+                b = ranges[labels[j]]
+                if not (a[0] <= b[1] and b[0] <= a[1]):
+                    return False
+        return True
+
+    # STR loci por gene (catálogo é da coorte, independe do estudo).
+    gene_str_loci = {}
+    for m in all_matches:
+        gene_str_loci.setdefault(m['gene_name'], set()).add(m['STRs_ID'])
+
+    def gene_overlap(gene):
+        flags = [locus_overlap(sid) for sid in gene_str_loci.get(gene, ())]
+        flags = [f for f in flags if f is not None]
+        if not flags:
+            return 'sem_dados'
+        return 'nao' if any(f is False for f in flags) else 'sim'
+
+    def gse_gene_str_loci(gse, rows):
+        out = {}
+        for m in rows:
+            if gse_name(m['dataset']) != gse:
+                continue
+            out.setdefault(m['gene_name'], set()).add(m['STRs_ID'])
+        return out
+
+    all_gses = sorted({gse_name(m['dataset']) for m in all_matches}) if all_matches else []
+    outlier_gene_pairs = {}
+    for m in outlier_matches:
+        outlier_gene_pairs.setdefault(gse_name(m['dataset']), set()) \
+            .add((m['gene_name'], m['STRs_ID']))
+
+    summary_by_study = []
+    for gse in all_gses:
+        gene_loci = gse_gene_str_loci(gse, all_matches)
+        for gene in sorted(gene_loci):
+            loci = gene_loci[gene]
+            outlier_loci = {sid for (gn, sid) in outlier_gene_pairs.get(gse, ())
+                            if gn == gene}
+            summary_by_study.append({
+                'gse': gse,
+                'gene': gene,
+                'n_strs_identified': len(loci),
+                'n_strs_identified_outliers': len(outlier_loci),
+                'overlap_maior_alealo_grupos': gene_overlap(gene),
+            })
+
+    out_sum = os.path.join(args.out_dir, 'rna_summary_by_study.tsv')
+    with open(out_sum, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=['gse', 'gene', 'n_strs_identified',
+                                          'n_strs_identified_outliers',
+                                          'overlap_maior_alealo_grupos'],
+                           delimiter='\t')
+        w.writeheader()
+        w.writerows(summary_by_study)
+    sys.stderr.write(f"Escrito: {out_sum} ({len(summary_by_study)} linhas gene x estudo)\n")
+
+    sys.stderr.write("\n=== Resumo por estudo (GSE) ===\n")
+    for gse in all_gses:
+        rows = [r for r in summary_by_study if r['gse'] == gse]
+        n_strs = sum(r['n_strs_identified'] for r in rows)
+        n_out = sum(r['n_strs_identified_outliers'] for r in rows)
+        n_sem = sum(1 for r in rows if r['overlap_maior_alealo_grupos'] == 'nao')
+        sys.stderr.write(
+            f"  {gse}: {n_strs} STRs identificadas "
+            f"({n_out} com outliers DBSCAN global), {len(rows)} genes; "
+            f"{n_sem} gene(s) SEM sobreposicao do alelo maior\n")
+    n_sem_nao = sum(1 for r in summary_by_study
+                    if r['overlap_maior_alealo_grupos'] == 'nao')
+    sys.stderr.write(
+        f"  TOTAL: {len(summary_by_study)} pares gene x estudo; "
+        f"{n_sem_nao} par(es) SEM sobreposicao do alelo maior\n")
 
     sys.stderr.write("\nConcluido.\n")
 

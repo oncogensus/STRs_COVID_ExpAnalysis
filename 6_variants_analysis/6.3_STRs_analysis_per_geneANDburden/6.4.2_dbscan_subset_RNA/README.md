@@ -25,6 +25,7 @@ o catálogo de STRs e anota métricas DBSCAN.
 | `rna_gene_strs.tsv` | pares gene×STR dos DEGs (análogo GWAS `suggestive_gene_strs.tsv`), com coluna `datasets` (GSEs de origem) |
 | `rna_outlier_genes.tsv` | STRs outlier por gene/DEG, **análogo GWAS `covid_suggestive_genes_with_outlier_STRs.tsv`**, com `dataset` e `gse` de origem |
 | `rna_outlier_genes_by_study.tsv` | contagem de STRs outlier por (gene, GSE) |
+| `rna_summary_by_study.tsv` | resumo pós-estudo por (GSE, gene): STRs identificadas (+outliers) e se há sobreposição do alelo maior entre grupos (`sim`/`nao`/`sem_dados`) |
 
 Cada registro das saídas RNA traz a origem do estudo: coluna `dataset`
 (`GSE157103/<arquivo>`), `gse` (`GSE157103`) ou `datasets` (GSEs separados por `;`).
