@@ -51,6 +51,22 @@ if [ ! -f results/covid_genes_suggestive.tsv ]; then
 fi
 [ -f results/covid_genes_suggestive.tsv ] || { echo "ERRO: falha ao gerar covid_genes_suggestive.tsv"; exit 1; }
 
+# Gera covid_genes_significant.tsv (p<5e-8) se ausente
+if [ ! -f results/covid_genes_significant.tsv ]; then
+  if [ -f "$GENE_BED" ] && [ -f "$GTF_DIR/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz" ]; then
+    echo "Gerando results/covid_genes_significant.tsv (p<5e-8)..."
+    "$PYBIN" "$EXTRACT" \
+      --sumstats \
+        "$GTF_DIR/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz" \
+        "$GTF_DIR/COVID19_HGI_B2_ALL_leave_23andme_20220403.tsv.gz" \
+        "$GTF_DIR/COVID19_HGI_C2_ALL_leave_23andme_20220403.tsv.gz" \
+      --gene-bed "$GENE_BED" \
+      --out results/covid_genes_significant.tsv \
+      --p-thresh 5e-8
+  fi
+fi
+[ -f results/covid_genes_significant.tsv ] || { echo "ERRO: falha ao gerar covid_genes_significant.tsv"; exit 1; }
+
 echo "=== 1/4 overlap genes sugestivos x STRs da coorte ==="
 "$PYBIN" 1_overlap_suggestive_strs.py \
   --catalog "$CATALOG" \
