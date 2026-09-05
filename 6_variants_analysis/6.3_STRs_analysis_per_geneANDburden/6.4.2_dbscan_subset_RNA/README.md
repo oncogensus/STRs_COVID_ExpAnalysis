@@ -52,7 +52,12 @@ Rscript burden_gwas.R --strategy rna_burden --background <arquivo> --out-dir <di
 - `gwas_burden` → `results_gwas_burden/`
 - `rna_burden` → `results_rna/`
 
-PBS: `burden_gwas.pbs` (GWAS), `burden_rna.pbs` (RNA) e `burden_both.pbs` (os dois em sequência).
+PBS: `burden_gwas.pbs` (GWAS), `burden_rna.pbs` (RNA) e `burden_both.pbs` (os dois em sequência + comparativo).
+
+**Comparativo GWAS × RNA** (`compare_burden_hits.R` / `compare_burden_hits.pbs`):
+- lê os hits das duas estratégias (`results_gwas_burden/`, `results_rna/`)
+- gera em `results_burden_comparison/`: `burden_hits_overlap_{uncorrected,corrected}.tsv` (genes em comum) e `burden_hits_union_{uncorrected,corrected}.tsv` (união completa com flags `hit_gwas`/`hit_rna` e p/q de cada lado)
+- `burden_both.pbs` chama o comparativo automaticamente após as duas estratégias.
 
 ### Pathway / gene cross-validation — `6.4.4_pathway_crossvalidation`
 

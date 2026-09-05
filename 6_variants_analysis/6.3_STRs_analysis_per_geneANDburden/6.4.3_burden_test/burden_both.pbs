@@ -36,4 +36,7 @@ for STRAT in gwas_burden rna_burden; do
   "$R_BIN" burden_gwas.R --strategy "$STRAT" || { echo "ERRO na estrategia $STRAT"; exit 1; }
 done
 
-echo "=== FIM: resultados em results_gwas_burden/ e results_rna/ ==="
+echo "=== Comparativo burden GWAS x RNA ==="
+"$R_BIN" compare_burden_hits.R || { echo "ERRO no comparativo"; exit 1; }
+
+echo "=== FIM: resultados em results_gwas_burden/, results_rna/ e results_burden_comparison/ ==="
