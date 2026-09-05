@@ -29,11 +29,12 @@ python3 ../extract_covid_genes.py \
   --out results/covid_genes_suggestive.tsv \
   --p-thresh "$P_THRESH"
 
-echo "=== 2/4 overlap genes sugestivos x STRs da coorte (somente dentro do gene) ==="
+echo "=== 2/4 overlap genes sugestivos x STRs da coorte (por gene_name) ==="
 python3 overlap_suggestive_strs.py \
   --catalog "$CATALOG" \
   --covid-genes results/covid_genes_suggestive.tsv \
-  --out results/suggestive_gene_strs.tsv \
+  --out results/STRs_analysis_dataset_with_GWAS.tsv \
+  --out-overlap results/suggestive_gene_strs.tsv \
   --ids-out data/suggestive_strs_ids.txt
 
 echo "=== 3/4 subset de residuos + DBSCAN ==="
@@ -46,9 +47,10 @@ $(c) in ids
 "$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
 echo "=== 4/4 junta outliers ==="
-python3 summarize_subset.py \
+python3 3_summarize_subset.py \
   --overlap results/suggestive_gene_strs.tsv \
   --dbscan results/suggestive_strs_outliers.tsv \
+  --catalog "$CATALOG" \
   --out results/covid_suggestive_genes_with_outlier_STRs.tsv
 
 echo "Pronto."

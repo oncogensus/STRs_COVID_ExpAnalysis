@@ -2,94 +2,39 @@
 # overlap_suggestive_strs.py
 # ---------------------------------------------------------------------------
 # PROPOSITO
-#   Cruzamento coord-a-coord (genoma hg38) entre:
+#   Cruzamento por gene_name entre:
 #     (A) genes COVID-19 sugestivos  -> covid_genes_suggestive.tsv (p < 1e-5,
 #         fenotipos A2/B2/C2 do COVID-19 HG r7, leave_23andme), e
-#     (B) catalogo completo de STRs da coorte (STRling) -> $CATALOG.
+#     (B) catalogo de STRs da coorte (STRling) -> $CATALOG.
 #
-#   Para cada gene sugestivo, lista os LOCI de STR da coorte que caem NO CORPO
-#   DO GENE. O resultado alimenta o DBSCAN subset
-#   (2_run_dbscan_subset.R / .sh): so os STRs_ID desta lista sao re-analisados.
+#   Para cada gene sugestivo, lista os LOCI de STR da coorte cujo gene_name
+#   anotado no catalogo coincide com o nome do gene sugestivo. NAO usa
+#   sobreposicao de coordenadas — confia na anotacao gene_name do catalogo.
 #
-# ALGORITMO (resumo)
-#   1. Carrega genes sugestivos -> dicionario {chrom: [(gs, ge, ...)]}
-#   2. Carrega catalogo de STR -> agrega por locus unico (chrom,left,right,motif),
-#      acumulando o conjunto de amostras (carriers) de cada locus.
-#   3. Intersecao de intervalos: gene_overlap se (gene_start <= str_end) e
-#      (gene_end >= str_start). Coleta (gene, strs_id) para cada par sobreposto
-#      (STR que toca o corpo do gene, gene_start..gene_end).
-#   4. Escreve tabela gene x STR e o arquivo de IDs (um STRs_ID por linha).
+#   Gera tres arquivos:
+#     1) --out           Dataset unificado: todas as linhas do catalogo + colunas
+#                        GWAS (gwas_hit, gwas_p, gwas_phenotypes, gwas_lead_snp).
+#     2) --out-overlap   Pares gene x STR (filtrados por gwas_hit=1), para uso
+#                        com summarize_subset.py.
+#     3) --ids-out       Lista de STRs_ID unicos com hit GWAS (um por linha).
 #
 # ENTRADAS
-#   --catalog        Catalogo de STR da coorte (STRs_analysis_dataset.tsv):
-#                    colunas cromossomo, left, right, repeatunit, sample, strs_id.
+#   --catalog        Catalogo de STR da coorte (STRs_analysis_dataset.tsv).
 #   --covid-genes    Saida de extract_covid_genes.py filtrada a p<1e-5
 #                    (results/covid_genes_suggestive.tsv): chrom, gene_start,
 #                    gene_end, gene, best_p, phenotypes, lead_snp.
-#   --out            Tabela de saida gene x STR (results/suggestive_gene_strs.tsv).
-#   --ids-out        Lista de STRs_ID unicos (data/suggestive_strs_ids.txt) usada
-#                    pelo subset do DBSCAN.
-#   --debug          Ativa mensagens de debug verbosas (progresso, contagens).
-#
-# SAIDAS
-#   --out    12 colunas: gene, chrom, gene_start, gene_end, best_p, phenotypes,
-#            lead_snp, strs_id, str_chrom, str_start, str_end, repeatunit, n_carriers
-#   --ids-out  Um STRs_ID por linha (deduplicado).
+#   --out            Dataset unificado com colunas GWAS.
+#   --out-overlap    Tabela gene x STR para summarize_subset.py.
+#   --ids-out        Lista de STRs_ID unicos (um por linha, deduplicado).
+#   --debug          Ativa mensagens de debug verbosas em stderr.
 # ---------------------------------------------------------------------------
-# Uso:
-#   python3 overlap_suggestive_strs.py \
-#       --catalog $CATALOG \
-#       --covid-genes results/covid_genes_suggestive.tsv \
-#       --out results/suggestive_gene_strs.tsv \
-#       --ids-out data/suggestive_strs_ids.txt
-# ---------------------------------------------------------------------------
-import argparse, csv, re, sys, time
+import argparse, csv, sys, time
+from collections import Counter
 
 
 def dbg(msg, debug=False):
-    """Escreve msg em stderr apenas se debug=True. Padrao: silencioso."""
     if debug:
         sys.stderr.write(f"[DEBUG] {msg}\n")
-
-
-def norm_chrom(raw):
-    """Normaliza qualquer rotulo de cromossomo para o formato 'chrN'/'chrX'...
-
-    Aceita tanto 'chr3' quanto '3', e mapeia aliases numericos usados por alguns
-    summary stats (23->X, 24->Y, 25/MT/M->MT). Garante que genes e STRs comparados
-    usem a MESMA nomenclatura de cromossomo antes do cruzamento coord-a-coord.
-    """
-    s = str(raw).strip()
-    s = re.sub(r'^chr', '', s, flags=re.I)          # remove prefixo 'chr' se houver
-    m = {'23': 'X', '24': 'Y', '25': 'MT', 'X': 'X', 'Y': 'Y', 'MT': 'MT', 'M': 'MT'}
-    if s in m:
-        s = m[s]
-    return 'chr' + s
-
-
-def detect_cols(header):
-    """Infere os indices das colunas essenciais no catalogo de STR por heuristica.
-
-    Procura nomes canonicos (chrom, left/start, right/end, repeat/motif, sample,
-    strs_id). Retorna dicionario {nome: indice|None}. Indices None indicam coluna
-    nao encontrada automaticamente (podem ser sobrescritos via --col-*).
-    """
-    low = [h.lower().lstrip('#') for h in header]
-    idx = {k: None for k in ('chrom', 'left', 'right', 'motif', 'sample', 'strs_id')}
-    for i, h in enumerate(low):
-        if idx['chrom'] is None and h == 'chrom':
-            idx['chrom'] = i
-        if idx['left'] is None and ('left' in h or h == 'start' or 'start' in h or 'begin' in h):
-            idx['left'] = i
-        if idx['right'] is None and ('right' in h or h == 'end' or 'end' in h):
-            idx['right'] = i
-        if idx['motif'] is None and ('repeat' in h or 'motif' in h):
-            idx['motif'] = i
-        if idx['sample'] is None and 'sample' in h:
-            idx['sample'] = i
-        if idx['strs_id'] is None and 'strs_id' in h:
-            idx['strs_id'] = i
-    return idx
 
 
 def main():
@@ -98,27 +43,18 @@ def main():
     ap.add_argument('--catalog', required=True)
     ap.add_argument('--covid-genes', required=True)
     ap.add_argument('--out', required=True)
+    ap.add_argument('--out-overlap', required=True)
     ap.add_argument('--ids-out', required=True)
-    ap.add_argument('--col-chrom', default=None)
-    ap.add_argument('--col-left', default=None)
-    ap.add_argument('--col-right', default=None)
-    ap.add_argument('--col-motif', default=None)
-    ap.add_argument('--col-sample', default=None)
-    ap.add_argument('--col-strs-id', default=None)
-    ap.add_argument('--debug', action='store_true',
-                    help='Ativa mensagens de debug verbosas em stderr')
+    ap.add_argument('--debug', action='store_true')
     args = ap.parse_args()
     D = args.debug
 
     dbg(f"args: catalog={args.catalog} covid-genes={args.covid_genes} "
-        f"out={args.out} ids-out={args.ids_out}", D)
+        f"out={args.out} out-overlap={args.out_overlap} ids-out={args.ids_out}", D)
 
     # ----------------------------------------------------------------------
-    # 1) Carregar genes COVID sugestivos
-    #    genes: {chrom_normalizado: [(gs, ge, gene, best_p,
-    #                                 phenotypes, lead_snp), ...]}
-    #    Usamos as coordenadas EXATAS do corpo do gene (gene_start, gene_end).
-    #    So STR que sobrepoe esse intervalo sera considerado.
+    # 1) Carregar genes COVID sugestivos -> dict por nome do gene
+    #    genes: {gene_name: [best_p, phenotypes, lead_snp, chrom, gene_start, gene_end]}
     # ----------------------------------------------------------------------
     genes = {}
     with open(args.covid_genes) as fh:
@@ -126,114 +62,150 @@ def main():
         n_genes_raw = 0
         for row in r:
             n_genes_raw += 1
-            chrom = norm_chrom(row['chrom'])
+            gene = row.get('gene', '').strip()
+            if not gene:
+                continue
             try:
                 gs = int(row['gene_start'])
                 ge = int(row['gene_end'])
-            except ValueError:
-                # linha com coordenada invalida -> pula silenciosamente
-                continue
-            genes.setdefault(chrom, []).append(
-                [gs, ge, row['gene'],
-                 row['best_p'], row['phenotypes'], row['lead_snp']])
-    n_genes = sum(len(v) for v in genes.values())
-    sys.stderr.write(f"Genes sugestivos: {n_genes} validos de {n_genes_raw} linhas "
-                     f"(em {len(genes)} cromossomos)\n")
-    dbg("Genes por cromossomo: " + ", ".join(
-        f"{c}={len(v)}" for c, v in sorted(genes.items())), D)
+            except (ValueError, KeyError):
+                gs, ge = None, None
+            chrom = row.get('chrom', '')
+            best_p = row.get('best_p', '')
+            phenotypes = row.get('phenotypes', '')
+            lead_snp = row.get('lead_snp', '')
+            genes[gene] = [best_p, phenotypes, lead_snp, chrom, gs, ge]
+
+    sys.stderr.write(f"Genes sugestivos: {len(genes)} unicos de {n_genes_raw} linhas\n")
+    if D:
+        for g, v in sorted(genes.items()):
+            dbg(f"  {g}: p={v[0]}, pheno={v[1]}", D)
 
     # ----------------------------------------------------------------------
-    # 2) Carregar catalogo de STR e agregar por locus unico
-    #    loci: {(chrom, left, right, motif): [chrom, s, e, motif, strs_id,
-    #                                         set(samples)]}
-    #    - Chave de 4 campos dedupica loci identicos (mesmo repeat, mesma posicao)
-    #      independente da amostra.
-    #    - s/e = min/max de left/right (garante inicio<=fim mesmo se trocados).
-    #    - O set de samples conta quantas amostras-carrier tem aquele locus.
+    # 2) Ler catalogo e detectar colunas
     # ----------------------------------------------------------------------
     with open(args.catalog) as fh:
+        header = fh.readline().rstrip('\n').split('\t')
+    col = {h: i for i, h in enumerate(header)}
+
+    required = ['STRs_ID', 'gene_name']
+    missing = [c for c in required if c not in col]
+    if missing:
+        sys.exit(f"ERRO: colunas nao encontradas no catalogo: {missing}")
+
+    chrom_col = 'chrom' if 'chrom' in col else None
+    start_col = 'start' if 'start' in col else None
+    end_col = 'end' if 'end' in col else None
+    repeat_col = 'repeat_unit' if 'repeat_unit' in col else (
+        'repeatunit' if 'repeatunit' in col else None)
+
+    dbg(f"Colunas detectadas: {col}", D)
+
+    # ----------------------------------------------------------------------
+    # 3) Primeiro passe: contar carriers por (gene, strs_id)
+    #    (cada linha do catalogo = 1 sample carrieira)
+    # ----------------------------------------------------------------------
+    pair_counts = Counter()
+    gene_set = set(genes.keys())
+
+    with open(args.catalog) as fh:
+        reader = csv.reader(fh, delimiter='\t')
+        next(reader)  # pula header
+        for row in reader:
+            try:
+                gene_name = row[col['gene_name']]
+                strs_id = row[col['STRs_ID']]
+            except IndexError:
+                continue
+            if gene_name in gene_set:
+                pair_counts[(gene_name, strs_id)] += 1
+
+    sys.stderr.write(f"Pares gene x STR com hit: {len(pair_counts)}\n")
+
+    # ----------------------------------------------------------------------
+    # 4) Segundo passe: escrever os 3 arquivos de saida
+    # ----------------------------------------------------------------------
+    n_total = 0
+    n_hit = 0
+    idset = set()
+
+    with open(args.catalog) as fh, \
+         open(args.out, 'w', newline='') as f_unified, \
+         open(args.out_overlap, 'w', newline='') as f_overlap, \
+         open(args.ids_out, 'w') as f_ids:
+
         reader = csv.reader(fh, delimiter='\t')
         header = next(reader)
-        cols = detect_cols(header)
-        # sobrescreve colunas detectadas automaticamente com os --col-* explicitos
-        for key, val in (('chrom', args.col_chrom), ('left', args.col_left),
-                         ('right', args.col_right), ('motif', args.col_motif),
-                         ('sample', args.col_sample), ('strs_id', args.col_strs_id)):
-            if val is not None:
-                cols[key] = header.index(val) if val in header else int(val)
-        sys.stderr.write(f"Colunas detectadas: {cols}\n")
-        missing = [k for k, v in cols.items() if v is None]
-        if missing:
-            sys.exit(f"ERRO: colunas nao encontradas: {missing}")
-        ci = cols['strs_id']
 
-        loci = {}
-        nrows = 0
-        n_skip = 0
+        # Dataset unificado: header original + 4 colunas GWAS
+        w_unified = csv.writer(f_unified, delimiter='\t')
+        w_unified.writerow(header + ['gwas_hit', 'gwas_p', 'gwas_phenotypes',
+                                      'gwas_lead_snp'])
+
+        # Overlap: gene x STR
+        w_overlap = csv.writer(f_overlap, delimiter='\t')
+        w_overlap.writerow(['gene', 'chrom', 'gene_start', 'gene_end',
+                            'best_p', 'phenotypes', 'lead_snp',
+                            'strs_id', 'str_chrom', 'str_start', 'str_end',
+                            'repeatunit', 'n_carriers'])
+
+        # Para evitar duplicacao no overlap (1 linha por gene, nao por sample)
+        written_pairs = set()
+
         for row in reader:
-            nrows += 1
-            try:
-                chrom = norm_chrom(row[cols['chrom']])
-                l = int(row[cols['left']])
-                rg = int(row[cols['right']])
-            except (ValueError, IndexError):
-                # coordenada ausente/ilegivel -> pula a linha
-                n_skip += 1
-                continue
-            motif = row[cols['motif']] if cols['motif'] < len(row) else ''
-            sample = row[cols['sample']] if cols['sample'] < len(row) else ''
-            s = min(l, rg)
-            e = max(l, rg)
-            sid = row[ci] if (ci is not None and ci < len(row)) else f"{chrom}:{l}-{rg}:{motif}"
-            key = (chrom, l, rg, motif)
-            if key not in loci:
-                loci[key] = [chrom, s, e, motif, sid, set()]
-            loci[key][5].add(sample)
-            # progresso de debug a cada 200k linhas do catalogo
-            if D and nrows % 200000 == 0:
-                dbg(f"catalogo: {nrows} linhas lidas, {len(loci)} loci ate agora", D)
+            n_total += 1
+            strs_id = row[col['STRs_ID']]
+            gene_name = row[col['gene_name']]
 
-    sys.stderr.write(f"Catalogo: {nrows} linhas ({n_skip} puladas), "
-                     f"{len(loci)} loci unicos.\n")
+            if gene_name in gene_set:
+                n_hit += 1
+                g = genes[gene_name]
+                best_p, phenotypes, lead_snp = g[0], g[1], g[2]
 
-    # ----------------------------------------------------------------------
-    # 3) Intersecao de intervalos gene x STR
-    #    Condicao de sobreposicao: gene_start <= str_end  E  gene_end >= str_start
-    #    (intervalos fechados). g[0]/g[1] sao as coordenadas EXATAS do corpo do
-    #    gene, entao so conta STR que toca o gene (gene_start..gene_end).
-    # ----------------------------------------------------------------------
-    out_rows = []
-    idset = set()
-    n_matches = 0
-    for key, (chrom, s, e, motif, sid, samples) in loci.items():
-        for g in genes.get(chrom, []):
-            if g[0] <= e and g[1] >= s:               # sobreposicao gene<->STR
-                out_rows.append([g[2], chrom, g[0], g[1],
-                                 g[3], g[4], g[5], sid, chrom, s, e, motif, len(samples)])
-                idset.add(sid)
-                n_matches += 1
-    dbg(f"Pares (gene,STR) sobrepostos encontrados: {n_matches}", D)
-    out_rows.sort(key=lambda x: (x[0], float(x[4]) if x[4] != '' else 1.0))
+                # Linha unificada com colunas GWAS
+                w_unified.writerow(row + ['1', best_p, phenotypes, lead_snp])
+
+                # Overlap: 1 linha por (gene, strs_id)
+                pair_key = (gene_name, strs_id)
+                if pair_key not in written_pairs:
+                    written_pairs.add(pair_key)
+                    cnt = pair_counts[pair_key]
+                    g_chrom = g[3]
+                    g_start = g[4] if g[4] is not None else ''
+                    g_end = g[5] if g[5] is not None else ''
+                    str_chrom = row[col[chrom_col]] if chrom_col else ''
+                    str_start = row[col[start_col]] if start_col else ''
+                    str_end = row[col[end_col]] if end_col else ''
+                    str_repeat = row[col[repeat_col]] if repeat_col else ''
+
+                    w_overlap.writerow([gene_name, g_chrom, g_start, g_end,
+                                        best_p, phenotypes, lead_snp,
+                                        strs_id, str_chrom, str_start, str_end,
+                                        str_repeat, cnt])
+
+                idset.add(strs_id)
+                dbg(f"HIT: gene={gene_name} strs_id={strs_id}", D)
+            else:
+                # Sem hit GWAS — preenche 0 / vazio
+                w_unified.writerow(row + ['0', '', '', ''])
 
     # ----------------------------------------------------------------------
-    # 4) Escrever saidas (tabela gene x STR e lista de IDs)
+    # 5) Escrever IDs (deduplicado, ja esta no set)
     # ----------------------------------------------------------------------
-    with open(args.out, 'w', newline='') as out:
-        w = csv.writer(out, delimiter='\t')
-        w.writerow(['gene', 'chrom', 'gene_start', 'gene_end', 'best_p', 'phenotypes',
-                    'lead_snp', 'strs_id', 'str_chrom', 'str_start', 'str_end',
-                    'repeatunit', 'n_carriers'])
-        w.writerows(out_rows)
     with open(args.ids_out, 'w') as fid:
         for sid in sorted(idset):
             fid.write(sid + "\n")
 
-    genes_hit = sorted({r[0] for r in out_rows})
-    sys.stderr.write(f"Escrevi {len(out_rows)} pares -> {args.out}; "
-                     f"{len(idset)} STRs_ID unicos -> {args.ids_out}\n")
-    sys.stderr.write(f"Genes sugestivos com STR na coorte: {len(genes_hit)}\n")
-    if genes_hit:
-        sys.stderr.write("  " + ", ".join(genes_hit) + "\n")
+    # ----------------------------------------------------------------------
+    # 6) Resumo
+    # ----------------------------------------------------------------------
+    sys.stderr.write(f"Catalogo: {n_total} linhas totais\n")
+    sys.stderr.write(f"STRs em genes sugestivos: {n_hit} linhas ({len(idset)} STRs_ID unicos)\n")
+    sys.stderr.write(f"Genes sugestivos com STR na coorte: "
+                     f"{len(set(g for g, _ in pair_counts))}/{len(genes)}\n")
+    sys.stderr.write(f"Dataset unificado -> {args.out}\n")
+    sys.stderr.write(f"Pares gene x STR -> {args.out_overlap}\n")
+    sys.stderr.write(f"IDs -> {args.ids_out}\n")
     sys.stderr.write(f"Tempo total: {time.time() - t0:.1f}s\n")
 
 
