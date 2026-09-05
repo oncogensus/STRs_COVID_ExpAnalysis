@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # extract_covid_genes.py
+# ---------------------------------------------------------------------------
 # Le os summary stats do COVID-19 HG r7 (A2/B2/C2, leave_23andme), extrai os SNPs
 # com p < --p-thresh (default 5e-8) e mapeia cada um ao gene somente se o SNP
 # cai DENTRO do corpo do gene (gene_start..gene_end, sem janela de flanco).
-# Gera um conjunto de "genes COVID" com o melhor p por gene e o fenotipo(s).
+#
+# Gera uma tabela com TODOS os hits por gene (1 linha por SNP), preservando:
+#   - cada SNP com seu p-value, fenotipo e rsid
+#   - anotacao do gene (chrom, gene_start, gene_end)
 #
 # Uso:
 #   python3 extract_covid_genes.py \
@@ -11,8 +15,11 @@
 #                  data/COVID19_HGI_B2_ALL_leave_23andme_20220403.tsv.gz \
 #                  data/COVID19_HGI_C2_ALL_leave_23andme_20220403.tsv.gz \
 #       --gene-bed genes.hg38.bed \
-#       --out covid_genes.tsv
+#       --out covid_genes_suggestive.tsv \
+#       --p-thresh 1e-5
+# ---------------------------------------------------------------------------
 import argparse, gzip, re, sys, os, bisect
+
 
 def norm_chrom(raw):
     s = str(raw).strip()
@@ -22,10 +29,12 @@ def norm_chrom(raw):
         s = m[s]
     return 'chr' + s
 
+
 def phenotype_of(path):
     base = os.path.basename(path)
     m = re.search(r'_(A\d|B\d|C\d)_', base)
     return m.group(1) if m else base
+
 
 def load_genes(path):
     by_chr = {}
@@ -45,17 +54,18 @@ def load_genes(path):
         by_chr[c].sort(key=lambda x: x[0])
     return by_chr
 
+
 def map_snp(by_chr, chrom, pos):
     genes = by_chr.get(chrom)
     if not genes:
         return []
-    # candidatos: start <= pos (depois filtra por end >= pos, ou seja, dentro do corpo)
     idx = bisect.bisect_right([g[0] for g in genes], pos)
     hits = []
     for g in genes[:idx]:
         if g[1] >= pos:
             hits.append((g[2], g[0], g[1]))  # (name, gstart, gend)
     return hits
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -68,7 +78,8 @@ def main():
     sys.stderr.write("Carregando genes...\n")
     by_chr = load_genes(args.gene_bed)
 
-    # gene -> [best_p, set(phenotypes), lead_snp, chrom, gstart, gend]
+    # gene -> [(p, phenotype, rsid, chrom, gstart, gend), ...]
+    # Lista de tuplas: cada SNP hit e uma entrada separada.
     genes = {}
 
     for path in args.sumstats:
@@ -104,25 +115,24 @@ def main():
             chrom = norm_chrom(f[i_chr])
             rs = f[i_rs] if (i_rs is not None and i_rs < len(f) and f[i_rs]) else f"{chrom}:{pos}"
             for gname, gs, ge in map_snp(by_chr, chrom, pos):
-                if gname not in genes:
-                    genes[gname] = [p, {pheno}, rs, chrom, gs, ge]
-                else:
-                    rec = genes[gname]
-                    rec[1].add(pheno)
-                    if p < rec[0]:
-                        rec[0] = p
-                        rec[2] = rs
+                genes.setdefault(gname, []).append((p, pheno, rs, chrom, gs, ge))
             n += 1
         fh.close()
         sys.stderr.write(f"  {n} SNPs significativos (p<{args.p_thresh}) em {pheno}\n")
 
+    # Escreve 1 linha por SNP hit (preserva todos os hits por gene)
     with open(args.out, 'w') as out:
-        out.write("gene\tchrom\tgene_start\tgene_end\tbest_p\tphenotypes\tlead_snp\n")
-        for gname, rec in sorted(genes.items(), key=lambda kv: kv[1][0]):
-            # ajusta gene_start/end para o corpo do gene (do primeiro SNP nao eh ideal;
-            # preenche abaixo com o corpo real quando disponivel)
-            out.write(f"{gname}\t{rec[3]}\t{rec[4]}\t{rec[5]}\t{rec[0]:.3e}\t{','.join(sorted(rec[1]))}\t{rec[2]}\n")
-    sys.stderr.write(f"Escrevi {len(genes)} genes COVID -> {args.out}\n")
+        out.write("gene\tchrom\tgene_start\tgene_end\tsnp_p\tsnp_phenotype\tsnp_rsid\n")
+        n_total = 0
+        for gname in sorted(genes, key=lambda g: min(h[0] for h in genes[g])):
+            recs = genes[gname]
+            # Ordena por p-value dentro do gene
+            for p, pheno, rs, chrom, gs, ge in sorted(recs, key=lambda x: x[0]):
+                out.write(f"{gname}\t{chrom}\t{gs}\t{ge}\t{p:.3e}\t{pheno}\t{rs}\n")
+                n_total += 1
+
+    sys.stderr.write(f"Escrevi {n_total} hits (SNPs) em {len(genes)} genes -> {args.out}\n")
+
 
 if __name__ == '__main__':
     main()
