@@ -28,11 +28,13 @@ mkdir -p results
 
 [ -f results/STRs_analysis_dataset_with_GWAS.tsv ] || { echo "ERRO: results/STRs_analysis_dataset_with_GWAS.tsv ausente (rode etapa 1)"; exit 1; }
 [ -f results/suggestive_strs_outliers.tsv ] || { echo "ERRO: results/suggestive_strs_outliers.tsv ausente (rode etapa 2)"; exit 1; }
+[ -f results/covid_genes_significant.tsv ] || { echo "ERRO: results/covid_genes_significant.tsv ausente (rode etapa 1)"; exit 1; }
 
-echo "=== 3/4 sumariza subset (filtra n_outliers>0) + resumo ==="
+echo "=== 4/4 sumariza subset + resumo comparativo ==="
 "$PYBIN" 3_summarize_subset.py \
   --unified results/STRs_analysis_dataset_with_GWAS.tsv \
   --dbscan results/suggestive_strs_outliers.tsv \
+  --covid-genes-sig results/covid_genes_significant.tsv \
   --out results/covid_suggestive_genes_with_outlier_STRs.tsv \
   --summary results/summary_overlap_dbscan.tsv
 echo "=== FIM ==="
