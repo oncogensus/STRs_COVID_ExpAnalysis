@@ -51,6 +51,7 @@ def main():
     str_info = {}
     total_strs = set()
     gwas_hit_genes = set()
+    n_total_rows = 0
 
     with open(args.unified) as fh:
         r = csv.DictReader(fh, delimiter='\t')
@@ -58,6 +59,7 @@ def main():
             sid = row.get('STRs_ID', '')
             if not sid:
                 continue
+            n_total_rows += 1
             total_strs.add(sid)
             if sid not in str_info:
                 gwas_hit = row.get('gwas_hit', '0')
@@ -274,8 +276,8 @@ def main():
     sys.stderr.write(f"{sep}\n\n")
 
     sys.stderr.write("[Dataset]\n")
-    sys.stderr.write(f"  Total STRs no cohort:              {len(total_strs):>10,}\n")
-    sys.stderr.write(f"  STRs_ID unicos:                    {len(str_info):>10,}\n\n")
+    sys.stderr.write(f"  Total linhas (sample × STR):     {n_total_rows:>10,}\n")
+    sys.stderr.write(f"  STRs_ID unicos:                  {len(total_strs):>10,}\n\n")
 
     sys.stderr.write("[Genes COVID-19 HG]\n")
     sys.stderr.write(f"  {'':30s} {'Sugestivo':>12s} {'Significativo':>14s}\n")
