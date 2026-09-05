@@ -47,7 +47,7 @@ rna_skat_file  <- get_opt(cmd_args, "--rna-skat",
 catalog_file  <- get_opt(cmd_args, "--catalog",
   file.path(REPO, "samples/STRs_analysis_dataset.tsv"))
 out_dir       <- get_opt(cmd_args, "--out-dir",
-  file.path(TOP, "6.4.3_burden_test/results_gwas_rna_comparison"))
+  file.path(TOP, "6.4.4_pathway_crossvalidation/results_gwas_rna_comparison"))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 for (p in c(p1_file, rna_out, gwas_skat_file, rna_skat_file, catalog_file))

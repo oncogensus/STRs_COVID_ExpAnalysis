@@ -37,6 +37,6 @@ for STRAT in gwas_burden rna_burden; do
 done
 
 echo "=== Comparativo GWAS x RNA (outliers + burden + por-paciente) ==="
-"$R_BIN" compare_gwas_rna.R || { echo "ERRO no comparativo"; exit 1; }
+"$R_BIN" "$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.4_pathway_crossvalidation/compare_gwas_rna.R" || { echo "ERRO no comparativo"; exit 1; }
 
-echo "=== FIM: resultados em results_gwas_burden/, results_rna/ e results_gwas_rna_comparison/ ==="
+echo "=== FIM: resultados em results_gwas_burden/, results_rna/ e 6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/ ==="

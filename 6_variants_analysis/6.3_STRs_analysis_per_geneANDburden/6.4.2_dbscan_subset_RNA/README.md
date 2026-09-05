@@ -55,10 +55,11 @@ Rscript burden_gwas.R --strategy rna_burden --background <arquivo> --out-dir <di
 
 PBS: `burden_gwas.pbs` (GWAS), `burden_rna.pbs` (RNA) e `burden_both.pbs` (os dois em sequência + comparativo).
 
-### Comparativo GWAS × RNA (`compare_gwas_rna.R` / `compare_gwas_rna.pbs`)
+### Comparativo GWAS × RNA (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
 
-Script único que substitui o antigo `compare_burden_hits.*` (removido) e a pasta
-`6.4.4_pathway_crossvalidation` (removida). Gera em `results_gwas_rna_comparison/`:
+Script único que substitui o antigo `compare_burden_hits.*` (removido) e os
+scripts antigos de cross-validation da `6.4.4` (removidos). Gera em
+`6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/`:
 
 - `strategy_outlier_sets.tsv` — flags por STR (outlier GWAS-sig em p<5e-8, outlier RNA, STRs dos genes de burden GWAS/RNA)
 - `outlier_genes_union.tsv` — união de genes, nº de STRs por estratégia e overlap do maior alelo por gene

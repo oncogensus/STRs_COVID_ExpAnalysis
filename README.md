@@ -385,18 +385,18 @@ cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test
 qsub burden_gwas.pbs
 ```
 
-#### 6.3.4: GWAS × RNA comparison (`6.4.3_burden_test/compare_gwas_rna.R`)
+#### 6.3.4: GWAS × RNA comparison (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
 
-Single comparison script (replaces the removed `6.4.4_pathway_crossvalidation/`
-and the old `compare_burden_hits.*`): outliers per strategy (GWAS-sig p<5e-8 and
-RNA), burden SKAT hits (union/overlap, uncorrected and BH-corrected), a 2×2
-outlier × burden-hit matrix per gene, and a **descriptive** STR × patient
-case/control table (no statistical tests) including the largest-allele overlap
-between groups (`overlap_maior_alealo_grupos`).
+Single comparison script ((replaces the old pathway cross-validation scripts and
+the `compare_burden_hits.*`): outliers per strategy (GWAS-sig p<5e-8 and RNA),
+burden SKAT hits (union/overlap, uncorrected and BH-corrected), a 2×2 outlier ×
+burden-hit matrix per gene, and a **descriptive** STR × patient case/control
+table (no statistical tests) including the largest-allele overlap between groups
+(`overlap_maior_alealo_grupos`).
 
 **Scripts**:
-- `compare_gwas_rna.R` / `compare_gwas_rna.pbs` — run the full comparison
-- `burden_both.pbs` — runs both burden strategies then the comparison in chain
+- `6.4.4_pathway_crossvalidation/compare_gwas_rna.R` / `.pbs` — run the full comparison
+- `6.4.3_burden_test/burden_both.pbs` — runs both burden strategies then the comparison in chain
 
 **Required Inputs**:
 - `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
@@ -404,7 +404,7 @@ between groups (`overlap_maior_alealo_grupos`).
 - `6.4.3_burden_test/results_gwas_burden/skat_per_gene.tsv` and `results_rna/skat_per_gene.tsv`
 - `samples/STRs_analysis_dataset.tsv`
 
-**Outputs** (`results_gwas_rna_comparison/`):
+**Outputs** (`6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/`):
 - `strategy_outlier_sets.tsv`, `outlier_genes_union.tsv`
 - `burden_hits_union_{uncorrected,corrected}.tsv`, `burden_hits_overlap_{uncorrected,corrected}.tsv`
 - `outlier_x_burden_by_gene.tsv`
@@ -658,7 +658,8 @@ strs_paper/
     │   ├── 6.4.3_burden_test/
     │   │   ├── results/
     │   │   ├── results_gwas/
-    │   │   ├── results_gwas_burden/
+    │   │   └── results_gwas_burden/
+    │   ├── 6.4.4_pathway_crossvalidation/
     │   │   └── results_gwas_rna_comparison/  # compare_gwas_rna.R outputs
     │   ├── 6.4.5_igv_per_variant/
     │   │   ├── str_samples_bams.tsv
