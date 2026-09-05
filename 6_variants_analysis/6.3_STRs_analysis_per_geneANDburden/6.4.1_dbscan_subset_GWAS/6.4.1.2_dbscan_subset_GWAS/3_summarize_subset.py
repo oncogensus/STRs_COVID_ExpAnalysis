@@ -259,6 +259,7 @@ def main():
     pheno_strs = defaultdict(set)        # pheno -> set(strs_id)
     pheno_global = defaultdict(set)      # pheno -> set(strs_id com global outlier)
     pheno_subset = defaultdict(set)      # pheno -> set(strs_id com subset outlier)
+    pheno_genes_with_signal = defaultdict(set)  # pheno -> set(genes com qualquer sinal DBSCAN)
 
     for sid, info in str_info.items():
         if info['gwas_hit'] != '1':
@@ -270,6 +271,7 @@ def main():
         phenos = [p.strip() for p in phenos_raw.split(',') if p.strip()]
         has_global = info['global_outliers'] >= 1
         has_subset = sid in subset_outliers
+        has_signal = has_global or has_subset
         for ph in phenos:
             pheno_genes[ph].add(info['gene_name'])
             pheno_strs[ph].add(sid)
@@ -277,6 +279,8 @@ def main():
                 pheno_global[ph].add(sid)
             if has_subset:
                 pheno_subset[ph].add(sid)
+            if has_signal:
+                pheno_genes_with_signal[ph].add(info['gene_name'])
 
     # Ordena fenotipos por nome
     sorted_phenos = sorted(pheno_genes.keys())
@@ -377,16 +381,30 @@ def main():
     sys.stderr.write(f"  {'Apenas subset':30s} {len(genes_with_gwas_only):>12d} {len(sig_genes_with_gwas_only):>14d}\n\n")
 
     sys.stderr.write("[Outliers Globais — DBSCAN global (todos os STRs)]\n")
-    sys.stderr.write(f"  STRs com outlier global:          {total_strs_with_global_outliers:>10,}\n")
-    sys.stderr.write(f"  Total instancias outlier:         {total_global_outlier_instances:>10,}\n")
-    sys.stderr.write(f"  Em genes sugestivos:    {strs_with_global_in_suggestive:>6d} STRs  ({global_outliers_in_suggestive:>6d} instancias)  [{pct(strs_with_global_in_suggestive, total_strs_with_global_outliers)}%]\n")
-    sys.stderr.write(f"  Em genes significativos: {strs_with_global_in_significant:>6d} STRs  ({global_outliers_in_significant:>6d} instancias)  [{pct(strs_with_global_in_significant, total_strs_with_global_outliers)}%]\n\n")
+    sys.stderr.write(f"  Total STRs no cohort:                         {len(total_strs):>10,}\n")
+    sys.stderr.write(f"  STRs com outlier global:                         {total_strs_with_global_outliers:>6,}  ({pct(total_strs_with_global_outliers, len(total_strs))}% do total)\n")
+    sys.stderr.write(f"  Total instâncias outlier (sample × STR):         {total_global_outlier_instances:>6,}\n\n")
+    sys.stderr.write(f"  Distribuição por gene:\n")
+    sys.stderr.write(f"    Em genes sugestivos (p<1e-5):     {strs_with_global_in_suggestive:>4d} STRs  ({global_outliers_in_suggestive:>4d} instâncias)  [{pct(strs_with_global_in_suggestive, total_strs_with_global_outliers)}% dos outliers]\n")
+    sys.stderr.write(f"    Em genes significativos (p<5e-8):  {strs_with_global_in_significant:>4d} STRs  ({global_outliers_in_significant:>4d} instâncias)  [{pct(strs_with_global_in_significant, total_strs_with_global_outliers)}% dos outliers]\n")
+    n_outside = total_strs_with_global_outliers - strs_with_global_in_suggestive
+    n_outside_inst = total_global_outlier_instances - global_outliers_in_suggestive
+    sys.stderr.write(f"    Fora de genes sugestivos:         {n_outside:>4d} STRs  ({n_outside_inst:>4d} instâncias)  [{pct(n_outside, total_strs_with_global_outliers)}% dos outliers]\n\n")
 
-    sys.stderr.write("[Fenotipos — genes sugestivos com GWAS hit]\n")
-    sys.stderr.write(f"  {'Fenotipo':10s} {'Genes':>8s} {'STRs':>8s} {'Global':>8s} {'Subset':>8s}\n")
+    sys.stderr.write("[Fenótipos — genes sugestivos associados a cada fenótipo]\n")
+    sys.stderr.write(f"  Cada linha contém apenas genes cujo gwas_phenotypes inclui aquele fenótipo.\n\n")
+    sys.stderr.write(f"  {'Fenótipo':8s} {'Genes':>6s} {'STRs':>6s} {'Global':>7s} {'Subset':>7s}  {'Genes com sinal DBSCAN'}\n")
+    sys.stderr.write(f"  {'─'*8} {'─'*6} {'─'*6} {'─'*7} {'─'*7}  {'─'*30}\n")
     for ph in sorted_phenos:
-        sys.stderr.write(f"  {ph:10s} {len(pheno_genes[ph]):>8d} {len(pheno_strs[ph]):>8d} "
-                         f"{len(pheno_global[ph]):>8d} {len(pheno_subset[ph]):>8d}\n")
+        gene_list = sorted(pheno_genes_with_signal.get(ph, set()))
+        if len(gene_list) > 5:
+            gene_str = ", ".join(gene_list[:5]) + f", ... (+{len(gene_list)-5})"
+        elif gene_list:
+            gene_str = ", ".join(gene_list)
+        else:
+            gene_str = "nenhum"
+        sys.stderr.write(f"  {ph:8s} {len(pheno_genes[ph]):>6d} {len(pheno_strs[ph]):>6d} "
+                         f"{len(pheno_global[ph]):>7d} {len(pheno_subset[ph]):>7d}  {gene_str}\n")
 
     sys.stderr.write(f"\n{sep}\n")
     sys.stderr.write(f"  Saida: {args.out}\n")
