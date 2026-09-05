@@ -27,7 +27,7 @@ mkdir -p data results
 
 ROOT="$REPO"
 # 5_global_dbscan contém o DBSCAN global
-RESIDUALS="${RESIDUALS:-$ROOT/5_global_dbscan/5.1_norm_dbscan/STRs_normalized_residuals.tsv}"
+RESIDUALS="${RESIDUALS:-$ROOT/5_global_dbscan/norm_test/STRs_normalized_residuals.tsv}"
 [ -f "$RESIDUALS" ] || { echo "ERRO: residuos $RESIDUALS ausentes (rode 5_global_dbscan)"; exit 1; }
 [ -f data/suggestive_strs_ids.txt ] || { echo "ERRO: data/suggestive_strs_ids.txt ausente (rode etapa 1)"; exit 1; }
 [ -f results/suggestive_gene_strs.tsv ] || { echo "ERRO: results/suggestive_gene_strs.tsv ausente (rode etapa 1)"; exit 1; }
