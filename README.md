@@ -68,7 +68,6 @@ strs_paper/
     │   │   └── 6.4.1.2_dbscan_subset_GWAS/
     │   ├── 6.4.2_dbscan_subset_RNA/
     │   ├── 6.4.3_burden_test/
-    │   ├── 6.4.4_pathway_crossvalidation/
     │   ├── 6.4.5_igv_per_variant/
     │   └── 6.4.6_analysis_scRNA_Seq.ipynb
     ├── 6.4_STRs_filter/
@@ -386,27 +385,30 @@ cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test
 qsub burden_gwas.pbs
 ```
 
-#### 6.3.4: Pathway Cross-Validation (`6.4.4_pathway_crossvalidation/`)
+#### 6.3.4: GWAS × RNA comparison (`6.4.3_burden_test/compare_gwas_rna.R`)
 
-Cross-validates enriched pathways (KEGG + Reactome) between two outlier strategies: GWAS-filtered (P1) and genome-wide agnostic (P2). Generates tables, gene convergence analysis, and publication figures.
+Single comparison script (replaces the removed `6.4.4_pathway_crossvalidation/`
+and the old `compare_burden_hits.*`): outliers per strategy (GWAS-sig p<5e-8 and
+RNA), burden SKAT hits (union/overlap, uncorrected and BH-corrected), a 2×2
+outlier × burden-hit matrix per gene, and a **descriptive** STR × patient
+case/control table (no statistical tests) including the largest-allele overlap
+between groups (`overlap_maior_alealo_grupos`).
 
 **Scripts**:
-- `0_get_outlier_genes.py` / `.pbs` — extract genes with ≥1 outlier STR from global catalog
-- `1_pathway_crossvalidation.R` / `.pbs` — enrichment analysis (KEGG + Reactome)
-- `2_gene_crossvalidation.R` / `.pbs` — gene-level convergence (P1 × P2)
-- `3_plot_pathways.R` / `.pbs` — all publication figures (dotplots, upset, barplots)
-- `submit_pathway_crossvalidation.sh` — submit all steps in chain via PBS
+- `compare_gwas_rna.R` / `compare_gwas_rna.pbs` — run the full comparison
+- `burden_both.pbs` — runs both burden strategies then the comparison in chain
 
 **Required Inputs**:
 - `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
-- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/data/suggestive_strs_residuals.tsv`
+- `6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv`
+- `6.4.3_burden_test/results_gwas_burden/skat_per_gene.tsv` and `results_rna/skat_per_gene.tsv`
 - `samples/STRs_analysis_dataset.tsv`
 
-**Outputs** (`results/`):
-- `enrichment_P1.tsv`, `enrichment_P2.tsv` — pathway enrichment per strategy
-- `pathway_convergence.tsv` — shared/unique pathways
-- `gene_convergence.tsv` — gene classification (original 8, cross-validated, novel)
-- Figures: dotplots, UpSet, barplots in `figures/`
+**Outputs** (`results_gwas_rna_comparison/`):
+- `strategy_outlier_sets.tsv`, `outlier_genes_union.tsv`
+- `burden_hits_union_{uncorrected,corrected}.tsv`, `burden_hits_overlap_{uncorrected,corrected}.tsv`
+- `outlier_x_burden_by_gene.tsv`
+- `patient_str.tsv`, `per_str_case_control.tsv`
 
 **Environment**: micromamba - `r_enrich_env`
 
@@ -600,7 +602,7 @@ micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
        - Strategy A: GWAS-based SKAT (continuous)
        - Strategy B: GWAS-based (binary)
        - Strategy C: Background (all STRs)
-     - 7.3.4 Pathway cross-validation (`6.4.4_pathway_crossvalidation/`)
+     - 7.3.4 GWAS × RNA comparison (`compare_gwas_rna.R`)
      - 7.3.5 IGV per variant (`6.4.5_igv_per_variant/`)
      - 7.3.6 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
    - 7.4 STR Filtering & scRNA-seq Overlap (`6.4_STRs_filter/`)
@@ -656,10 +658,8 @@ strs_paper/
     │   ├── 6.4.3_burden_test/
     │   │   ├── results/
     │   │   ├── results_gwas/
-    │   │   └── results_gwas_burden/
-    │   ├── 6.4.4_pathway_crossvalidation/
-    │   │   ├── results/             # enrichment, convergence tables
-    │   │   └── figures/             # publication figures
+    │   │   ├── results_gwas_burden/
+    │   │   └── results_gwas_rna_comparison/  # compare_gwas_rna.R outputs
     │   ├── 6.4.5_igv_per_variant/
     │   │   ├── str_samples_bams.tsv
     │   │   ├── str_samples_with_variant.bed

@@ -4,8 +4,6 @@ __pycache__/
 # Dados e resultados (nao versionar)
 dbscan_subset_GWAS/data/
 dbscan_subset_GWAS/results/
-pathway_crossvalidation/data/
-pathway_crossvalidation/results/
 
 # Pasta de arquivo local (nao versionar)
 litcovid_archive/

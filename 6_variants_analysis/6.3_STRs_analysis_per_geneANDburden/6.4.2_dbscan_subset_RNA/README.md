@@ -36,12 +36,13 @@ Cada registro das saídas RNA traz a origem do estudo: coluna `dataset`
 
 ## Avaliações entre GWAS × RNA
 
-Os pipelines `6.4.3_burden_test` e `6.4.4_pathway_crossvalidation` foram
-parametrizados para rodar sobre **ambos os datasets** (GWAS-filtrado e RNA).
+O pipeline `6.4.3_burden_test` foi parametrizado para rodar sobre **ambos os
+datasets** (GWAS-filtrado e RNA) e inclui um **script único** de comparação
+(`compare_gwas_rna.R`, PBS `compare_gwas_rna.pbs`).
 
 ### Burden test — `6.4.3_burden_test`
 
-`burden_gwas.R` agora aceita argumentos:
+`burden_gwas.R` aceita argumentos:
 
 ```
 Rscript burden_gwas.R --strategy gwas_burden   # default, usa suggestive_gene_strs.tsv
@@ -54,24 +55,20 @@ Rscript burden_gwas.R --strategy rna_burden --background <arquivo> --out-dir <di
 
 PBS: `burden_gwas.pbs` (GWAS), `burden_rna.pbs` (RNA) e `burden_both.pbs` (os dois em sequência + comparativo).
 
-**Comparativo GWAS × RNA** (`compare_burden_hits.R` / `compare_burden_hits.pbs`):
-- lê os hits das duas estratégias (`results_gwas_burden/`, `results_rna/`)
-- gera em `results_burden_comparison/`: `burden_hits_overlap_{uncorrected,corrected}.tsv` (genes em comum) e `burden_hits_union_{uncorrected,corrected}.tsv` (união completa com flags `hit_gwas`/`hit_rna` e p/q de cada lado)
-- `burden_both.pbs` chama o comparativo automaticamente após as duas estratégias.
+### Comparativo GWAS × RNA (`compare_gwas_rna.R` / `compare_gwas_rna.pbs`)
 
-### Pathway / gene cross-validation — `6.4.4_pathway_crossvalidation`
+Script único que substitui o antigo `compare_burden_hits.*` (removido) e a pasta
+`6.4.4_pathway_crossvalidation` (removida). Gera em `results_gwas_rna_comparison/`:
 
-Os scripts `.R` aceitam `--p1-file`, `--p2-file`, `--p1-label`, `--p2-label`,
-`--out` (e `--gene-out`/`--fig` no plot). Comparação GWAS × RNA (pré-configurada):
+- `strategy_outlier_sets.tsv` — flags por STR (outlier GWAS-sig em p<5e-8, outlier RNA, STRs dos genes de burden GWAS/RNA)
+- `outlier_genes_union.tsv` — união de genes, nº de STRs por estratégia e overlap do maior alelo por gene
+- `burden_hits_union_{uncorrected,corrected}.tsv` e `burden_hits_overlap_{uncorrected,corrected}.tsv` — hits SKAT em sobreposição/união (mesma lógica do comparativo antigo)
+- `outlier_x_burden_by_gene.tsv` — matriz 2×2 outlier × burden-hit por gene
+- `patient_str.tsv` — tabela longa STR × paciente (alelos `allele1_est`/`allele2_est`, `maior_alelo`, `group`, flags de fonte)
+- `per_str_case_control.tsv` — descritivo por STR caso × controle (n, média/mediana/min/max/sd do maior alelo por grupo, nº de pacientes-outlier por grupo e `overlap_maior_alealo_grupos`) — **sem testes estatísticos**
 
-```
-Rscript 1_pathway_crossvalidation.R --p2-file .../results/rna_outlier_genes.tsv --p1-label GWAS --p2-label RNA --out pathway_convergence_gwas_rna
-Rscript 2_gene_crossvalidation.R    --p2-file .../results/rna_outlier_genes.tsv --p1-label GWAS --p2-label RNA --out gene_convergence_gwas_rna
-Rscript 3_plot_pathways.R           --p2-file .../results/rna_outlier_genes.tsv --p1-label GWAS --p2-label RNA --out pathway_convergence_gwas_rna --gene-out gene_convergence_gwas_rna --fig gwas_rna_
-```
+Entradas: P1 GWAS (`covid_suggestive_genes_with_outlier_STRs.tsv`), outliers RNA
+(`results/rna_outlier_genes.tsv`), SKAT das duas estratégias e o catálogo
+`samples/STRs_analysis_dataset.tsv`.
 
-**Pré-requisito**: `cross_DEGs_STRs.py` já rodado (gera `results/rna_outlier_genes.tsv`).
-
-PBS prontos: `1_pathway_crossvalidation_rna.pbs`, `2_gene_crossvalidation_rna.pbs`,
-`3_plot_pathways_rna.pbs`, e o orquestrador `submit_pathway_crossvalidation_rna.sh`.
-(Os `.pbs` originais, sem sufixo `_rna`, preservam o comportamento GWAS × agnóstico.)
+PBS prontos: `compare_gwas_rna.pbs`; `burden_both.pbs` roda as duas estratégias e o comparativo em sequência.

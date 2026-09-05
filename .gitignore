@@ -21,7 +21,6 @@ samples/*
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/**/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/*.pbs
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.4_pathway_crossvalidation/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.5_igv_per_variant/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.5_igv_per_variant/*.R
 *.gtf

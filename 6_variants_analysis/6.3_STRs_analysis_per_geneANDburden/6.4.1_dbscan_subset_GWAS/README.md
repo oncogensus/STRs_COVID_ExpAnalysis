@@ -55,17 +55,12 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
 ---
 
-### 6.4.1.4 — Cross-validation de vias (`6.4.1.4_pathway_crossvalidation/`)
+### 6.4.1.4 — (reservado)
 
-Enriquecimento de vias biológicas nos genes outlier, com validação cruzada
-por sub-amostragem.
-
-**Ordem de execução**:
-1. `1_pathway_crossvalidation.R` — enriquecimento de vias
-2. `2_gene_crossvalidation.R` — validação cruzada por gene
-3. `3_plot_pathways.R` — visualização dos resultados
-
-**Submissão PBS**: `submit_pathway_crossvalidation.sh`, `submit_gene_crossvalidation.sh`.
+A antiga cross-validation de vias (`6.4.4_pathway_crossvalidation`) foi
+**removida**; a comparação entre as estratégias GWAS-filtrado e RNA-seq é agora
+feita pelo script único `6.4.3_burden_test/compare_gwas_rna.R`
+(outliers, burden SKAT e descritivo por STR × paciente).
 
 ---
 
