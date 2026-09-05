@@ -1,30 +1,47 @@
 ﻿# STR Analysis Workflow Development
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![R](https://img.shields.io/badge/R-276DC3?style=flat&logo=r&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Development-yellow)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Background](#background)
+- [Pipeline Architecture](#pipeline-architecture)
+- [Important Notes](#important-notes)
+- [Stage 1: STR Calling](#stage-1-str-calling-strs_call)
+- [Stage 2: Data Stratification](#stage-2-data-stratification-data_split)
+- [Stage 3: Genomic Annotation](#stage-3-genomic-annotation-gtf_annot)
+- [Stage 4: Ancestry Assignment](#stage-4-ancestry-assignment-ancestry)
+- [Stage 5: Global DBSCAN Analysis](#stage-5-global-dbscan-analysis-5_global_dbscan)
+- [Stage 6: Variant Analysis](#stage-6-variant-analysis-6_variants_analysis)
+- [Workflow Execution](#workflow-execution)
+- [Output Structure](#output-structure)
+- [References](#references)
+
 ## Overview
 
-This repository documents the **ongoing development workflow** for Short Tandem Repeat (STR) analysis throughout 2025-2026. It synthesizes the current stages of STR identification, outlier detection, and annotation designed to support exploratory analysis and variant filtering. The pipeline seeks to identify STRs potentially impacting clinical outcomes in COVID-19 patients by comparing two key groups without comorbidities:
+This repository documents the **development workflow** for Short Tandem Repeat (STR) analysis throughout 2025-2026. The pipeline identifies STRs potentially impacting clinical outcomes in COVID-19 patients by comparing two groups without comorbidities:
 
 - **Controls**: Survivors of severe COVID-19 (n=138, age <60)
 - **Cases**: Fatal COVID-19 outcomes (n=33, age <60)
-
-*Note: This workflow is actively under development for a planned 2026 publication evaluating STR associations with COVID-19 mortality.*
 
 ## Background
 
 ### Dataset Information
 
-This analysis is based on COVID-19 sequencing data, the same dataset used for "Rare genetic variants and severe COVID-19 in previously healthy admixed Latin American adults" article (https://doi.org/10.1038/s41598-025-08416-1)
+This analysis uses COVID-19 sequencing data from "Rare genetic variants and severe COVID-19 in previously healthy admixed Latin American adults" ([doi.org/10.1038/s41598-025-08416-1](https://doi.org/10.1038/s41598-025-08416-1)).
 
 #### Patient Cohorts
 
-- **Group 1**: Death without comorbidity, age < 60 years (n=33, mean age: 45.5 ± 19-59)
-- **Group 2**: Survivors without comorbidity, severe COVID, age < 60 years (n=138, mean age: 43.1 ± 20-60)
-- **Group 3**: Elderly patients (≥60 years) with comorbidity, mild COVID (n=36, mean age: 67.6 ± 60-82)
+- **Group 1** (Cases): Death without comorbidity, age < 60 years (n=33, mean age: 45.5 ± 19-59)
+- **Group 2** (Controls): Survivors without comorbidity, severe COVID, age < 60 years (n=138, mean age: 43.1 ± 20-60)
 
-### Resources and references for the tools used
-- STRling GitHub Repository (https://github.com/quinlan-lab/STRling-nf)
-- STRling Documentation (https://strling.readthedocs.io/en/latest/index.html)
-- EthSEQ for Ancestry Inference (https://github.com/mhguo1/AD_STR/tree/main)
+### Tools and References
+
+- [STRling](https://github.com/quinlan-lab/STRling-nf) — STR genotyping from short-read data ([documentation](https://strling.readthedocs.io/en/latest/index.html))
+- [EthSEQ](https://github.com/mhguo1/AD_STR/tree/main) — Ancestry inference from sequencing data
 
 
 ---
@@ -33,7 +50,7 @@ This analysis is based on COVID-19 sequencing data, the same dataset used for "R
 
 The analysis pipeline is organized as follows:
 
-```
+```text
 strs_paper/
 ├── 1_strs_call/
 ├── 2_data_split/
@@ -70,7 +87,6 @@ Identification of Short Tandem Repeat regions using STRling.
 strling extract -b sample.bam -f reference.fa -o output_dir
 ```
 
-
 - `extract`: Extracts STR-containing regions from BAM files
 - `-b sample.bam`: Input BAM file for analysis
 - `-f reference.fa`: Reference genome in FASTA format
@@ -101,7 +117,7 @@ Separate identified STRs into control and case groups based on phenotype.
 
 ### Required Files
 - GROUPS_CSV: grupos.csv (Sample-to-group assignment file)
--INPUT_DIR: STR identified files from Stage 1
+- INPUT_DIR: STR identified files from Stage 1
 
 ### Quality Parameters
 - Depth > 15
@@ -119,7 +135,7 @@ Separate identified STRs into control and case groups based on phenotype.
 
 ## Stage 3: Genomic Annotation (gtf_annot)
 
-## Purpose
+### Purpose
 Annotation of genomic regions intersected by STRs, including variant consolidation and GTF-based annotation
 
 ### 3.1: Global STR Annotation
@@ -128,8 +144,10 @@ Annotation of genomic regions intersected by STRs, including variant consolidati
 - TSV_PATH: Location of STRs to be annotated (output from Stage 2)
 - GTF_PATH: GRCh38.98 GTF file
 - GENOME_FILE: Chromosome size file
-   - Generated by:   
-      - grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt
+   - Generated by:
+      ```bash
+      grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt
+      ```
 - OUTDIR: Output directory for annotated results (../samples/)
 
 ### Output
@@ -141,7 +159,7 @@ Annotation of genomic regions intersected by STRs, including variant consolidati
 ### 3.2: Annotation Validation
 Validate intergenic variant generation and "others" group regions.
 
-**Script**: 'gtf_annot_global_debug.py'
+**Script**: `gtf_annot_global_debug.py`
 
 Required Files
 - results_path: Input - STRs_annotated_region.tsv (from 3.1)
@@ -150,32 +168,31 @@ Required Files
 ### Output
 - ../samples/others_regions_statistics.csv (Statistics for "others" group)
 
-### Environment: micromamba - str
+**Environment**: micromamba - str
 
 ---
 
 ## Stage 4: Ancestry Assignment (ancestry)
 
-Identification of global ancestry using EthSEQ.
-
-## Purpose
+### Purpose
 Identification of global ancestry using EthSEQ.
 
 **Script**: `ethseq_vcf_run.r`
 
 **Required Files**
-Required Files
 - vcf_file: gVCF file for ancestry evaluation
 - model_available: Ancestry model selection
 - model_assembly: Reference genome (GRCh38)
 - model_pop: Populations for evaluation
 - out_dir: Output directory (EthSEQ_Results_3D)
 
-### Environment: micromamba - ethseq_vcf_run
+**Environment**: micromamba - ethseq_vcf_run
 
-### Stage 5: Global DBSCAN Analysis (`5_global_dbscan`)
+---
 
-## Purpose: 
+## Stage 5: Global DBSCAN Analysis (`5_global_dbscan`)
+
+### Purpose
 Normalization of STR alleles and outlier detection via DBSCAN.
 
 ### 5.1: STR Normalization
@@ -188,23 +205,23 @@ Normalize the largest STR allele (allele2_est) by sex, 3 PCA components from Eth
 - path_pca: EthSEQ PCA results file
 - path_pheno: Phenotype file (sex and age information)
 
-### Filter Applied: 
+### Filter Applied
 N > 10 (Regression/residuals calculated only for loci with >10 valid samples; insufficient data filled with NA)
 
 ### 5.2: DBSCAN Outlier Detection
 
-## Purpose: 
+### Purpose
 Detect isolated points (outliers) using DBSCAN on normalized data.
 
 **Script**: `dbscan_str.r`
 
-###  Required Files
+### Required Files
 - input_file: Normalized data from norm_dbscan.r
 - output_file: DBSCAN results file (outliers_per_str.tsv)
 
-## Environment: micromamba - dbscan-r
+**Environment**: micromamba - dbscan-r
 
-## Reference: Based on https://github.com/mhguo1/AD_STR/tree/main (https://github.com/mhguo1/AD_STR/tree/main)
+**Reference**: Based on [https://github.com/mhguo1/AD_STR/tree/main](https://github.com/mhguo1/AD_STR/tree/main)
 
 ---
 
@@ -215,7 +232,7 @@ Integrated description, visualization, and filtering of identified variants.
 
 ### 6.1: Dataset Integration (`6.1_merge_datasets/`)
 
-## Purpose: 
+### Purpose
 Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 
 **Script**: `merge_datasets.r`
@@ -228,24 +245,24 @@ Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 
 ### 6.2: Genome Visualization (`6.2_desc_data_viz/`)
 
-## Purpose: 
+### Purpose
 Generate genome-wide STR distribution plots.
 
 **Script**: `genome_viz.ipynb` (Jupyter Notebook)
 
-## Required Files
+### Required Files
 - Localization of complete STR dataset: STRs_analysis_dataset.tsv
 - Environment: micromamba - r_viz
 
-### 6.4: Per-STR Analysis, Burden Test & Related Pipelines (`6.3_STRs_analysis_per_geneANDburden/`)
+### 6.3: Per-STR Analysis, Burden Test & Related Pipelines (`6.3_STRs_analysis_per_geneANDburden/`)
 
 This section covers the core analytical pipelines for identifying STRs associated with COVID-19 mortality.
 
-#### 6.4.1: DBSCAN Subset — GWAS & COVID-19 HG Overlap (`6.4.1_dbscan_subset_GWAS/`)
+#### 6.3.1: DBSCAN Subset — GWAS & COVID-19 HG Overlap (`6.4.1_dbscan_subset_GWAS/`)
 
 Cross-references COVID-19 HG GWAS summary statistics with cohort STRs, and runs DBSCAN outlier detection on the GWAS-gene subset.
 
-##### 6.4.1.1: COVID-19 HG × STRs Overlap (`6.4.1.1_covid19hg_overlap/`)
+##### 6.3.1.1: COVID-19 HG × STRs Overlap (`6.4.1.1_covid19hg_overlap/`)
 
 Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts significant genes (p < 5e-8), and overlaps with cohort STR catalog.
 
@@ -257,9 +274,9 @@ Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts signifi
 
 **Environment**: micromamba - `igv`
 
-##### 6.4.1.2: DBSCAN Subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+##### 6.3.1.2: DBSCAN Subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
 
-Takes the GWAS-significant genes from 6.4.1.1, subsets normalized residuals to those loci, re-runs DBSCAN, summarizes results, and annotates with full STR catalog.
+Takes the GWAS-significant genes from 6.3.1.1, subsets normalized residuals to those loci, re-runs DBSCAN, summarizes results, and annotates with full STR catalog.
 
 **Scripts**:
 - `1_overlap_suggestive_strs.py` / `.pbs` — overlap suggestive genes × STRs
@@ -274,11 +291,48 @@ Takes the GWAS-significant genes from 6.4.1.1, subsets normalized residuals to t
 
 **Environment**: micromamba - `igv` (overlap), `dbscan-r` (DBSCAN)
 
-#### 6.4.2: DBSCAN Subset — RNA (`6.4.2_dbscan_subset_RNA/`)
+#### 6.3.2: DBSCAN Subset — RNA (`6.4.2_dbscan_subset_RNA/`)
 
-Reserved for RNA-seq-based DBSCAN subset analysis (placeholder).
+Cross-references RNA-seq DEGs from multiple GEO datasets with the cohort STR catalog, enriching matches with global and GWAS DBSCAN outlier metrics.
 
-#### 6.4.3: Burden Test / SKAT (`6.4.3_burden_test/`)
+##### 6.3.2.1: Cross-reference DEGs x STRs (`6.4.2.2_RNA_matrix/`)
+
+Scans all GSE subdirectories for DEG tables, overlaps gene names with the STR catalog, and produces two output tables: one with all overlapping STRs, and one filtered to STRs with global DBSCAN outliers.
+
+**RNA-seq Datasets** (GSE subdirectories expected under `--deg-dir`):
+- **GSE157103**
+- **GSE188847**
+- **GSE183533**
+
+**Script**: `cross_DEGs_STRs.py`
+
+**Arguments**:
+- `--deg-dir` — Root directory containing GSE subfolders with DEG TSV/CSV files
+- `--str-catalog` — Path to `STRs_analysis_dataset.tsv`
+- `--gwas-outliers` — Path to `suggestive_strs_outliers.tsv` (from 6.4.1.2)
+- `--out-dir` — Output directory (default: `.`)
+
+**Required Inputs**:
+- RNA-seq DEG tables (TSV or CSV) in GSE subdirectories, with columns for gene name, significance, FDR, logFC, and direction
+- `samples/STRs_analysis_dataset.tsv` (master integrated STR dataset)
+- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
+
+**DBSCAN QC Filter** (for outlier output):
+- `n_clusters > 0`, `noise_ratio <= 0.10`, `n_outliers >= 1`
+
+**Output** (`results/`):
+- `all_STRs_in_DEGs.tsv` — All STRs annotated in DEG genes across all datasets
+- `outlier_STRs_in_DEGs.tsv` — STRs with DBSCAN global outliers overlapping DEG genes
+
+**Environment**: micromamba - `str`
+
+**How to run (cluster)**:
+```bash
+cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix
+qsub cross_DEGs_STRs.pbs
+```
+
+#### 6.3.3: Burden Test / SKAT (`6.4.3_burden_test/`)
 
 ### Purpose
 Test whether **outlier STR status** is associated with **COVID-19 mortality**
@@ -304,6 +358,11 @@ the **gene level** (burden + SKAT) and at the **individual STR level**
 This is essential because **intergenic STRs have `gene_name = "."`** and are only
 identifiable via `STRs_ID`.
 
+> **Critical implementation note**: the sample×STR outlier matrix is built with
+> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
+> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
+> must be avoided when constructing the 0/1 burden matrix.
+
 ### Script (`6.4.3_burden_test/`)
 | script | strategy | outlier source | `remove_sample_outliers` |
 |---|---|---|---|
@@ -311,11 +370,6 @@ identifiable via `STRs_ID`.
 | `burden_gwas.R` (`strategy="gwas"`) | GWAS-based (binário) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv` | `FALSE` |
 | `burden_gwas.R` (`strategy="gwas_background"`) | Background (todos STRs) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv` | `TRUE` |
 | `burden_gwas.pbs` | PBS wrapper | — | — |
-
-> **Critical implementation note**: the sample×STR outlier matrix is built with
-> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
-> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
-> must be avoided when constructing the 0/1 burden matrix.
 
 ### Outputs (`results_gwas_burden/`, `results_gwas/`, or `results/`)
 - `burden_global.tsv` — omnibus gene-burden test across all genes.
@@ -331,7 +385,7 @@ cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test
 qsub burden_gwas.pbs
 ```
 
-#### 6.4.4: Pathway Cross-Validation (`6.4.4_pathway_crossvalidation/`)
+#### 6.3.4: Pathway Cross-Validation (`6.4.4_pathway_crossvalidation/`)
 
 Cross-validates enriched pathways (KEGG + Reactome) between two outlier strategies: GWAS-filtered (P1) and genome-wide agnostic (P2). Generates tables, gene convergence analysis, and publication figures.
 
@@ -355,7 +409,7 @@ Cross-validates enriched pathways (KEGG + Reactome) between two outlier strategi
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 6.4.5: IGV Per Variant (`6.4.5_igv_per_variant/`)
+#### 6.3.5: IGV Per Variant (`6.4.5_igv_per_variant/`)
 
 Generates BED files and IGV.js scripts for visual inspection of STR variants. For each STR with outlier, produces a BED with the variant sample and a matched control sample.
 
@@ -376,7 +430,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 
 **Environment**: micromamba - `igv`
 
-#### 6.4.6: scRNA-seq Analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+#### 6.3.6: scRNA-seq Analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
 
 Generate cell-type-level visualizations of STR-scRNA overlaps.
 
@@ -394,9 +448,9 @@ Generate cell-type-level visualizations of STR-scRNA overlaps.
 
 **Environment**: micromamba - `r_enrich_env`
 
-### 6.5: STR Filtering and scRNA-seq Overlap (`6.4_STRs_filter/`)
+### 6.4: STR Filtering and scRNA-seq Overlap (`6.4_STRs_filter/`)
 
-#### 6.5.1: STR-scRNA Overlap Import
+#### 6.4.1: STR-scRNA Overlap Import
 
 Cross-reference DBSCAN outlier STRs with scRNA-seq differentially expressed genes.
 
@@ -421,7 +475,7 @@ Cross-reference DBSCAN outlier STRs with scRNA-seq differentially expressed gene
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 6.5.2: Statistical Filtering
+#### 6.4.2: Statistical Filtering
 
 Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criteria.
 
@@ -436,9 +490,9 @@ Filter findings using Mann-Whitney tests, overlap evaluation, and outlier criter
 - `covid_targeted_no_overlap_allele_mean_no_threshold.csv` (Non-overlap signature in scRNA-seq genes)
 - `top_10_unique_loci_outliers.csv` (Top 10 outlier loci)
 
-### 6.6: Ancestry Analysis (`6.5_ancestry_analysis/`)
+### 6.5: Ancestry Analysis (`6.5_ancestry_analysis/`)
 
-#### 6.6.1: Categorical Ancestry Comparison
+#### 6.5.1: Categorical Ancestry Comparison
 
 Compare STR allele distributions and DBSCAN outlier burden across categorical ancestry populations via Kruskal-Wallis and Dunn post-hoc tests.
 
@@ -460,14 +514,14 @@ Compare STR allele distributions and DBSCAN outlier burden across categorical an
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 6.6.2: High-Resolution Ancestry Correlation
+#### 6.5.2: High-Resolution Ancestry Correlation
 
 Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
 
 **Script**: `6.5.2_ancestry_comparation_high_resolution.r`
 
 **Required Input Files**
-- Same as 6.6.1
+- Same as 6.5.1
 
 **Output** (`results/high_resolution/`)
 - `plotdata_region_sample.csv` (region-level outlier metrics by sample)
@@ -476,14 +530,14 @@ Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (pr
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 6.6.3: Ancestry Data Visualization
+#### 6.5.3: Ancestry Data Visualization
 
 Generate publication-ready tables and heatmaps from ancestry analysis results.
 
 **Script**: `6.5.3_ancestry_dataviz.ipynb`
 
 **Required Input Files**
-- CSV outputs from 6.6.1 and 6.6.2
+- CSV outputs from 6.5.1 and 6.5.2
 
 **Output** (`results/high_resolution/dataviz/`)
 - `genomic_summary_per_region.html` (regional ancestry + outlier metrics table)
@@ -498,27 +552,36 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 
 ## Workflow Execution
 
-### 1. Environment setup using YAML configuration files:
-- `str_env.yaml`: STRling environment
-- `r_env.yaml`: R environment for general analysis
-- `r_viz.yaml`: R environment for visualization
-- `r_enrich_env.yaml`: R environment for enrichment analysis
-- `dbscan-r.yaml`: DBSCAN analysis environment
-- `ethseq_vcf_run.yaml`: EthSEQ ancestry environment
+### 1. Environment Setup
 
-### 2. Prepare reference files:
+Create conda/micromamba environments from YAML files:
+
+```bash
+micromamba create -n str -f str_env.yaml
+micromamba create -n r_env -f r_env.yaml
+micromamba create -n r_viz -f r_viz.yaml
+micromamba create -n r_enrich_env -f r_enrich_env.yaml
+micromamba create -n dbscan-r -f dbscan-r.yaml
+micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
+```
+
+### 2. Prepare Reference Files
+
 - Reference genome: `hg38.fa`
 - Reference STR annotations: `hg38.fa.str`
 - GTF annotations: `Homo_sapiens.GRCh38.98.gtf`
 - Genome file:
-  - Generated via: `grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt`
+  ```bash
+  grep -E '^chr([1-9]|1[0-9]|2[0-2]|X|Y)\s' hg38.fa.fai | cut -f1,2 > genome.txt
+  ```
 
-### 3. Prepare input data:
+### 3. Prepare Input Data
+
 - BAM files for all samples
 - Sample grouping file: `grupos.csv`
 - Phenotype file: `samples_infos.csv`
 
-## Recommended Execution Order
+### 4. Execution Order
 
 1. STR Calling (`1_strs_call`)
 2. Data Stratification (`2_data_split`)
@@ -548,7 +611,9 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
      - 7.5.3 Ancestry Data Visualization
 
 ## Output Structure
-All results are organized in the project directory with outputs generated at each stage:
+
+<details>
+<summary>Click to expand full output tree</summary>
 
 ```text
 strs_paper/
@@ -571,9 +636,6 @@ strs_paper/
 │   └── outliers_search/
 │       └── results_dbscan/
 │           └── outliers_per_str.tsv
-├── 6_scovid_data/                  # scRNA-seq curated data (stage 6)
-│   ├── GSE157344/
-│   └── GSE159812/
 └── 6_variants_analysis/            # Variant analysis (stage 7)
     ├── STRs_analysis_dataset.tsv   # Master integrated dataset
     ├── 6.1_merge_datasets/
@@ -587,7 +649,9 @@ strs_paper/
     │   │   └── 6.4.1.2_dbscan_subset_GWAS/
     │   │       ├── data/            # suggestive_strs_residuals.tsv
     │   │       └── results/         # suggestive_gene_strs.tsv, outliers
-    │   ├── 6.4.2_dbscan_subset_RNA/ (placeholder)
+    │   ├── 6.4.2_dbscan_subset_RNA/
+    │   │   └── 6.4.2.2_RNA_matrix/
+    │   │       └── results/         # all_STRs_in_DEGs.tsv, outlier_STRs_in_DEGs.tsv
     │   ├── 6.4.3_burden_test/
     │   │   ├── results/
     │   │   ├── results_gwas/
@@ -612,13 +676,17 @@ strs_paper/
             └── dataviz/
 ```
 
-# References
-1. STRling: Quinlan et al., STRling: Rapid and accurate genotyping of short tandem repeats from short-read sequencing data
-2. EthSEQ: Liu et al., EthSEQ: A tool for estimating ancestry from sequencing data
-3. SCovid Portal: https://bio-computing.hrbmu.edu.cn/scovid/#/home
-4. AD_STR DBSCAN Approach: https://github.com/mhguo1/AD_STR/tree/main (https://github.com/mhguo1/AD_STR/tree/main)
+</details>
+
+## References
+
+1. STRling: Quinlan et al., *STRling: Rapid and accurate genotyping of short tandem repeats from short-read sequencing data*
+2. EthSEQ: Liu et al., *EthSEQ: A tool for estimating ancestry from sequencing data*
+3. COVID-19 HG: [https://www.covid19hg.org](https://www.covid19hg.org)
+4. AD_STR DBSCAN Approach: [https://github.com/mhguo1/AD_STR](https://github.com/mhguo1/AD_STR/tree/main)
+
 ---
 
-**Last Updated**: August 30, 2026
+**Last Updated**: September 2026
 
-**Status**: Finalized workflow for 2026 publication on STR vs COVID-19 analysis
+**Status**: In development — planned 2026 publication
