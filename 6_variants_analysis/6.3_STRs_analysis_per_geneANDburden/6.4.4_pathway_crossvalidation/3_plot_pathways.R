@@ -19,25 +19,54 @@ p1_file    <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results
 p2_file    <- "../data/outlier_genes.txt"
 resid_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/data/suggestive_strs_residuals.tsv"
 
+## ======================================================================
+## 0. ARGUMENTOS DE LINHA DE COMANDO (corresponde a 1_pathway_crossvalidation.R)
+##     Rscript 3_plot_pathways.R [--p1-file P] [--p2-file P]
+##                              [--p1-label L] [--p2-label L]
+##                              [--out BASE] [--gene-out BASE] [--fig PREF]
+##   --out       base das tabelas de vias (default: pathway_convergence)
+##   --gene-out  base da tabela de genes  (default: gene_convergence)
+##   --fig       prefixo das figuras      (default: vazio = nomes originais)
+## ======================================================================
+get_opt <- function(args, flag, default = NULL) {
+  i <- match(flag, args)
+  if (is.na(i)) default else args[i + 1]
+}
+args <- commandArgs(trailingOnly = TRUE)
+p1_file    <- get_opt(args, "--p1-file", p1_file)
+p2_file    <- get_opt(args, "--p2-file", p2_file)
+p1_lab     <- get_opt(args, "--p1-label", "P1")
+p2_lab     <- get_opt(args, "--p2-label", "P2")
+out_tag    <- get_opt(args, "--out", "pathway_convergence")
+gene_out   <- get_opt(args, "--gene-out", "gene_convergence")
+fig_prefix <- get_opt(args, "--fig", "")
+
 ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GALNAC3")
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
+
+read_gene_list <- function(path) {
+  d <- read_delim(path, delim = "\t")
+  gc <- grep("^gene(_name)?$", colnames(d), value = TRUE)[1]
+  if (is.na(gc)) stop("coluna 'gene'/'gene_name' nao encontrada em: ", path)
+  unique(toupper(str_trim(d[[gc]])))
+}
 
 ## ======================================================================
 ## FIG A: dotplot de vias enriquecidas por pipeline (nominal p<0.05; cor = classe)
 ## ======================================================================
 safe_read <- function(f) if (file.exists(f)) read_csv(f) else NULL
 
-PIPE_LAB <- c("P1" = "GWAS-COVID filtered", "P2" = "Global outliers")
+PIPE_LAB <- setNames(c(p1_lab, p2_lab), c("P1", "P2"))
 
 dfA <- bind_rows(
-  safe_read("results/KEGG_P1_enrich.csv")    %>% mutate(source = "KEGG",    pipeline = "P1"),
-  safe_read("results/KEGG_P2_enrich.csv")    %>% mutate(source = "KEGG",    pipeline = "P2"),
-  safe_read("results/Reactome_P1_enrich.csv") %>% mutate(source = "Reactome", pipeline = "P1"),
-  safe_read("results/Reactome_P2_enrich.csv") %>% mutate(source = "Reactome", pipeline = "P2")
+  safe_read(sprintf("results/KEGG_%s_enrich.csv", p1_lab)) %>% mutate(source = "KEGG",    pipeline = p1_lab),
+  safe_read(sprintf("results/KEGG_%s_enrich.csv", p2_lab)) %>% mutate(source = "KEGG",    pipeline = p2_lab),
+  safe_read(sprintf("results/Reactome_%s_enrich.csv", p1_lab)) %>% mutate(source = "Reactome", pipeline = p1_lab),
+  safe_read(sprintf("results/Reactome_%s_enrich.csv", p2_lab)) %>% mutate(source = "Reactome", pipeline = p2_lab)
 ) %>% filter(!is.na(pvalue) & pvalue < 0.05)
 
 if (!is.null(dfA) && nrow(dfA) > 0) {
-  cls <- tryCatch(read_delim("results/pathway_convergence_nominal_p005.tsv", delim = "\t"), error = function(e) NULL)
+  cls <- tryCatch(read_delim(sprintf("results/%s_nominal_p005.tsv", out_tag), delim = "\t"), error = function(e) NULL)
   if (!is.null(cls)) dfA <- left_join(dfA, cls %>% select(source, ID, class), by = c("source", "ID"))
   dfA <- dfA %>% mutate(n_gene = lengths(strsplit(geneID, "/")),
                         class = ifelse(is.na(.data$class), "None", as.character(.data$class)),
@@ -50,31 +79,31 @@ if (!is.null(dfA) && nrow(dfA) > 0) {
     facet_wrap(~ source, scales = "free_y") +
     theme_minimal() + labs(title = "Vias enriquecidas por pipeline (nominal p<0.05)",
                            x = "-log10(p bruto)", y = "", size = "n genes")
-  ggsave("results/figA_dotplot.png", pA, width = 12, height = 10, dpi = 300, bg = "white")
+  ggsave(sprintf("results/%sfigA_dotplot.png", fig_prefix), pA, width = 12, height = 10, dpi = 300, bg = "white")
   cat("Fig A ok\n")
 } else cat("Sem vias significativas para Fig A (veja *_top_pvalue.csv).\n")
 
 ## ======================================================================
 ## FIG B: cnetplot das vias High-Confidence + heatmap de membership
 ## ======================================================================
-cls_master  <- tryCatch(read_delim("results/pathway_convergence.tsv", delim = "\t"), error = function(e) NULL)
-cls_nominal <- tryCatch(read_delim("results/pathway_convergence_nominal_p005.tsv", delim = "\t"), error = function(e) NULL)
+cls_master  <- tryCatch(read_delim(sprintf("results/%s.tsv", out_tag), delim = "\t"), error = function(e) NULL)
+cls_nominal <- tryCatch(read_delim(sprintf("results/%s_nominal_p005.tsv", out_tag), delim = "\t"), error = function(e) NULL)
 if (!is.null(cls_nominal) && nrow(cls_nominal) > 0) {
   hc_k <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "KEGG"]
   hc_r <- cls_nominal$ID[cls_nominal$class == "High-Confidence" & cls_nominal$source == "Reactome"]
   plots_B <- list()
-  if (length(hc_k) > 0 && file.exists("results/KEGG_P1.rds")) {
-    kk <- readRDS("results/KEGG_P1.rds")
+  if (length(hc_k) > 0 && file.exists(sprintf("results/KEGG_%s.rds", p1_lab))) {
+    kk <- readRDS(sprintf("results/KEGG_%s.rds", p1_lab))
     plots_B <- c(plots_B, list(cnetplot(kk, showCategory = hc_k, colorEdge = TRUE) +
                                  labs(title = "High-Confidence (KEGG)")))
   }
-  if (length(hc_r) > 0 && file.exists("results/Reactome_P1.rds")) {
-    rr <- readRDS("results/Reactome_P1.rds")
+  if (length(hc_r) > 0 && file.exists(sprintf("results/Reactome_%s.rds", p1_lab))) {
+    rr <- readRDS(sprintf("results/Reactome_%s.rds", p1_lab))
     plots_B <- c(plots_B, list(cnetplot(rr, showCategory = hc_r, colorEdge = TRUE) +
                                  labs(title = "High-Confidence (Reactome)")))
   }
   if (length(plots_B) > 0) {
-    ggsave("results/figB_cnetplot.png", wrap_plots(plots_B, ncol = 1),
+    ggsave(sprintf("results/%sfigB_cnetplot.png", fig_prefix), wrap_plots(plots_B, ncol = 1),
            width = 10, height = 6 * length(plots_B), dpi = 300, bg = "white")
     cat("Fig B cnetplot ok\n")
   }
@@ -83,21 +112,21 @@ if (!is.null(cls_master) && nrow(cls_master) > 0) {
   mem <- cls_master %>% filter(class != "None") %>%
     select(source, ID, Description, class, in_p1, in_p2) %>%
     pivot_longer(cols = c(in_p1, in_p2), names_to = "pip", values_to = "member") %>%
-    mutate(pip = ifelse(pip == "in_p1", "P1", "P2"),
+    mutate(pip = ifelse(pip == "in_p1", p1_lab, p2_lab),
            lab = fct_reorder(paste(source, Description, sep = ": "), as.numeric(class)))
   pBmem <- ggplot(mem, aes(x = pip, y = lab, fill = member)) +
     geom_tile(color = "white") + scale_fill_manual(values = c("white", "#2C3E50")) +
     theme_minimal() + theme(axis.text.y = element_text(size = 7)) +
     labs(title = "Membership de vias por pipeline", x = "", y = "", fill = "na via")
-  ggsave("results/figB_membership.png", pBmem, width = 6, height = 10, dpi = 300, bg = "white")
+  ggsave(sprintf("results/%sfigB_membership.png", fig_prefix), pBmem, width = 6, height = 10, dpi = 300, bg = "white")
   cat("Fig B membership ok\n")
 }
 
 ## ======================================================================
 ## FIG C: sobreposicao com hsa05171 (COVID-19) via msigdbr (offline)
 ## ======================================================================
-p1_sym <- unique(toupper(str_trim(read_delim(p1_file, delim = "\t")$gene)))
-p2_sym <- unique(toupper(str_trim(read_delim(p2_file, delim = "\t")$gene_name)))
+p1_sym <- read_gene_list(p1_file)
+p2_sym <- read_gene_list(p2_file)
 tryCatch({
   library(msigdbr)
   ## msigdbr: curated pathways ficam em category = "C2", subcategory = "CP:KEGG"
@@ -106,16 +135,16 @@ tryCatch({
   covid_genes <- unique(kegg_covid$gene_symbol)
   dfc <- data.frame(gene = covid_genes, in_P1 = covid_genes %in% p1_sym,
                     in_P2 = covid_genes %in% p2_sym, stringsAsFactors = FALSE)
-  write.table(dfc, "results/hsa05171_overlap.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
+  write.table(dfc, sprintf("results/%s_hsa05171_overlap.tsv", out_tag), sep = "\t", row.names = FALSE, quote = FALSE)
   dfc_long <- dfc %>% pivot_longer(cols = c(in_P1, in_P2), names_to = "pip", values_to = "hit") %>%
-    mutate(pip = ifelse(pip == "in_P1", "P1", "P2"), gene = fct_reorder(gene, hit))
+    mutate(pip = ifelse(pip == "in_P1", p1_lab, p2_lab), gene = fct_reorder(gene, hit))
   pC <- ggplot(dfc_long, aes(x = pip, y = gene, fill = hit)) + geom_tile(color = "white") +
     scale_fill_manual(values = c("white", "#c0392b")) + theme_minimal() +
     theme(axis.text.y = element_text(size = 7)) +
     labs(title = "Genes da via KEGG hsa05171 (COVID-19) presentes nos hits",
          x = "", y = "", fill = "no hit")
-  ggsave("results/figC_hsa05171.png", pC, width = 5, height = 12, dpi = 300, bg = "white")
-  cat("Fig C ok: hsa05171", sum(dfc$in_P1), "em P1,", sum(dfc$in_P2), "em P2\n")
+  ggsave(sprintf("results/%sfigC_hsa05171.png", fig_prefix), pC, width = 5, height = 12, dpi = 300, bg = "white")
+  cat("Fig C ok: hsa05171", sum(dfc$in_P1), "em", p1_lab, ",", sum(dfc$in_P2), "em", p2_lab, "\n")
 }, error = function(e) cat("msigdbr indisponivel; pulando Fig C\n"))
 
 ## ======================================================================
@@ -124,7 +153,7 @@ tryCatch({
 if (file.exists(p1_file) && file.exists(resid_file)) {
   p1df <- read_delim(p1_file, delim = "\t")
   cv7 <- tryCatch({
-    gc <- read_delim("results/gene_convergence.tsv", delim = "\t")
+    gc <- read_delim(sprintf("results/%s.tsv", gene_out), delim = "\t")
     gc$gene[gc$strategy == "Cross-validated"]
   }, error = function(e) character(0))
   p1df <- p1df %>% mutate(
@@ -141,7 +170,7 @@ if (file.exists(p1_file) && file.exists(resid_file)) {
                                   "Original-8" = "#f1c40f", "Other" = "#3498DB")) +
     theme_minimal() + labs(title = "Manhattan-like dos 20 genes com STR-outlier (DBSCAN)",
                            x = "Posicao cromossomica (Mb)", y = "-log10(p)")
-  ggsave("results/fig_genelevel_manhattan.png", pMan, width = 10, height = 6, dpi = 300, bg = "white")
+  ggsave(sprintf("results/%sfig_genelevel_manhattan.png", fig_prefix), pMan, width = 10, height = 6, dpi = 300, bg = "white")
 
   resid <- read_delim(resid_file, delim = "\t")
   out7 <- p1df %>% filter(gene %in% cv7) %>% select(gene, strs_id, outlier_samples, outlier_residuals)
@@ -154,7 +183,7 @@ if (file.exists(p1_file) && file.exists(resid_file)) {
     theme_minimal() + theme(axis.text.x = element_blank()) +
     labs(title = "Residuos DBSCAN (subset COVID) - 7 genes crossvalidados",
          x = "", y = "allele2_residuals", color = "outlier")
-  ggsave("results/fig_genelevel_residual.png", pRes, width = 12, height = 8, dpi = 300, bg = "white")
+  ggsave(sprintf("results/%sfig_genelevel_residual.png", fig_prefix), pRes, width = 12, height = 8, dpi = 300, bg = "white")
   cat("Figuras gene-level ok\n")
 } else cat("Inputs gene-level ausentes; pulando suplementares.\n")
 
@@ -162,9 +191,10 @@ if (file.exists(p1_file) && file.exists(resid_file)) {
 ## FIG D: UpSet — sobreposicao P1 x P2 (genes com STR-outlier)
 ## ======================================================================
 tryCatch({
-  upset_lst <- list(`GWAS-filtered` = p1_sym, `Agnostic` = p2_sym)
-  png("results/fig_gene_upset.png", width = 8, height = 6, units = "in", res = 300, bg = "white")
-  upset(fromList(upset_lst), sets = c("GWAS-filtered", "Agnostic"),
+  upset_lst <- list(p1_lab = p1_sym, p2_lab = p2_sym)
+  names(upset_lst) <- c(p1_lab, p2_lab)
+  png(sprintf("results/%sfig_gene_upset.png", fig_prefix), width = 8, height = 6, units = "in", res = 300, bg = "white")
+  upset(fromList(upset_lst), sets = c(p1_lab, p2_lab),
         order.by = "freq", number.angles = 30,
         text.scale = c(1.4, 1.2, 1.2, 1, 1.4, 1.2),
         mainbar.y.label = "Genes por intersecao", sets.x.label = "Total por estrategia")

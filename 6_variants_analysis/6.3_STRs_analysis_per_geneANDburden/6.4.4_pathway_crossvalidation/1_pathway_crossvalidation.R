@@ -19,18 +19,52 @@ p1_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/co
 p2_file <- "../data/outlier_genes.txt"
 catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 
+## ======================================================================
+## 0. ARGUMENTOS DE LINHA DE COMANDO (parametrizacao GWAS x RNA)
+##     Rscript 1_pathway_crossvalidation.R [--p1-file P] [--p2-file P]
+##                                         [--p1-label L] [--p2-label L]
+##                                         [--out BASE]
+##   Exemplo (comparacao GWAS vs RNA):
+##     Rscript 1_pathway_crossvalidation.R \
+##       --p1-file ../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv \
+##       --p2-file ../../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
+##       --p1-label GWAS --p2-label RNA \
+##       --out pathway_convergence_gwas_rna
+##   Sem argumentos: comportamento retroativo (P1=GWAS, P2=agnostico).
+## ======================================================================
+get_opt <- function(args, flag, default = NULL) {
+  i <- match(flag, args)
+  if (is.na(i)) default else args[i + 1]
+}
+args <- commandArgs(trailingOnly = TRUE)
+p1_file <- get_opt(args, "--p1-file", p1_file)
+p2_file <- get_opt(args, "--p2-file", p2_file)
+p1_lab  <- get_opt(args, "--p1-label", "P1")
+p2_lab  <- get_opt(args, "--p2-label", "P2")
+out_tag <- get_opt(args, "--out", "pathway_convergence")
+
+cat("[args] p1_file =", p1_file, "\n")
+cat("[args] p2_file =", p2_file, "\n")
+cat("[args] labels  =", p1_lab, "vs", p2_lab, "\n")
+cat("[args] out tag =", out_tag, "\n")
+
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 
 ## ======================================================================
 ## 1. LISTAS DE GENES (SIMBOLOS)
 ## ======================================================================
-p1 <- read_delim(p1_file, delim = "\t")
-p1_sym <- unique(toupper(str_trim(p1$gene)))
-cat("[P1] genes sugestivos com STR-outlier:", length(p1_sym), "\n")
+read_gene_list <- function(path) {
+  d <- read_delim(path, delim = "\t")
+  gc <- grep("^gene(_name)?$", colnames(d), value = TRUE)[1]
+  if (is.na(gc)) stop("coluna 'gene'/'gene_name' nao encontrada em: ", path)
+  unique(toupper(str_trim(d[[gc]])))
+}
 
-p2 <- read_delim(p2_file, delim = "\t")
-p2_sym <- unique(toupper(str_trim(p2$gene_name)))
-cat("[P2] genes genome-wide com STR-outlier:", length(p2_sym), "\n")
+p1_sym <- read_gene_list(p1_file)
+cat(sprintf("[%s] genes sugestivos com STR-outlier: %d\n", p1_lab, length(p1_sym)))
+
+p2_sym <- read_gene_list(p2_file)
+cat(sprintf("[%s] genes com STR-outlier: %d\n", p2_lab, length(p2_sym)))
 
 cat_tbl <- read_delim(catalog, delim = "\t")
 gene_col <- names(cat_tbl)[grep("gene_name|\\bgene\\b", tolower(names(cat_tbl)))[1]]
@@ -52,8 +86,8 @@ p1_mapped <- sym2entrez(p1_sym); p1_mapped <- p1_mapped[!is.na(p1_mapped)]
 p2_mapped <- sym2entrez(p2_sym); p2_mapped <- p2_mapped[!is.na(p2_mapped)]
 p1_entrez <- intersect(p1_mapped, bg_entrez)
 p2_entrez <- intersect(p2_mapped, bg_entrez)
-cat("[P1] foreground ENTREZ:", length(p1_entrez),
-    " | [P2] foreground ENTREZ:", length(p2_entrez), "\n")
+cat(sprintf("[%s] foreground ENTREZ: %d | [%s] foreground ENTREZ: %d\n",
+            p1_lab, length(p1_entrez), p2_lab, length(p2_entrez)))
 
 if (length(p1_entrez) < 5) stop("P1 muito pequeno para enrichment")
 if (length(p2_entrez) < 5) stop("P2 muito pequeno para enrichment")
@@ -104,10 +138,10 @@ extract_all <- function(res, source_name, pipeline) {
              geneID = r$geneID, stringsAsFactors = FALSE)
 }
 all_sig <- bind_rows(
-  extract_all(kk_p1, "KEGG",     "P1"),
-  extract_all(kk_p2, "KEGG",     "P2"),
-  extract_all(re_p1, "Reactome", "P1"),
-  extract_all(re_p2, "Reactome", "P2"))
+  extract_all(kk_p1, "KEGG",     p1_lab),
+  extract_all(kk_p2, "KEGG",     p2_lab),
+  extract_all(re_p1, "Reactome", p1_lab),
+  extract_all(re_p2, "Reactome", p2_lab))
 cat("[all_sig] vias testadas retidas:", nrow(all_sig), "\n")
 
 ## debug: top pathways por pvalue (mesmo que nenhuma passe FDR) para inspecao
@@ -117,8 +151,8 @@ dump_top <- function(res, tag) {
     write.csv(head(d, 15), sprintf("results/%s_top_pvalue.csv", tag), row.names = FALSE)
   }
 }
-dump_top(kk_p1, "KEGG_P1"); dump_top(kk_p2, "KEGG_P2")
-dump_top(re_p1, "Reactome_P1"); dump_top(re_p2, "Reactome_P2")
+dump_top(kk_p1, paste0("KEGG_", p1_lab)); dump_top(kk_p2, paste0("KEGG_", p2_lab))
+dump_top(re_p1, paste0("Reactome_", p1_lab)); dump_top(re_p2, paste0("Reactome_", p2_lab))
 
 save_individual <- function(res, tag) {
   if (!is.null(res) && nrow(res@result) > 0) {
@@ -126,8 +160,8 @@ save_individual <- function(res, tag) {
     write.csv(as.data.frame(res), sprintf("results/%s_enrich.csv", tag), row.names = FALSE)
   }
 }
-save_individual(kk_p1, "KEGG_P1"); save_individual(kk_p2, "KEGG_P2")
-save_individual(re_p1, "Reactome_P1"); save_individual(re_p2, "Reactome_P2")
+save_individual(kk_p1, paste0("KEGG_", p1_lab)); save_individual(kk_p2, paste0("KEGG_", p2_lab))
+save_individual(re_p1, paste0("Reactome_", p1_lab)); save_individual(re_p2, paste0("Reactome_", p2_lab))
 
 ## ======================================================================
 ## 4. CLASSIFICACAO DE CROSS-VALIDATION (nivel via) POR THRESHOLD
@@ -149,20 +183,20 @@ summarise_cls <- function(sig, tag) {
   } else {
     cls <- sig %>% group_by(source, ID) %>% summarise(
       Description  = Description[1],
-      p1_pvalue    = minna(pvalue[pipeline == "P1"]),
-      p2_pvalue    = minna(pvalue[pipeline == "P2"]),
-      p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),
-      p2_p.adjust  = minna(p.adjust[pipeline == "P2"]),
-      in_p1 = any(pipeline == "P1"),
-      in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
+      p1_pvalue    = minna(pvalue[pipeline == p1_lab]),
+      p2_pvalue    = minna(pvalue[pipeline == p2_lab]),
+      p1_p.adjust  = minna(p.adjust[pipeline == p1_lab]),
+      p2_p.adjust  = minna(p.adjust[pipeline == p2_lab]),
+      in_p1 = any(pipeline == p1_lab),
+      in_p2 = any(pipeline == p2_lab), .groups = "drop") %>% mutate(
       class = case_when(in_p1 & in_p2 ~ "High-Confidence",
                         in_p1            ~ "Hypothesis-Driven",
                         in_p2            ~ "Agnostic-Specific",
                         TRUE             ~ "None"))
   }
-  write.table(cls, sprintf("results/pathway_convergence_%s.tsv", tag),
+  write.table(cls, sprintf("results/%s_%s.tsv", out_tag, tag),
               sep = "\t", row.names = FALSE, quote = FALSE)
-  write.csv(cls, sprintf("results/pathway_convergence_%s.csv", tag), row.names = FALSE)
+  write.csv(cls, sprintf("results/%s_%s.csv", out_tag, tag), row.names = FALSE)
   if (nrow(cls) > 0)
     cat(sprintf("[%s] High-Confidence: %d | Hypothesis-Driven: %d | Agnostic-Specific: %d\n",
                 tag, sum(cls$class == "High-Confidence"),
@@ -185,12 +219,12 @@ build_convergence_fdr001  <- summarise_cls(sig_fdr001,  "fdr001")
 ## ======================================================================
 master <- all_sig %>% group_by(source, ID) %>% summarise(
   Description  = Description[1],
-  p1_pvalue    = minna(pvalue[pipeline == "P1"]),
-  p2_pvalue    = minna(pvalue[pipeline == "P2"]),
-  p1_p.adjust  = minna(p.adjust[pipeline == "P1"]),
-  p2_p.adjust  = minna(p.adjust[pipeline == "P2"]),
-  in_p1 = any(pipeline == "P1"),
-  in_p2 = any(pipeline == "P2"), .groups = "drop") %>% mutate(
+  p1_pvalue    = minna(pvalue[pipeline == p1_lab]),
+  p2_pvalue    = minna(pvalue[pipeline == p2_lab]),
+  p1_p.adjust  = minna(p.adjust[pipeline == p1_lab]),
+  p2_p.adjust  = minna(p.adjust[pipeline == p2_lab]),
+  in_p1 = any(pipeline == p1_lab),
+  in_p2 = any(pipeline == p2_lab), .groups = "drop") %>% mutate(
   pass_nominal = (in_p1 & !is.na(p1_pvalue) & p1_pvalue < 0.05) |
                  (in_p2 & !is.na(p2_pvalue) & p2_pvalue < 0.05),
   pass_fdr005  = (in_p1 & !is.na(p1_p.adjust) & p1_p.adjust < 0.05) |
@@ -201,7 +235,7 @@ master <- all_sig %>% group_by(source, ID) %>% summarise(
                     in_p1            ~ "Hypothesis-Driven",
                     in_p2            ~ "Agnostic-Specific",
                     TRUE             ~ "None"))
-write.table(master, "results/pathway_convergence.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
-cat("Tabela-mae: results/pathway_convergence.tsv (", nrow(master), " vias unicas)\n", sep = "")
+write.table(master, sprintf("results/%s.tsv", out_tag), sep = "\t", row.names = FALSE, quote = FALSE)
+cat(sprintf("Tabela-mae: results/%s.tsv (%d vias unicas)\n", out_tag, nrow(master)))
 
 cat("\n=== Pronto: tabelas em results/ (figuras em plot_pathways.R) ===\n")

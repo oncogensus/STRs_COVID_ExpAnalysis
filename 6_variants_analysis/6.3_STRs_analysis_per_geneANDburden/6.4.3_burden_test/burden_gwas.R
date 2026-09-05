@@ -1,4 +1,4 @@
-﻿suppressMessages({
+suppressMessages({
   library(data.table)
   library(dplyr)
   if (!requireNamespace("SKAT", quietly = TRUE)) {
@@ -13,25 +13,49 @@ norm_file  <- file.path(REPO_ROOT, "5_global_dbscan/norm_test/STRs_normalized_re
 pca_file   <- file.path(REPO_ROOT, "4_ancestry/EthSEQ_Results_3D/Report.PCAcoord")
 pheno_file <- file.path(REPO_ROOT, "samples/samples_infos.csv")
 
-strategy <- "gwas_burden"
+# ---------------------------------------------------------------------------
+# Parametros por linha de comando (Rscript burden_gwas.R [--strategy ...] ...)
+#   --strategy   gwas_burden (default) | gwas | global | rna_burden
+#   --background caminho alternativo do arquivo de background (gene x STR)
+#   --out-dir    diretorio de saida alternativo
+# Compatibilidade retroativa: sem argumentos roda strategy="gwas_burden".
+# ---------------------------------------------------------------------------
+get_opt <- function(args, flag, default = NULL) {
+  i <- match(flag, args)
+  if (is.na(i)) default else args[i + 1]
+}
+
+cmd_args <- commandArgs(trailingOnly = TRUE)
+strategy        <- get_opt(cmd_args, "--strategy", "gwas_burden")
+background_opt  <- get_opt(cmd_args, "--background")
+out_dir_opt     <- get_opt(cmd_args, "--out-dir")
+remove_sample_outliers <- FALSE
 
 if (strategy == "gwas_burden") {
   background_file <- file.path(REPO_ROOT,
     "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv")
   out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas_burden")
-  remove_sample_outliers <- FALSE
+} else if (strategy == "rna_burden") {
+  background_file <- file.path(REPO_ROOT,
+    "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_gene_strs.tsv")
+  out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_rna")
 } else if (strategy == "gwas") {
   outlier_file <- file.path(REPO_ROOT,
     "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
   outlier_col <- "outlier_samples"
   out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results_gwas")
-  remove_sample_outliers <- FALSE
 } else {
   outlier_file <- file.path(REPO_ROOT, "5_dbscan/outliers_search/results_dbscan/outliers_per_str.tsv")
   outlier_col <- "outlier_samples"
   out_dir <- file.path(REPO_ROOT, "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test/results")
   remove_sample_outliers <- TRUE
 }
+
+if (!is.null(background_opt)) background_file <- background_opt
+if (!is.null(out_dir_opt))    out_dir        <- out_dir_opt
+
+cat("=== Strategy:", strategy, "===\n")
+cat("out_dir:", out_dir, "\n")
 
 case_label       <- "case"
 control_label    <- "control"
@@ -59,17 +83,18 @@ load_inputs <- function() {
   id_map <- norm %>% distinct(sample_id, sample_id_clean)
   str_meta <- norm %>% distinct(STRs_ID, gene_id, gene_name, region)
 
-  if (strategy == "gwas_burden") {
+  if (strategy %in% c("gwas_burden", "rna_burden")) {
     if (!file.exists(background_file)) stop("background_file nao encontrado: ", background_file)
     bg <- fread(background_file, header = TRUE, sep = "\t", data.table = FALSE)
+    if (!"strs_id" %in% colnames(bg)) stop("background_file deve conter coluna 'strs_id'")
     bg_strs <- unique(bg$strs_id)
-    cat("[gwas_burden] STRs no background:", length(bg_strs), "\n")
+    cat(sprintf("[%s] STRs no background: %d\n", strategy, length(bg_strs)))
 
     dos <- norm[norm$STRs_ID %in% bg_strs, c("STRs_ID", "sample_id_clean", "allele2_est")]
     dos <- dos[!is.na(dos$allele2_est), ]
 
-    cat("[gwas_burden] STRs com dosagem:", length(unique(dos$STRs_ID)), "\n")
-    cat("[gwas_burden] Amostras com dosagem:", length(unique(dos$sample_id_clean)), "\n")
+    cat(sprintf("[%s] STRs com dosagem: %d\n", strategy, length(unique(dos$STRs_ID))))
+    cat(sprintf("[%s] Amostras com dosagem: %d\n", strategy, length(unique(dos$sample_id_clean))))
 
     dos_dt <- as.data.table(dos)
     wide <- dcast(dos_dt, sample_id_clean ~ STRs_ID, value.var = "allele2_est",

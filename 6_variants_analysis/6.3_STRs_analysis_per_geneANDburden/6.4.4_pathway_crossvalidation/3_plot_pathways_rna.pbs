@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N STR6414_plots_rna
+#PBS -o 3_plot_pathways_rna.out
+#PBS -e 3_plot_pathways_rna.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.4_pathway_crossvalidation"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+RNA_FILE="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv"
+[ -f "$RNA_FILE" ] || { echo "ERRO: $RNA_FILE ausente (rode cross_DEGs_STRs.py em 6.4.2.2)"; exit 1; }
+
+echo "=== 3/3 figuras — GWAS x RNA ==="
+"$R_BIN" 3_plot_pathways.R \
+  --p2-file "$RNA_FILE" \
+  --p1-label GWAS --p2-label RNA \
+  --out pathway_convergence_gwas_rna \
+  --gene-out gene_convergence_gwas_rna \
+  --fig gwas_rna_
+echo "=== FIM ==="

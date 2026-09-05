@@ -8,6 +8,12 @@ com o catalogo de STRs da coorte, incluindo metricas DBSCAN global e GWAS.
 Saidas:
   1) all_STRs_in_DEGs.tsv       – todos os STRs anotados nos genes DEGs
   2) outlier_STRs_in_DEGs.tsv   – apenas STRs com outliers DBSCAN global
+  3) rna_gene_strs.tsv          – pares gene x STR dos DEGs (analogo GWAS
+                                  suggestive_gene_strs.tsv), com acesso GSE
+  4) rna_outlier_genes.tsv      – STRs outlier por gene/DEG (analogo GWAS
+                                  covid_suggestive_genes_with_outlier_STRs.tsv),
+                                  com acesso GSE de origem
+  5) rna_outlier_genes_by_study.tsv – contagem de STRs outlier por (gene, GSE)
 
 Uso:
   python3 cross_DEGs_STRs.py \
@@ -257,6 +263,103 @@ def main():
         w.writeheader()
         w.writerows(outlier_matches)
     sys.stderr.write(f"Escrito: {out_outlier} ({len(outlier_matches)} linhas)\n")
+
+    # ----------------------------------------------------------------------
+    # Saidas adicionais (análogas ao pipeline GWAS 6.4.1.2), com sufixo RNA
+    # e indicando o estudo de origem (acesso GSE) de cada registro.
+    # ----------------------------------------------------------------------
+
+    def gse_name(dataset_label):
+        # dataset = "GSE157103/<arquivo>..."; retorna o acesso GSE
+        return dataset_label.split('/')[0]
+
+    # 1) rna_gene_strs.tsv — background gene x STR dos DEGs (analogo de
+    #    suggestive_gene_strs.tsv), 1 linha por (gene, strs_id), com datasets.
+    pairs = {}   # (gene, STRs_ID) -> dict agregado
+    for m in all_matches:
+        key = (m['gene_name'], m['STRs_ID'])
+        if key not in pairs:
+            pairs[key] = {
+                'gene': m['gene_name'],
+                'strs_id': m['STRs_ID'],
+                'chrom': m['chrom'],
+                'start': m['start'],
+                'end': m['end'],
+                'repeat_unit': m['repeat_unit'],
+                'region': m['region'],
+                'datasets': [],
+            }
+        gse = gse_name(m['dataset'])
+        if gse not in pairs[key]['datasets']:
+            pairs[key]['datasets'].append(gse)
+
+    bg_fields = ['gene', 'strs_id', 'chrom', 'start', 'end',
+                 'repeat_unit', 'region', 'datasets']
+    out_bg = os.path.join(args.out_dir, 'rna_gene_strs.tsv')
+    with open(out_bg, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=bg_fields, delimiter='\t')
+        w.writeheader()
+        for key in sorted(pairs.keys()):
+            row = dict(pairs[key])
+            row['datasets'] = ';'.join(sorted(row['datasets']))
+            w.writerow(row)
+    sys.stderr.write(f"Escrito: {out_bg} ({len(pairs)} pares gene x STR)\n")
+
+    # 2) rna_outlier_genes.tsv — análogo por gene de
+    #    covid_suggestive_genes_with_outlier_STRs.tsv. 1 linha por
+    #    (gene, strs_id, dataset) para DEGs com outlier DBSCAN global,
+    #    incluindo a origem (acesso GSE).
+    og_fields = ['gene', 'dataset', 'gse', 'strs_id', 'chrom', 'start', 'end',
+                 'repeat_unit', 'region',
+                 'logFC', 'FDR', 'Direction',
+                 'n_outliers_dbscan_global', 'outlier_samples_dbscan_global',
+                 'outlier_residuals_dbscan_global', 'n_clusters_dbscan_global',
+                 'noise_ratio_dbscan_global',
+                 'n_outliers_dbscan_gwas', 'outlier_samples_dbscan_gwas',
+                 'outlier_residuals_dbscan_gwas', 'n_clusters_dbscan_gwas',
+                 'noise_ratio_dbscan_gwas']
+    out_og = os.path.join(args.out_dir, 'rna_outlier_genes.tsv')
+    og_rows = []
+    for m in outlier_matches:
+        row = {
+            'gene': m['gene_name'],
+            'dataset': m['dataset'],
+            'gse': gse_name(m['dataset']),
+            'strs_id': m['STRs_ID'],
+            'chrom': m['chrom'], 'start': m['start'], 'end': m['end'],
+            'repeat_unit': m['repeat_unit'], 'region': m['region'],
+            'logFC': m['logFC'], 'FDR': m['FDR'], 'Direction': m['Direction'],
+            'n_outliers_dbscan_global': m['n_outliers_dbscan_global'],
+            'outlier_samples_dbscan_global': m['outlier_samples_dbscan_global'],
+            'outlier_residuals_dbscan_global': m['outlier_residuals_dbscan_global'],
+            'n_clusters_dbscan_global': m['n_clusters_dbscan_global'],
+            'noise_ratio_dbscan_global': m['noise_ratio_dbscan_global'],
+            'n_outliers_dbscan_gwas': m['n_outliers_dbscan_gwas'],
+            'outlier_samples_dbscan_gwas': m['outlier_samples_dbscan_gwas'],
+            'outlier_residuals_dbscan_gwas': m['outlier_residuals_dbscan_gwas'],
+            'n_clusters_dbscan_gwas': m['n_clusters_dbscan_gwas'],
+            'noise_ratio_dbscan_gwas': m['noise_ratio_dbscan_gwas'],
+        }
+        og_rows.append(row)
+    with open(out_og, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=og_fields, delimiter='\t')
+        w.writeheader()
+        w.writerows(og_rows)
+    sys.stderr.write(f"Escrito: {out_og} ({len(og_rows)} linhas gene x STR x GSE)\n")
+
+    # 3) rna_outlier_genes_per_datasets.tsv — resumo por (gene, GSE): quantos
+    #    STRs outlier em cada estudo. Util para inspeção rapida.
+    per_gse = {}
+    for row in og_rows:
+        key = (row['gene'], row['gse'])
+        per_gse[key] = per_gse.get(key, 0) + 1
+    out_pg = os.path.join(args.out_dir, 'rna_outlier_genes_by_study.tsv')
+    with open(out_pg, 'w', newline='') as f:
+        w = csv.writer(f, delimiter='\t')
+        w.writerow(['gene', 'gse', 'n_outlier_str_loci'])
+        for (gene, gse), n in sorted(per_gse.items()):
+            w.writerow([gene, gse, n])
+    sys.stderr.write(f"Escrito: {out_pg} ({len(per_gse)} pares gene x GSE)\n")
 
     sys.stderr.write("\n=== Resumo por gene ===\n")
     genes_summary = {}

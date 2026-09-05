@@ -1,9 +1,17 @@
 #!/usr/bin/env Rscript
-## gene_crossvalidation.R  (ETAPA DE GENES — cross-validation agnostic x GWAS-filtered)
-## Cruza os genes com STR-outlier de duas estrategias:
+## gene_crossvalidation.R  (ETAPA DE GENES — cross-validation de duas estrategias)
+## Cruza os genes com STR-outlier de duas estrategias (ex.: GWAS-filtrado x RNA).
 ##   P1 (GWAS-filtrado): outliers DBSCAN restritos a genes COVID GWAS-suggestivos (p<1e-5)
-##   P2 (agnostico)    : outliers DBSCAN genome-wide
-## Gera results/gene_convergence.tsv/.csv (classes). Figuras ficam em 3_plot_pathways.R.
+##   P2 (RNA)          : outliers DBSCAN em genes DEGs de RNA-seq
+## Gera results/<out>_gene_convergence.tsv/.csv (classes). Figuras ficam em 3_plot_pathways.R.
+##
+## Uso:
+##   Rscript 2_gene_crossvalidation.R [--p1-file P] [--p2-file P]
+##                                   [--p1-label L] [--p2-label L] [--out NAME]
+## Exemplo (GWAS x RNA):
+##   Rscript 2_gene_crossvalidation.R \
+##     --p2-file ../../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
+##     --p1-label GWAS --p2-label RNA --out gwas_rna
 suppressMessages({
   library(stringr)
   library(dplyr)
@@ -15,7 +23,22 @@ suppressMessages({
 ROOT <- normalizePath("../../../..")
 p1_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
 p2_file <- "../data/outlier_genes.txt"
-catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
+
+get_opt <- function(args, flag, default = NULL) {
+  i <- match(flag, args)
+  if (is.na(i)) default else args[i + 1]
+}
+args <- commandArgs(trailingOnly = TRUE)
+p1_file <- get_opt(args, "--p1-file", p1_file)
+p2_file <- get_opt(args, "--p2-file", p2_file)
+p1_lab  <- get_opt(args, "--p1-label", "P1")
+p2_lab  <- get_opt(args, "--p2-label", "P2")
+out_tag <- get_opt(args, "--out", "gene_convergence")
+
+cat("[args] p1_file =", p1_file, "\n")
+cat("[args] p2_file =", p2_file, "\n")
+cat("[args] labels  =", p1_lab, "vs", p2_lab, "\n")
+cat("[args] out tag =", out_tag, "\n")
 
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 
@@ -24,13 +47,18 @@ ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GAL
 ## ======================================================================
 ## 1. LISTAS DE GENES (SIMBOLOS)
 ## ======================================================================
-p1 <- read_delim(p1_file, delim = "\t")
-p1_sym <- unique(toupper(str_trim(p1$gene)))
-cat("[P1] genes sugestivos com STR-outlier (GWAS-filtrado):", length(p1_sym), "\n")
+read_gene_list <- function(path) {
+  d <- read_delim(path, delim = "\t")
+  gc <- grep("^gene(_name)?$", colnames(d), value = TRUE)[1]
+  if (is.na(gc)) stop("coluna 'gene'/'gene_name' nao encontrada em: ", path)
+  unique(toupper(str_trim(d[[gc]])))
+}
 
-p2 <- read_delim(p2_file, delim = "\t")
-p2_sym <- unique(toupper(str_trim(p2$gene_name)))
-cat("[P2] genes genome-wide com STR-outlier (agnostico):", length(p2_sym), "\n")
+p1_sym <- read_gene_list(p1_file)
+cat(sprintf("[%s] genes com STR-outlier: %d\n", p1_lab, length(p1_sym)))
+
+p2_sym <- read_gene_list(p2_file)
+cat(sprintf("[%s] genes com STR-outlier: %d\n", p2_lab, length(p2_sym)))
 
 ## ======================================================================
 ## 2. MAPEAMENTO SYMBOL -> ENTREZ
@@ -47,7 +75,10 @@ entrez_map <- entrez_map[!is.na(entrez_map)]
 ## 3. CLASSIFICACAO DE CROSS-VALIDATION (nivel gene)
 ## ======================================================================
 shared <- intersect(p1_sym, p2_sym)
-cat("Genes cross-validados (P1 & P2):", length(shared), "\n")
+cat(sprintf("Genes cross-validados (%s & %s): %d\n", p1_lab, p2_lab, length(shared)))
+
+p1_only_lab <- paste0(p1_lab, "-only")
+p2_only_lab <- paste0(p2_lab, "-only")
 
 gene_conv <- data.frame(
   gene  = all_sym,
@@ -56,18 +87,20 @@ gene_conv <- data.frame(
   in_p2 = all_sym %in% p2_sym,
   stringsAsFactors = FALSE) %>% mutate(
   strategy = case_when(in_p1 & in_p2 ~ "Cross-validated",
-                       in_p1            ~ "GWAS-filtered-only",
-                       in_p2            ~ "Agnostic-only",
+                       in_p1            ~ p1_only_lab,
+                       in_p2            ~ p2_only_lab,
                        TRUE             ~ "None"),
   original_8 = gene %in% ORIGINAL_8)
 
-write.table(gene_conv, "results/gene_convergence.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
-write.csv(gene_conv, "results/gene_convergence.csv", row.names = FALSE)
+out_tsv <- sprintf("results/%s.tsv", out_tag)
+out_csv <- sprintf("results/%s.csv", out_tag)
+write.table(gene_conv, out_tsv, sep = "\t", row.names = FALSE, quote = FALSE)
+write.csv(gene_conv, out_csv, row.names = FALSE)
 
 cat("=== Gene-level cross-validation: classes ===\n")
-cat("Cross-validated   :", sum(gene_conv$strategy == "Cross-validated"), "\n")
-cat("GWAS-filtered-only:", sum(gene_conv$strategy == "GWAS-filtered-only"), "\n")
-cat("Agnostic-only     :", sum(gene_conv$strategy == "Agnostic-only"), "\n")
+cat("Cross-validated :", sum(gene_conv$strategy == "Cross-validated"), "\n")
+cat(p1_only_lab, ":", sum(gene_conv$strategy == p1_only_lab), "\n")
+cat(p2_only_lab, ":", sum(gene_conv$strategy == p2_only_lab), "\n")
 cat("Dentre os 8 genes STR originais presentes:", sum(gene_conv$original_8), "\n")
 
-cat("\n=== Pronto: results/gene_convergence.tsv ===\n")
+cat(sprintf("\n=== Pronto: %s ===\n", out_tsv))

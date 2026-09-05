@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q workq
-#PBS -N burden_gwas
-#PBS -o burden_gwas.out
-#PBS -e burden_gwas.err
+#PBS -N burden_rna
+#PBS -o burden_rna.out
+#PBS -e burden_rna.err
 #PBS -V
 
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
@@ -20,4 +20,6 @@ cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 
 git stash; git pull; git stash pop || true
 
-"$R_BIN" burden_gwas.R --strategy gwas_burden
+# Estrategia RNA: usa rna_gene_strs.tsv (gerado por cross_DEGs_STRs.py)
+# como background e grava em results_rna.
+"$R_BIN" burden_gwas.R --strategy rna_burden
