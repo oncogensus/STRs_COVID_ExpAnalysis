@@ -1,0 +1,39 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N burden_both
+#PBS -o burden_both.out
+#PBS -e burden_both.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test"
+
+GWAS_BG="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv"
+RNA_BG="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_gene_strs.tsv"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+# --- Pre-checagem fail-fast dos backgrounds ---
+for f in "$GWAS_BG" "$RNA_BG"; do
+  if [ ! -f "$f" ]; then
+    echo "ERRO: background ausente: $f"
+    exit 1
+  fi
+done
+
+for STRAT in gwas_burden rna_burden; do
+  echo "=== Burden strategy: $STRAT ==="
+  "$R_BIN" burden_gwas.R --strategy "$STRAT" || { echo "ERRO na estrategia $STRAT"; exit 1; }
+done
+
+echo "=== FIM: resultados em results_gwas_burden/ e results_rna/ ==="
