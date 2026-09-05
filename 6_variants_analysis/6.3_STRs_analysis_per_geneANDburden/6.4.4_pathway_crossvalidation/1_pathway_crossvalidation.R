@@ -14,8 +14,8 @@ suppressMessages({
   library(AnnotationDbi)
 })
 
-ROOT <- normalizePath("../../../..")
-p1_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
+ROOT <- normalizePath("../../..")
+p1_file <- "../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
 p2_file <- "../data/outlier_genes.txt"
 catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 
@@ -26,8 +26,8 @@ catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 ##                                         [--out BASE]
 ##   Exemplo (comparacao GWAS vs RNA):
 ##     Rscript 1_pathway_crossvalidation.R \
-##       --p1-file ../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv \
-##       --p2-file ../../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
+##       --p1-file ../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv \
+##       --p2-file ../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
 ##       --p1-label GWAS --p2-label RNA \
 ##       --out pathway_convergence_gwas_rna
 ##   Sem argumentos: comportamento retroativo (P1=GWAS, P2=agnostico).

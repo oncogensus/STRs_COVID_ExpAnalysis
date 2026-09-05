@@ -10,7 +10,7 @@
 ##                                   [--p1-label L] [--p2-label L] [--out NAME]
 ## Exemplo (GWAS x RNA):
 ##   Rscript 2_gene_crossvalidation.R \
-##     --p2-file ../../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
+##     --p2-file ../6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv \
 ##     --p1-label GWAS --p2-label RNA --out gwas_rna
 suppressMessages({
   library(stringr)
@@ -20,8 +20,8 @@ suppressMessages({
   library(org.Hs.eg.db)
 })
 
-ROOT <- normalizePath("../../../..")
-p1_file <- "../../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
+ROOT <- normalizePath("../../..")
+p1_file <- "../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"
 p2_file <- "../data/outlier_genes.txt"
 
 get_opt <- function(args, flag, default = NULL) {
