@@ -107,7 +107,29 @@ def main():
                                         row.get('mean_residual', ''))
 
     # ----------------------------------------------------------------------
-    # 4) Classificar STRs e escrever tabela de saida
+    # 4) Contar outliers globais (todos os STRs, nao so com GWAS hit)
+    # ----------------------------------------------------------------------
+    total_strs_with_global_outliers = 0
+    total_global_outlier_instances = 0
+    strs_with_global_in_suggestive = 0
+    global_outliers_in_suggestive = 0
+    strs_with_global_in_significant = 0
+    global_outliers_in_significant = 0
+
+    for sid, info in str_info.items():
+        n_out = info['global_outliers']
+        if n_out >= 1:
+            total_strs_with_global_outliers += 1
+            total_global_outlier_instances += n_out
+            if info['gwas_hit'] == '1':
+                strs_with_global_in_suggestive += 1
+                global_outliers_in_suggestive += n_out
+                if info['gene_name'] in sig_genes:
+                    strs_with_global_in_significant += 1
+                    global_outliers_in_significant += n_out
+
+    # ----------------------------------------------------------------------
+    # 5) Classificar STRs e escrever tabela de saida
     # ----------------------------------------------------------------------
     # Contagens para sugestivo
     n_with_gwas_hit = 0
@@ -268,6 +290,17 @@ def main():
             len(sig_genes_with_global_only), total_genes_sugg, total_genes_sig)
         add('signal_genes', 'subset_only', len(genes_with_gwas_only),
             len(sig_genes_with_gwas_only), total_genes_sugg, total_genes_sig)
+        # Outliers globais
+        add('global_outliers', 'strs_with_outliers', total_strs_with_global_outliers,
+            total_strs_with_global_outliers, len(total_strs), len(total_strs))
+        add('global_outliers', 'total_instances', total_global_outlier_instances,
+            total_global_outlier_instances, len(total_strs), len(total_strs))
+        add('global_outliers', 'in_suggestive_genes', strs_with_global_in_suggestive,
+            strs_with_global_in_significant, total_strs_with_global_outliers,
+            total_strs_with_global_outliers)
+        add('global_outliers', 'instances_in_suggestive', global_outliers_in_suggestive,
+            global_outliers_in_significant, total_global_outlier_instances,
+            total_global_outlier_instances)
 
     # Imprime resumo formatado no stderr
     sep = "=" * 55
@@ -302,7 +335,13 @@ def main():
     sys.stderr.write(f"  {'  % do total':30s} {pct(len(genes_with_any_signal), total_genes_sugg):>11s}% {pct(len(sig_genes_with_any_signal), total_genes_sig):>13s}%\n")
     sys.stderr.write(f"  {'Ambos':30s} {len(genes_with_both):>12d} {len(sig_genes_with_both):>14d}\n")
     sys.stderr.write(f"  {'Apenas global':30s} {len(genes_with_global_only):>12d} {len(sig_genes_with_global_only):>14d}\n")
-    sys.stderr.write(f"  {'Apenas subset':30s} {len(genes_with_gwas_only):>12d} {len(sig_genes_with_gwas_only):>14d}\n")
+    sys.stderr.write(f"  {'Apenas subset':30s} {len(genes_with_gwas_only):>12d} {len(sig_genes_with_gwas_only):>14d}\n\n")
+
+    sys.stderr.write("[Outliers Globais — DBSCAN global (todos os STRs)]\n")
+    sys.stderr.write(f"  STRs com outlier global:          {total_strs_with_global_outliers:>10,}\n")
+    sys.stderr.write(f"  Total instancias outlier:         {total_global_outlier_instances:>10,}\n")
+    sys.stderr.write(f"  Em genes sugestivos:    {strs_with_global_in_suggestive:>6d} STRs  ({global_outliers_in_suggestive:>6d} instancias)  [{pct(strs_with_global_in_suggestive, total_strs_with_global_outliers)}%]\n")
+    sys.stderr.write(f"  Em genes significativos: {strs_with_global_in_significant:>6d} STRs  ({global_outliers_in_significant:>6d} instancias)  [{pct(strs_with_global_in_significant, total_strs_with_global_outliers)}%]\n")
     sys.stderr.write(f"\n{sep}\n")
     sys.stderr.write(f"  Saida: {args.out}\n")
     sys.stderr.write(f"  Resumo: {args.summary}\n")
