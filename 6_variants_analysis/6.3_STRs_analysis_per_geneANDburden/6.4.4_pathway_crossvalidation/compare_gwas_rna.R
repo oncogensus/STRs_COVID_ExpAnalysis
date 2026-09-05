@@ -257,10 +257,10 @@ g_unc <- hits_df(mk_hits(gwas_skat)$unc)
 g_cor <- hits_df(mk_hits(gwas_skat)$cor)
 r_unc <- hits_df(mk_hits(rna_skat)$unc)
 r_cor <- hits_df(mk_hits(rna_skat)$cor)
-g_unc$hit_gwas <- 1L
-g_cor$hit_gwas <- 1L
-r_unc$hit_rna  <- 1L
-r_cor$hit_rna  <- 1L
+g_unc$hit_gwas <- rep(1L, nrow(g_unc))
+g_cor$hit_gwas <- rep(1L, nrow(g_cor))
+r_unc$hit_rna  <- rep(1L, nrow(r_unc))
+r_cor$hit_rna  <- rep(1L, nrow(r_cor))
 
 burden_unc <- build_union(g_unc, r_unc, "hit_gwas", "hit_rna")
 burden_cor <- build_union(g_cor, r_cor, "hit_gwas", "hit_rna")
