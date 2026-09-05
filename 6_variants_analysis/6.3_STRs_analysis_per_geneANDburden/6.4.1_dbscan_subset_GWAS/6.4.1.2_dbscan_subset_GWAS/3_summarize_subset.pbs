@@ -7,11 +7,11 @@
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Etapa 3/4 de 6.4.1.2: junta overlap com outliers DBSCAN (filtra n_outliers>0).
-# Entrada: results/suggestive_gene_strs.tsv (etapa 1),
-#          results/suggestive_strs_outliers.tsv (etapa 2),
-#          catalogo de STR da coorte ($CATALOG, p/ anotacao gene/region/pop).
-# Saida:   results/covid_suggestive_genes_with_outlier_STRs.tsv
+# Etapa 3/4 de 6.4.1.2: junta dataset unificado com outliers DBSCAN (filtra n_outliers>0) + resumo.
+# Entrada: results/STRs_analysis_dataset_with_GWAS.tsv (etapa 1),
+#          results/suggestive_strs_outliers.tsv (etapa 2).
+# Saida:   results/covid_suggestive_genes_with_outlier_STRs.tsv,
+#          results/summary_overlap_dbscan.tsv
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
 WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS"
@@ -26,16 +26,13 @@ PYBIN="$(command -v python3)"
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 mkdir -p results
 
-[ -f results/suggestive_gene_strs.tsv ] || { echo "ERRO: results/suggestive_gene_strs.tsv ausente (rode etapa 1)"; exit 1; }
+[ -f results/STRs_analysis_dataset_with_GWAS.tsv ] || { echo "ERRO: results/STRs_analysis_dataset_with_GWAS.tsv ausente (rode etapa 1)"; exit 1; }
 [ -f results/suggestive_strs_outliers.tsv ] || { echo "ERRO: results/suggestive_strs_outliers.tsv ausente (rode etapa 2)"; exit 1; }
 
-CATALOG="${CATALOG:-$REPO/samples/STRs_analysis_dataset.tsv}"
-[ -f "$CATALOG" ] || { echo "ERRO: catalogo $CATALOG ausente"; exit 1; }
-
-echo "=== 3/4 sumariza subset (filtra n_outliers>0) ==="
+echo "=== 3/4 sumariza subset (filtra n_outliers>0) + resumo ==="
 "$PYBIN" 3_summarize_subset.py \
-  --overlap results/suggestive_gene_strs.tsv \
+  --unified results/STRs_analysis_dataset_with_GWAS.tsv \
   --dbscan results/suggestive_strs_outliers.tsv \
-  --catalog "$CATALOG" \
-  --out results/covid_suggestive_genes_with_outlier_STRs.tsv
+  --out results/covid_suggestive_genes_with_outlier_STRs.tsv \
+  --summary results/summary_overlap_dbscan.tsv
 echo "=== FIM ==="
