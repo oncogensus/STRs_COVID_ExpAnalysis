@@ -26,5 +26,6 @@ echo "=== 2/3 cross-validation por gene — GWAS x RNA ==="
 "$R_BIN" 2_gene_crossvalidation.R \
   --p2-file "$RNA_FILE" \
   --p1-label GWAS --p2-label RNA \
+  --p1-sig-only \
   --out gene_convergence_gwas_rna
 echo "=== FIM ==="

@@ -23,7 +23,7 @@ catalog <- file.path(ROOT, "samples/STRs_analysis_dataset.tsv")
 ## 0. ARGUMENTOS DE LINHA DE COMANDO (parametrizacao GWAS x RNA)
 ##     Rscript 1_pathway_crossvalidation.R [--p1-file P] [--p2-file P]
 ##                                         [--p1-label L] [--p2-label L]
-##                                         [--out BASE]
+##                                         [--out BASE] [--p1-sig-only]
 ##   Exemplo (comparacao GWAS vs RNA):
 ##     Rscript 1_pathway_crossvalidation.R \
 ##       --p1-file ../6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv \
@@ -42,26 +42,39 @@ p2_file <- get_opt(args, "--p2-file", p2_file)
 p1_lab  <- get_opt(args, "--p1-label", "P1")
 p2_lab  <- get_opt(args, "--p2-label", "P2")
 out_tag <- get_opt(args, "--out", "pathway_convergence")
+p1_sig_only <- "--p1-sig-only" %in% args
 
 cat("[args] p1_file =", p1_file, "\n")
 cat("[args] p2_file =", p2_file, "\n")
 cat("[args] labels  =", p1_lab, "vs", p2_lab, "\n")
 cat("[args] out tag =", out_tag, "\n")
+cat("[args] p1_sig_only =", p1_sig_only, "\n")
 
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 
 ## ======================================================================
 ## 1. LISTAS DE GENES (SIMBOLOS)
 ## ======================================================================
-read_gene_list <- function(path) {
+read_gene_list <- function(path, sig_only = FALSE) {
   d <- read_delim(path, delim = "\t")
+  if (sig_only) {
+    sc <- grep("^gwas_significance$", colnames(d), value = TRUE)
+    if (length(sc) == 0) stop("coluna 'gwas_significance' nao encontrada em: ", path)
+    d <- d[d[[sc]] == "significant", , drop = FALSE]
+    if (nrow(d) == 0) stop("nenhum gene com gwas_significance='significant' em: ", path)
+  }
   gc <- grep("^gene(_name)?$", colnames(d), value = TRUE)[1]
   if (is.na(gc)) stop("coluna 'gene'/'gene_name' nao encontrada em: ", path)
   unique(toupper(str_trim(d[[gc]])))
 }
 
-p1_sym <- read_gene_list(p1_file)
-cat(sprintf("[%s] genes sugestivos com STR-outlier: %d\n", p1_lab, length(p1_sym)))
+p1_sym <- read_gene_list(p1_file, sig_only = p1_sig_only)
+if (p1_sig_only) {
+  cat(sprintf("[%s] genes significativos (p<5e-8) com STR-outlier: %d\n",
+              p1_lab, length(p1_sym)))
+} else {
+  cat(sprintf("[%s] genes sugestivos com STR-outlier: %d\n", p1_lab, length(p1_sym)))
+}
 
 p2_sym <- read_gene_list(p2_file)
 cat(sprintf("[%s] genes com STR-outlier: %d\n", p2_lab, length(p2_sym)))

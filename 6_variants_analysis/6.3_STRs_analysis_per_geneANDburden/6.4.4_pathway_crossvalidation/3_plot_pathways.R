@@ -40,12 +40,21 @@ p2_lab     <- get_opt(args, "--p2-label", "P2")
 out_tag    <- get_opt(args, "--out", "pathway_convergence")
 gene_out   <- get_opt(args, "--gene-out", "gene_convergence")
 fig_prefix <- get_opt(args, "--fig", "")
+p1_sig_only <- "--p1-sig-only" %in% args
+
+cat("[args] p1_sig_only =", p1_sig_only, "\n")
 
 ORIGINAL_8 <- c("ROBO2","ANK3","CDH12","NKAIN2","SEMA6D","KCNH1","KCNQ5","ST6GALNAC3")
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 
-read_gene_list <- function(path) {
+read_gene_list <- function(path, sig_only = FALSE) {
   d <- read_delim(path, delim = "\t")
+  if (sig_only) {
+    sc <- grep("^gwas_significance$", colnames(d), value = TRUE)
+    if (length(sc) == 0) stop("coluna 'gwas_significance' nao encontrada em: ", path)
+    d <- d[d[[sc]] == "significant", , drop = FALSE]
+    if (nrow(d) == 0) stop("nenhum gene com gwas_significance='significant' em: ", path)
+  }
   gc <- grep("^gene(_name)?$", colnames(d), value = TRUE)[1]
   if (is.na(gc)) stop("coluna 'gene'/'gene_name' nao encontrada em: ", path)
   unique(toupper(str_trim(d[[gc]])))
@@ -125,7 +134,7 @@ if (!is.null(cls_master) && nrow(cls_master) > 0) {
 ## ======================================================================
 ## FIG C: sobreposicao com hsa05171 (COVID-19) via msigdbr (offline)
 ## ======================================================================
-p1_sym <- read_gene_list(p1_file)
+p1_sym <- read_gene_list(p1_file, sig_only = p1_sig_only)
 p2_sym <- read_gene_list(p2_file)
 tryCatch({
   library(msigdbr)
@@ -152,6 +161,8 @@ tryCatch({
 ## ======================================================================
 if (file.exists(p1_file) && file.exists(resid_file)) {
   p1df <- read_delim(p1_file, delim = "\t")
+  if (p1_sig_only && "gwas_significance" %in% colnames(p1df))
+    p1df <- p1df[p1df$gwas_significance == "significant", , drop = FALSE]
   cv7 <- tryCatch({
     gc <- read_delim(sprintf("results/%s.tsv", gene_out), delim = "\t")
     gc$gene[gc$strategy == "Cross-validated"]

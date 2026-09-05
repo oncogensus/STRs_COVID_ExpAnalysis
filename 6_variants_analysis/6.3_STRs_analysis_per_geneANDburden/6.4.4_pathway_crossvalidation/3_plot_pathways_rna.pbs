@@ -26,6 +26,7 @@ echo "=== 3/3 figuras — GWAS x RNA ==="
 "$R_BIN" 3_plot_pathways.R \
   --p2-file "$RNA_FILE" \
   --p1-label GWAS --p2-label RNA \
+  --p1-sig-only \
   --out pathway_convergence_gwas_rna \
   --gene-out gene_convergence_gwas_rna \
   --fig gwas_rna_

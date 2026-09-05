@@ -27,5 +27,6 @@ echo "=== 1/3 enrichment de vias (KEGG + Reactome) — GWAS x RNA ==="
 "$R_BIN" 1_pathway_crossvalidation.R \
   --p2-file "$RNA_FILE" \
   --p1-label GWAS --p2-label RNA \
+  --p1-sig-only \
   --out pathway_convergence_gwas_rna
 echo "=== FIM ==="
