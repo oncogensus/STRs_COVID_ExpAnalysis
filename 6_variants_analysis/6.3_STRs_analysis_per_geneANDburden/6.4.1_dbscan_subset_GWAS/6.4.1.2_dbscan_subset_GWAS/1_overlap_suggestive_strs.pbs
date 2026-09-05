@@ -55,6 +55,7 @@ echo "=== 1/4 overlap genes sugestivos x STRs da coorte ==="
 "$PYBIN" 1_overlap_suggestive_strs.py \
   --catalog "$CATALOG" \
   --covid-genes results/covid_genes_suggestive.tsv \
-  --out results/suggestive_gene_strs.tsv \
+  --out results/STRs_analysis_dataset_with_GWAS.tsv \
+  --out-overlap results/suggestive_gene_strs.tsv \
   --ids-out data/suggestive_strs_ids.txt
 echo "=== FIM ==="
