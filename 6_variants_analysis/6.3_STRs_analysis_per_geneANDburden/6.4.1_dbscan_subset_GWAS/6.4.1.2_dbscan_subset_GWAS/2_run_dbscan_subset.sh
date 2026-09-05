@@ -46,11 +46,11 @@ $(c) in ids
 # R roda no env micromamba dbscan-r (tem data.table/dbscan)
 "$DBSCAN_RSCRIPT" run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
-echo "=== 4/4 junta outliers ==="
+echo "=== 4/4 junta outliers + resumo ==="
 python3 3_summarize_subset.py \
-  --overlap results/suggestive_gene_strs.tsv \
+  --unified results/STRs_analysis_dataset_with_GWAS.tsv \
   --dbscan results/suggestive_strs_outliers.tsv \
-  --catalog "$CATALOG" \
-  --out results/covid_suggestive_genes_with_outlier_STRs.tsv
+  --out results/covid_suggestive_genes_with_outlier_STRs.tsv \
+  --summary results/summary_overlap_dbscan.tsv
 
 echo "Pronto."

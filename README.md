@@ -279,17 +279,18 @@ Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts signifi
 Takes the GWAS-significant genes from 6.3.1.1, subsets normalized residuals to those loci, re-runs DBSCAN, summarizes results, and annotates with full STR catalog.
 
 **Scripts**:
-- `1_overlap_suggestive_strs.py` / `.pbs` — overlap suggestive genes × STRs
+- `1_overlap_suggestive_strs.py` / `.pbs` — overlap suggestive genes × STRs (por gene_name) + dataset unificado
 - `2_run_dbscan_subset.R` / `.sh` / `.pbs` — re-run DBSCAN on subset
-- `3_summarize_subset.py` / `.pbs` — merge overlap + DBSCAN outliers
-- `4_annotate_catalog.pbs` / `annotate_catalog.py` — annotate with STR catalog
+- `3_summarize_subset.py` / `.pbs` — merge unificado + DBSCAN outliers + resumo quantitativo
 
 **Outputs** (`results/`):
-- `suggestive_gene_strs.tsv` — 290 genes with suggestive STRs
-- `suggestive_strs_outliers.tsv` — STRs with DBSCAN outliers
-- `covid_suggestive_genes_with_outlier_STRs.tsv` — final annotated table
+- `STRs_analysis_dataset_with_GWAS.tsv` — dataset unificado com colunas GWAS
+- `suggestive_gene_strs.tsv` — pares gene × STR
+- `suggestive_strs_outliers.tsv` — STRs com DBSCAN outliers no subset
+- `covid_suggestive_genes_with_outlier_STRs.tsv` — tabela final anotada
+- `summary_overlap_dbscan.tsv` — resumo: overlap, sinais DBSCAN, cobertura
 
-**Environment**: micromamba - `igv` (overlap), `dbscan-r` (DBSCAN)
+**Environment**: micromamba - `dbscan-r` (DBSCAN)
 
 #### 6.3.2: DBSCAN Subset — RNA (`6.4.2_dbscan_subset_RNA/`)
 

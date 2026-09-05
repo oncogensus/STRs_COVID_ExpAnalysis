@@ -41,6 +41,4 @@ $(c) in ids
 
 "$R_BIN" 2_run_dbscan_subset.R data/suggestive_strs_residuals.tsv results/suggestive_strs_outliers.tsv
 
-echo "=== 2b/4 (anotacao do catalogo movida para 5_annotate_catalog.pbs) ==="
-micromamba activate igv
 echo "=== FIM ==="
