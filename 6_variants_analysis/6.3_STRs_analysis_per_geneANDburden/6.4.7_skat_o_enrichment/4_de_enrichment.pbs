@@ -1,0 +1,34 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N skato_de
+#PBS -o skato_de_enrichment.out
+#PBS -e skato_de_enrichment.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.7_skat_o_enrichment"
+
+# Diretorio com os resultados/arquivos de DEGs por estudo (GSE*).
+DEG_DIR="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/deg_input"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+if [ ! -d "$DEG_DIR" ]; then
+  echo "AVISO: DEG_DIR ausente: $DEG_DIR"
+  echo "Edite DEG_DIR no 4_de_enrichment.pbs para apontar ao diretorio com arquivos de DEGs por GSE."
+fi
+
+"$R_BIN" 4_de_enrichment.R --deg-dir "$DEG_DIR" \
+    --out-dir "$WORKDIR/results_de_enrichment" || { echo "ERRO no 4_de_enrichment"; exit 1; }
+
+echo "=== FIM: resultados em results_de_enrichment/ ==="

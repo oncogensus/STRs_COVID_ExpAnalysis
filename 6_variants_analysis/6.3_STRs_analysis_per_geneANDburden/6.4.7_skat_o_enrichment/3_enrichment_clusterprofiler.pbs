@@ -1,0 +1,63 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N skato_enrich
+#PBS -o skato_enrichment.out
+#PBS -e skato_enrichment.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.7_skat_o_enrichment"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+# --- Listas de genes (Ensembl) para enriquecimento --------------------------
+# 1) Genes com SKAT-O significativo (q<0.05) -- gwas_burden
+G_GWAS="$WORKDIR/results_skat_o_genes/skat_o_per_gene_hits_corrected.tsv"
+G_GWAS_GENES="$WORKDIR/results_enrichment/genes_skato_gwas_burden.txt"
+# 2) Genes com SKAT-O significativo -- rna_burden
+G_RNA="$WORKDIR/results_skat_o_genes_rna/skat_o_per_gene_hits_corrected.tsv"
+G_RNA_GENES="$WORKDIR/results_enrichment/genes_skato_rna_burden.txt"
+
+mkdir -p "$WORKDIR/results_enrichment"
+
+# Extrai coluna gene de cada hits_corrected (tab-separated, header com 'gene').
+extract_gene_col() {
+  local src="$1" dst="$2"
+  if [ -f "$src" ]; then
+    awk -F '\t' 'NR==1{for(i=1;i<=NF;i++)if($i=="gene")c=i; next} NR>1 && c{print $c}' \
+      "$src" | sort -u > "$dst"
+    echo "$(wc -l < "$dst") genes extraidos de $(basename "$src")"
+  else
+    echo "AVISO: arquivo ausente: $src"
+    : > "$dst"
+  fi
+}
+
+extract_gene_col "$G_GWAS" "$G_GWAS_GENES"
+extract_gene_col "$G_RNA" "$G_RNA_GENES"
+
+if [ -s "$G_GWAS_GENES" ]; then
+  echo "=== Enriquecimento: genes SKAT-O gwas_burden ==="
+  "$R_BIN" 3_enrichment_clusterprofiler.R --gene-file "$G_GWAS_GENES" \
+      --label skato_gwas_burden --out-dir "$WORKDIR/results_enrichment" || \
+      { echo "AVISO: enriquecimento gwas falhou"; true; }
+fi
+
+if [ -s "$G_RNA_GENES" ]; then
+  echo "=== Enriquecimento: genes SKAT-O rna_burden ==="
+  "$R_BIN" 3_enrichment_clusterprofiler.R --gene-file "$G_RNA_GENES" \
+      --label skato_rna_burden --out-dir "$WORKDIR/results_enrichment" || \
+      { echo "AVISO: enriquecimento rna falhou"; true; }
+fi
+
+echo "=== FIM: resultados em results_enrichment/ ==="

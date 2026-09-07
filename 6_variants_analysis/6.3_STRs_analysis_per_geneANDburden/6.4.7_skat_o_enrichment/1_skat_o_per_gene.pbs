@@ -1,0 +1,28 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N skat_o_gene
+#PBS -o skat_o_gene.out
+#PBS -e skat_o_gene.err
+#PBS -V
+
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.7_skat_o_enrichment"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+
+git stash; git pull; git stash pop || true
+
+for STRAT in gwas_burden rna_burden; do
+  echo "=== SKAT-O por gene: $STRAT ==="
+  "$R_BIN" 1_skat_o_per_gene.R --strategy "$STRAT" || { echo "ERRO na estrategia $STRAT"; exit 1; }
+done
+
+echo "=== FIM: resultados em results_skat_o_genes/ e results_skat_o_genes_rna/ ==="
