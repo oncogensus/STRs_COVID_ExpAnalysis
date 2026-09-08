@@ -285,46 +285,95 @@ print(head(as.data.frame(pub_tsv), 3))
 fwrite(pub_tsv, out_tsv, sep = "\t")
 cat(sprintf("Tabela salva em: %s (%d estudos)\n", out_tsv, nrow(pub_tsv)))
 
-# Save formatted gt table as HTML
+# Save formatted gt table as HTML + PNG
 pub_gt <- pub_tsv %>%
   gt() %>%
   tab_header(
-    title = md("**RNA-Seq x STRs: Summary per GSE Study**"),
-    subtitle = "STRs in DEG genes, DBSCAN outliers, and allele overlap by group"
+    title = md("**Table X.** RNA-Seq STR analysis per GSE study"),
+    subtitle = "Summary of DEG STRs, DBSCAN outliers, and allele overlap by group"
+  ) %>%
+  tab_stubhead(label = "GSE") %>%
+  tab_spanner(
+    label = "Study Information",
+    columns = c(gse, n_genes, n_strs_total, str_density_per_gene)
+  ) %>%
+  tab_spanner(
+    label = "Sample Distribution",
+    columns = c(n_case_str, n_control_str)
+  ) %>%
+  tab_spanner(
+    label = "Allele Statistics",
+    columns = c(median_allele_case, median_allele_control)
+  ) %>%
+  tab_spanner(
+    label = "DBSCAN Outliers",
+    columns = c(n_outliers_str, n_out_case_str, n_out_control_str,
+                n_overlap_str, n_out_no_overlap_str)
   ) %>%
   cols_label(
     gse = "GSE",
-    n_genes = "DEG Genes",
-    n_strs_total = "STRs Total",
-    str_density_per_gene = "STR Density/gene",
+    n_genes = "Genes",
+    n_strs_total = "STRs",
+    str_density_per_gene = "Dens.",
     n_case_str = "Case",
     n_control_str = "Control",
-    median_allele_case = "Median Allele2 (case)",
-    median_allele_control = "Median Allele2 (control)",
-    n_outliers_str = "Outliers DBSCAN",
-    n_out_case_str = "Outliers (case)",
-    n_out_control_str = "Outliers (control)",
-    n_overlap_str = "Overlap alelo maior",
-    n_out_no_overlap_str = "Outliers sem overlap"
+    median_allele_case = "Median (case)",
+    median_allele_control = "Median (ctrl)",
+    n_outliers_str = "Total",
+    n_out_case_str = "Case",
+    n_out_control_str = "Control",
+    n_overlap_str = "Overlap",
+    n_out_no_overlap_str = "Sem overlap"
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
-    style = cell_text(weight = "bold"),
+    style = list(
+      cell_text(weight = "bold", size = px(11)),
+      cell_borders(sides = "bottom", weight = px(1.5), color = "grey60")
+    ),
     locations = cells_column_labels()
   ) %>%
-  tab_source_note(
-    source_note = "Values: absolute count (percentage%). Overlap = same allele range between case/control."
+  tab_style(
+    style = cell_text(weight = "bold", size = px(10)),
+    locations = cells_column_spanners()
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(10)),
+    locations = cells_body()
+  ) %>%
+  tab_options(
+    table.font.names = "Arial",
+    table.font.size = px(10),
+    heading.align = "left",
+    column_labels.border.top.width = px(2),
+    column_labels.border.top.color = "black",
+    column_labels.border.bottom.width = px(1),
+    column_labels.border.bottom.color = "black",
+    table_body.border.bottom.width = px(1.5),
+    table_body.border.bottom.color = "black",
+    table_body.hlines.color = "grey90",
+    table_body.hlines.width = px(0.5),
+    table.border.left.width = px(0),
+    table.border.right.width = px(0),
+    data_row.padding = px(4),
+    row_group.padding = px(6)
   ) %>%
   tab_source_note(
-    source_note = "Outliers sem overlap = outlier observations where allele ranges do not overlap between groups."
+    source_note = "Values: absolute count (percentage%). Dens. = STRs per DEG gene."
+  ) %>%
+  tab_source_note(
+    source_note = "Overlap = same allele range between case/control. Sem overlap = outlier observations without overlap."
   ) %>%
   tab_source_note(
     source_note = "Source: cross_DEGs_STRs.py output"
-  ) %>%
-  opt_stylize(style = 3)
+  )
 
 out_gt_html <- file.path(out_dir, "rna_publication_table.html")
 gtsave(pub_gt, out_gt_html)
-cat(sprintf("Tabela gt salva em: %s\n", out_gt_html))
+cat(sprintf("Tabela gt HTML salva em: %s\n", out_gt_html))
+
+out_gt_png <- file.path(out_dir, "rna_publication_table.png")
+gtsave(pub_gt, out_gt_png, zoom = 1.5)
+cat(sprintf("Tabela gt PNG salva em: %s\n", out_gt_png))
 
 cat("\nConcluido.\n")
