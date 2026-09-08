@@ -134,10 +134,16 @@ group_colors <- c(
 # Filter: only groups with data + only outliers or no-overlap variants
 str_deg_plot <- str_deg[!is.na(group) & group != ""]
 str_deg_plot <- str_deg_plot[is_outlier == TRUE | overlap_maior_alealo_grupos == "nao"]
+
+# Keep only genes with >= 10 observations
+gene_counts <- str_deg_plot[, .N, by = gene_name]
+valid_genes <- gene_counts[N >= 10, gene_name]
+str_deg_plot <- str_deg_plot[gene_name %in% valid_genes]
+
 str_deg_plot[, group := factor(group, levels = c("case", "control"))]
 
-cat(sprintf("  Variantes para ridgeline (outlier | sem sobreposicao): %d linhas, %d STRs unicos\n",
-            nrow(str_deg_plot), length(unique(str_deg_plot$STRs_ID))))
+cat(sprintf("  Variantes para ridgeline (outlier | sem sobreposicao, >=10 obs): %d linhas, %d genes\n",
+            nrow(str_deg_plot), length(unique(str_deg_plot$gene_name))))
 
 # Facet by GSE, y-axis = gene_name
 p_ridge <- ggplot(str_deg_plot,
