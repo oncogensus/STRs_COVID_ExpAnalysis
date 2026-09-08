@@ -269,6 +269,11 @@ pub_table[, pct_outliers_str := fifelse(
 # Order by n_outliers descending
 pub_table <- pub_table[order(-n_outliers)]
 
+cat(sprintf("  Tabela final: %d linhas (estudos GSE)\n", nrow(pub_table)))
+cat(sprintf("  Estudos: %s\n", paste(pub_table$gse, collapse = ", ")))
+cat("  Primeiras 3 linhas:\n")
+print(head(pub_tsv, 3))
+
 # Save TSV
 out_tsv <- file.path(out_dir, "rna_publication_table.tsv")
 pub_tsv <- pub_table[, .(gse, n_genes, n_strs_total, strs_per_gene_min, strs_per_gene_max,
