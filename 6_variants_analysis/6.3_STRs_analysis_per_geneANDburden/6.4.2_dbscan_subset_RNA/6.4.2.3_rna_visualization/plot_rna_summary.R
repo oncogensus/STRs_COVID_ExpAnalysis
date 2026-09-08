@@ -150,7 +150,7 @@ p_rain <- ggplot(str_deg_plot,
   geom_rain(
     alpha = 0.6,
     box.width = 0.3,
-    point.args = list(size = 1.2, alpha = 0.5, position = position_dodge(width = 0.3)),
+    point.args = list(size = 1.2, alpha = 0.5),
     boxplot.args = list(outlier.shape = NA, width = 0.2)
   ) +
   facet_wrap(~ gse, scales = "free_y", ncol = 1) +
