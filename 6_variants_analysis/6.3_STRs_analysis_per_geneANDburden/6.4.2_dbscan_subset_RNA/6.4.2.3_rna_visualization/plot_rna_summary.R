@@ -149,7 +149,6 @@ p_rain <- ggplot(str_deg_plot,
                  aes(x = allele2_est, y = gene_name, fill = group)) +
   geom_rain(
     alpha = 0.6,
-    box.width = 0.3,
     point.args = list(size = 1.2, alpha = 0.5),
     boxplot.args = list(outlier.shape = NA, width = 0.2)
   ) +
@@ -244,9 +243,9 @@ pub_table <- merge(pub_table, allele_medians, by = "gse", all.x = TRUE)
 pub_table <- merge(pub_table, outlier_by_gse, by = "gse", all.x = TRUE)
 
 # Fill NA outliers with 0
-pub_table[is.na(n_outliers) := 0]
-pub_table[is.na(n_out_case) := 0]
-pub_table[is.na(n_out_control) := 0]
+pub_table[is.na(n_outliers), n_outliers := 0]
+pub_table[is.na(n_out_case), n_out_case := 0]
+pub_table[is.na(n_out_control), n_out_control := 0]
 
 # --- 4.7 Format columns ---
 pub_table[, n_outliers_str := sprintf("%d (%d/%d)", n_outliers, n_out_case, n_out_control)]
