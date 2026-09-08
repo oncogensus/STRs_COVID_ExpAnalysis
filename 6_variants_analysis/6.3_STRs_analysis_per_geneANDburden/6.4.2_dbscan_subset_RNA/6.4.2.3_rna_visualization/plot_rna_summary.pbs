@@ -35,7 +35,7 @@ STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 [ -f "$RNA_DIR/rna_summary_by_study.tsv" ] || { echo "ERRO: $RNA_DIR/rna_summary_by_study.tsv ausente"; exit 1; }
 
 echo "=== Instalando pacotes R ausentes ==="
-"$R_BIN" -e 'pkgs <- c("data.table","dplyr","tidyr","ggplot2","ggrain","gt","scales","webshot2"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
+"$R_BIN" -e 'pkgs <- c("data.table","dplyr","tidyr","ggplot2","ggrain","gt","scales"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
 
 echo "=== Visualizacao RNA-Seq x STRs ==="
 "$R_BIN" plot_rna_summary.R \

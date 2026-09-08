@@ -372,8 +372,4 @@ out_gt_html <- file.path(out_dir, "rna_publication_table.html")
 gtsave(pub_gt, out_gt_html)
 cat(sprintf("Tabela gt HTML salva em: %s\n", out_gt_html))
 
-out_gt_png <- file.path(out_dir, "rna_publication_table.png")
-gtsave(pub_gt, out_gt_png, zoom = 1.5)
-cat(sprintf("Tabela gt PNG salva em: %s\n", out_gt_png))
-
 cat("\nConcluido.\n")
