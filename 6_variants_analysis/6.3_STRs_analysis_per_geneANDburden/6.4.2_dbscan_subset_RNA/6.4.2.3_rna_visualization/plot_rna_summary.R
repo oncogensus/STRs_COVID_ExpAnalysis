@@ -271,14 +271,14 @@ pub_table <- pub_table[order(-n_outliers)]
 
 cat(sprintf("  Tabela final: %d linhas (estudos GSE)\n", nrow(pub_table)))
 cat(sprintf("  Estudos: %s\n", paste(pub_table$gse, collapse = ", ")))
-cat("  Primeiras 3 linhas:\n")
-print(head(pub_tsv, 3))
 
 # Save TSV
 out_tsv <- file.path(out_dir, "rna_publication_table.tsv")
 pub_tsv <- pub_table[, .(gse, n_genes, n_strs_total, strs_per_gene_min, strs_per_gene_max,
                           n_case, n_control, median_allele_case, median_allele_control,
                           n_outliers_str, pct_outliers_str, n_overlap_str, n_no_overlap_str)]
+cat("  Primeiras 3 linhas:\n")
+print(head(as.data.frame(pub_tsv), 3))
 fwrite(pub_tsv, out_tsv, sep = "\t")
 cat(sprintf("Tabela salva em: %s (%d estudos)\n", out_tsv, nrow(pub_tsv)))
 
