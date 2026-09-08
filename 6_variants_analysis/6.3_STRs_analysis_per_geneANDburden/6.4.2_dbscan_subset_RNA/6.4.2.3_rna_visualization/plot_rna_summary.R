@@ -114,6 +114,11 @@ outlier_strs <- unique(rna_outliers$strs_id)
 str_deg[, is_outlier := STRs_ID %in% outlier_strs]
 cat(sprintf("  STRs com outlier DBSCAN global: %d\n", sum(unique(str_deg[, .(STRs_ID, is_outlier)])$is_outlier)))
 
+# Add overlap status from summary (per gene x GSE)
+str_deg <- merge(str_deg,
+                 rna_summary[, .(gse, gene, overlap_maior_alealo_grupos)],
+                 by = c("gse", "gene"), all.x = TRUE)
+
 # ==========================================
 # 3. Ridgeline plot
 # ==========================================
@@ -125,9 +130,13 @@ group_colors <- c(
   "control" = "#377EB8"
 )
 
-# Filter: only groups with data
+# Filter: only groups with data + only outliers or no-overlap variants
 str_deg_plot <- str_deg[!is.na(group) & group != ""]
+str_deg_plot <- str_deg_plot[is_outlier == TRUE | overlap_maior_alealo_grupos == "nao"]
 str_deg_plot[, group := factor(group, levels = c("case", "control"))]
+
+cat(sprintf("  Variantes para ridgeline (outlier | sem sobreposicao): %d linhas, %d STRs unicos\n",
+            nrow(str_deg_plot), length(unique(str_deg_plot$STRs_ID))))
 
 # Facet by GSE, y-axis = gene_name
 p_ridge <- ggplot(str_deg_plot,
