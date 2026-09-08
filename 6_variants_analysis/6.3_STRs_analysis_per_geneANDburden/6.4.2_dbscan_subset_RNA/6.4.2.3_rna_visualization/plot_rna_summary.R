@@ -117,7 +117,8 @@ cat(sprintf("  STRs com outlier DBSCAN global: %d\n", sum(unique(str_deg[, .(STR
 # Add overlap status from summary (per gene x GSE)
 str_deg <- merge(str_deg,
                  rna_summary[, .(gse, gene, overlap_maior_alealo_grupos)],
-                 by = c("gse", "gene"), all.x = TRUE)
+                 by.x = c("gse", "gene_name"), by.y = c("gse", "gene"),
+                 all.x = TRUE)
 
 # ==========================================
 # 3. Ridgeline plot
