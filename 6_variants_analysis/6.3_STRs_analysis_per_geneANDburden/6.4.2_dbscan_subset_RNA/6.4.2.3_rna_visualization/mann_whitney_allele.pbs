@@ -16,7 +16,10 @@ WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbs
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
-micromamba activate str
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
 
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 mkdir -p results
@@ -28,8 +31,8 @@ STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
 [ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente"; exit 1; }
 
-echo "=== Mann-Whitney U test: allele2_est case vs control ==="
-Rscript mann_whitney_allele.R \
+echo "=== Mann-Whitney U test: mean_allele + allele2_est case vs control ==="
+"$R_BIN" mann_whitney_allele.R \
   --str-catalog "$STR_CATALOG" \
   --rna-gene-strs "$RNA_DIR/rna_gene_strs.tsv" \
   --out-dir results

@@ -17,13 +17,16 @@ WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbs
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
-micromamba activate str
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
 
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 mkdir -p results
 
 # Instalar fmsb se ausente
-Rscript -e 'if (!requireNamespace("fmsb", quietly=TRUE)) install.packages("fmsb", repos="https://cloud.r-project.org")'
+"$R_BIN" -e 'if (!requireNamespace("fmsb", quietly=TRUE)) install.packages("fmsb", repos="https://cloud.r-project.org")'
 
 # Inputs
 RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results"
@@ -32,7 +35,7 @@ RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbs
 [ -f "$RNA_DIR/rna_summary_by_study.tsv" ] || { echo "ERRO: $RNA_DIR/rna_summary_by_study.tsv ausente"; exit 1; }
 
 echo "=== Radar plots: localizacao genômica ==="
-Rscript radar_genomic_location.R \
+"$R_BIN" radar_genomic_location.R \
   --rna-outliers "$RNA_DIR/rna_outlier_genes.tsv" \
   --summary "$RNA_DIR/rna_summary_by_study.tsv" \
   --out-dir results
