@@ -51,7 +51,7 @@ resultados de `cross_DEGs_STRs.py` e do catálogo de STRs.
 |---|---|
 | `rna_ridgeline_by_study.png` | Ridgeline plot: allele2_est × densidade, facet por GSE, cor = case/control, triângulos pretos = outliers DBSCAN |
 | `rna_publication_table.tsv` | Tabela por gene: n_STRs, n_outliers, n_overlap, proporções |
-| `rna_publication_table.png` | Tabela `gt` formatada para publicação |
+| `rna_publication_table.html` | Tabela `gt` formatada para publicação |
 
 **Submissão**: `plot_rna_summary.pbs`.
 

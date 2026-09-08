@@ -244,7 +244,7 @@ pub_gt <- pub_table %>%
     prop_overlap = "% Overlap",
     prop_sem_overlap = "% No Overlap"
   ) %>%
-  fmt_missing(columns = everything(), missing_text = "-") %>%
+  sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
@@ -254,8 +254,8 @@ pub_gt <- pub_table %>%
   ) %>%
   opt_stylize(style = 3)
 
-out_gt_png <- file.path(out_dir, "rna_publication_table.png")
-gtsave(pub_gt, out_gt_png, zoom = 2)
-cat(sprintf("Tabela gt salva em: %s\n", out_gt_png))
+out_gt_html <- file.path(out_dir, "rna_publication_table.html")
+gtsave(pub_gt, out_gt_html)
+cat(sprintf("Tabela gt salva em: %s\n", out_gt_html))
 
 cat("\nConcluido.\n")
