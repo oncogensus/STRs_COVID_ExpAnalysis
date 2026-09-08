@@ -78,63 +78,51 @@ rna_summary <- fread(path_summary, header = TRUE, sep = "\t")
 cat(sprintf("  %d linhas (gene x estudo)\n", nrow(rna_summary)))
 
 # ==========================================
-# 2. Prepare data for ridgeline
+# 2. Prepare data
 # ==========================================
-cat("\nPreparando dados para ridgeline...\n")
+cat("\nPreparando dados...\n")
 
-# Get unique STRs that are DEGs
 de_strs <- unique(rna_gene_strs$strs_id)
 cat(sprintf("  STRs unicos em DEGs: %d\n", length(de_strs)))
 
-# Filter str_cat to only DEG STRs
 str_deg <- str_cat[STRs_ID %in% de_strs]
 cat(sprintf("  Linhas no catalogo para DEGs: %d\n", nrow(str_deg)))
 
-# Check group column
 if (!"group" %in% colnames(str_deg)) {
   stop("Coluna 'group' nao encontrada no STR catalog. Verifique 6.1_merge_datasets.r")
 }
 cat(sprintf("  Grupos encontrados: %s\n",
             paste(unique(str_deg$group), collapse = ", ")))
 
-# Create GSE mapping from rna_gene_strs (datasets column has semicolon-separated GSEs)
 gse_map <- rna_gene_strs[, .(strs_id, datasets)]
 gse_map[, datasets := trimws(datasets)]
 gse_map <- gse_map[, .(gse = unlist(tstrsplit(datasets, ";", fixed = TRUE))),
                    by = strs_id]
 gse_map <- gse_map[gse != ""]
 
-# Add GSE info to str_deg
 str_deg <- merge(str_deg, gse_map, by.x = "STRs_ID", by.y = "strs_id",
                  allow.cartesian = TRUE)
 cat(sprintf("  Apos merge com GSE: %d linhas\n", nrow(str_deg)))
 
-# Add outlier status from rna_outliers
 outlier_strs <- unique(rna_outliers$strs_id)
 str_deg[, is_outlier := STRs_ID %in% outlier_strs]
-cat(sprintf("  STRs com outlier DBSCAN global: %d\n", sum(unique(str_deg[, .(STRs_ID, is_outlier)])$is_outlier)))
+cat(sprintf("  STRs com outlier DBSCAN global: %d\n",
+            sum(unique(str_deg[, .(STRs_ID, is_outlier)])$is_outlier)))
 
-# Add overlap status from summary (per gene x GSE)
 str_deg <- merge(str_deg,
                  rna_summary[, .(gse, gene, overlap_maior_alealo_grupos)],
                  by.x = c("gse", "gene_name"), by.y = c("gse", "gene"),
                  all.x = TRUE)
 
 # ==========================================
-# 3. Raincloud plot
+# 3. Raincloud plot (scientific theme)
 # ==========================================
 cat("\nGerando raincloud plot...\n")
 
-# Color palette: case = red, control = blue
-group_colors <- c(
-  "case"   = "#E41A1C",
-  "control" = "#377EB8"
-)
+group_colors <- c("case" = "#E41A1C", "control" = "#377EB8")
 
-# Filter: only DBSCAN global outliers with valid group
 str_deg_plot <- str_deg[is_outlier == TRUE & !is.na(group) & group != ""]
 
-# Keep only genes with >= 10 observations
 gene_counts <- str_deg_plot[, .N, by = gene_name]
 valid_genes <- gene_counts[N >= 10, gene_name]
 str_deg_plot <- str_deg_plot[gene_name %in% valid_genes]
@@ -144,7 +132,6 @@ str_deg_plot[, group := factor(group, levels = c("case", "control"))]
 cat(sprintf("  Variantes para raincloud (apenas outliers DBSCAN global, >=10 obs): %d linhas, %d genes\n",
             nrow(str_deg_plot), length(unique(str_deg_plot$gene_name))))
 
-# Facet by GSE, y-axis = gene_name, x = allele2_est
 p_rain <- ggplot(str_deg_plot,
                  aes(x = allele2_est, y = gene_name, fill = group)) +
   geom_rain(
@@ -167,14 +154,24 @@ p_rain <- ggplot(str_deg_plot,
     y = "Gene",
     caption = "Only DBSCAN global outliers shown"
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    legend.position = "bottom",
-    strip.text = element_text(face = "bold", size = 11),
-    plot.title = element_text(face = "bold", size = 14),
-    axis.title.x = element_text(hjust = 1, size = 12),
+    panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+    panel.grid.major.x = element_line(color = "grey85", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "grey92", color = NA),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 11, face = "bold"),
+    axis.text = element_text(size = 10, color = "grey20"),
     axis.text.y = element_text(size = 8),
-    panel.spacing = unit(0.8, "lines")
+    plot.title = element_text(size = 13, hjust = 0.5, face = "bold",
+                              margin = margin(b = 15)),
+    plot.subtitle = element_text(size = 11, color = "grey40",
+                                 margin = margin(b = 10)),
+    legend.position = "bottom",
+    panel.spacing = unit(1.5, "lines"),
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA)
   )
 
 out_png <- file.path(out_dir, "rna_raincloud_by_study.png")
@@ -184,7 +181,7 @@ ggsave(
   plot = p_rain,
   width = 12,
   height = raincloud_h,
-  dpi = 300,
+  dpi = 600,
   bg = "white",
   limitsize = FALSE
 )
@@ -195,27 +192,33 @@ cat(sprintf("Raincloud salvo em: %s\n", out_png))
 # ==========================================
 cat("\nGerando tabela de publicacao por GSE...\n")
 
-# --- 4.1 Outlier counts per GSE x group ---
+# --- 4.1 Outlier counts per GSE x group (sample-level observations) ---
 outlier_by_gse <- str_deg[is_outlier == TRUE & !is.na(group), .(
   n_outliers = .N,
   n_out_case = sum(group == "case"),
   n_out_control = sum(group == "control")
 ), by = gse]
 
-# --- 4.2 STRs per gene distribution per GSE ---
-# Need to split datasets into per-GSE rows
+# --- 4.2 Outliers with no overlap (sample-level observations) ---
+out_no_overlap <- str_deg[is_outlier == TRUE & overlap_maior_alealo_grupos == "nao" &
+                            !is.na(group), .(
+  n_out_no_overlap = .N,
+  n_out_no_overlap_case = sum(group == "case"),
+  n_out_no_overlap_control = sum(group == "control")
+), by = gse]
+
+# --- 4.3 STR density per gene per GSE ---
 rna_gene_strs_gse <- rna_gene_strs[, .(strs_id, gene, datasets)]
 rna_gene_strs_gse[, datasets := trimws(datasets)]
 rna_gene_strs_gse <- rna_gene_strs_gse[, .(gse = unlist(tstrsplit(datasets, ";", fixed = TRUE))),
                                         by = .(strs_id, gene)]
 rna_gene_strs_gse <- rna_gene_strs_gse[gse != ""]
 strs_per_gene <- rna_gene_strs_gse[, .(n_strs = .N), by = .(gse, gene)]
-min_max_per_gse <- strs_per_gene[, .(
-  strs_per_gene_min = min(n_strs),
-  strs_per_gene_max = max(n_strs)
+str_density <- strs_per_gene[, .(
+  str_density_per_gene = round(sum(n_strs) / uniqueN(gene), 2)
 ), by = gse]
 
-# --- 4.3 Summary counts from rna_summary ---
+# --- 4.4 Summary counts from rna_summary ---
 summary_gse <- rna_summary[, .(
   n_genes = uniqueN(gene),
   n_strs_total = sum(n_strs_identified),
@@ -224,46 +227,45 @@ summary_gse <- rna_summary[, .(
   n_sem_dados = sum(overlap_maior_alealo_grupos == "sem_dados", na.rm = TRUE)
 ), by = gse]
 
-# --- 4.4 Case/control counts from str_deg ---
+# --- 4.5 Case/control counts from str_deg ---
 group_counts <- str_deg[!is.na(group), .(
   n_case = sum(group == "case"),
   n_control = sum(group == "control")
 ), by = gse]
 
-# --- 4.5 Median allele2_est per group per GSE ---
+# --- 4.6 Median allele2_est per group per GSE ---
 allele_medians <- str_deg[!is.na(group), .(
   median_allele_case = round(median(allele2_est[group == "case"], na.rm = TRUE), 2),
   median_allele_control = round(median(allele2_est[group == "control"], na.rm = TRUE), 2)
 ), by = gse]
 
-# --- 4.6 Merge all ---
-pub_table <- merge(summary_gse, min_max_per_gse, by = "gse", all.x = TRUE)
+# --- 4.7 Merge all ---
+pub_table <- merge(summary_gse, str_density, by = "gse", all.x = TRUE)
 pub_table <- merge(pub_table, group_counts, by = "gse", all.x = TRUE)
 pub_table <- merge(pub_table, allele_medians, by = "gse", all.x = TRUE)
 pub_table <- merge(pub_table, outlier_by_gse, by = "gse", all.x = TRUE)
+pub_table <- merge(pub_table, out_no_overlap, by = "gse", all.x = TRUE)
 
-# Fill NA outliers with 0
-pub_table[is.na(n_outliers), n_outliers := 0]
-pub_table[is.na(n_out_case), n_out_case := 0]
-pub_table[is.na(n_out_control), n_out_control := 0]
+# Fill NA with 0
+for (col in c("n_outliers", "n_out_case", "n_out_control",
+              "n_out_no_overlap", "n_out_no_overlap_case", "n_out_no_overlap_control")) {
+  pub_table[is.na(get(col)), (col) := 0]
+}
 
-# --- 4.7 Format columns ---
-pub_table[, n_outliers_str := sprintf("%d (%d/%d)", n_outliers, n_out_case, n_out_control)]
-pub_table[, n_overlap_str := fifelse(
-  n_strs_total > 0,
-  sprintf("%d (%.1f%%)", n_overlap_sim, n_overlap_sim / n_strs_total * 100),
-  "0 (0.0%)"
-)]
-pub_table[, n_no_overlap_str := fifelse(
-  n_strs_total > 0,
-  sprintf("%d (%.1f%%)", n_overlap_nao, n_overlap_nao / n_strs_total * 100),
-  "0 (0.0%)"
-)]
-pub_table[, pct_outliers_str := fifelse(
-  n_strs_total > 0,
-  sprintf("%% outliers (%.1f%%)", n_outliers / n_strs_total * 100),
-  "% outliers (0.0%)"
-)]
+# --- 4.8 Format columns: abs (pct%) ---
+fmt_pct <- function(x, total) {
+  fifelse(total > 0,
+          sprintf("%d (%.1f%%)", x, x / total * 100),
+          "0 (0.0%)")
+}
+
+pub_table[, n_case_str := fmt_pct(n_case, n_case + n_control)]
+pub_table[, n_control_str := fmt_pct(n_control, n_case + n_control)]
+pub_table[, n_outliers_str := fmt_pct(n_outliers, n_strs_total)]
+pub_table[, n_out_case_str := fmt_pct(n_out_case, n_strs_total)]
+pub_table[, n_out_control_str := fmt_pct(n_out_control, n_strs_total)]
+pub_table[, n_overlap_str := fmt_pct(n_overlap_sim, n_strs_total)]
+pub_table[, n_out_no_overlap_str := fmt_pct(n_out_no_overlap, n_strs_total)]
 
 # Order by n_outliers descending
 pub_table <- pub_table[order(-n_outliers)]
@@ -273,9 +275,11 @@ cat(sprintf("  Estudos: %s\n", paste(pub_table$gse, collapse = ", ")))
 
 # Save TSV
 out_tsv <- file.path(out_dir, "rna_publication_table.tsv")
-pub_tsv <- pub_table[, .(gse, n_genes, n_strs_total, strs_per_gene_min, strs_per_gene_max,
-                          n_case, n_control, median_allele_case, median_allele_control,
-                          n_outliers_str, pct_outliers_str, n_overlap_str, n_no_overlap_str)]
+pub_tsv <- pub_table[, .(gse, n_genes, n_strs_total, str_density_per_gene,
+                          n_case_str, n_control_str,
+                          median_allele_case, median_allele_control,
+                          n_outliers_str, n_out_case_str, n_out_control_str,
+                          n_overlap_str, n_out_no_overlap_str)]
 cat("  Primeiras 3 linhas:\n")
 print(head(as.data.frame(pub_tsv), 3))
 fwrite(pub_tsv, out_tsv, sep = "\t")
@@ -292,16 +296,16 @@ pub_gt <- pub_tsv %>%
     gse = "GSE",
     n_genes = "DEG Genes",
     n_strs_total = "STRs Total",
-    strs_per_gene_min = "Min STRs/gene",
-    strs_per_gene_max = "Max STRs/gene",
-    n_case = "Case (n)",
-    n_control = "Control (n)",
+    str_density_per_gene = "STR Density/gene",
+    n_case_str = "Case",
+    n_control_str = "Control",
     median_allele_case = "Median Allele2 (case)",
     median_allele_control = "Median Allele2 (control)",
-    n_outliers_str = "Outliers DBSCAN (case/control)",
-    pct_outliers_str = "Proportion Outliers",
-    n_overlap_str = "Overlap alelo maior (pct)",
-    n_no_overlap_str = "Sem sobreposicao (pct)"
+    n_outliers_str = "Outliers DBSCAN",
+    n_out_case_str = "Outliers (case)",
+    n_out_control_str = "Outliers (control)",
+    n_overlap_str = "Overlap alelo maior",
+    n_out_no_overlap_str = "Outliers sem overlap"
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
@@ -309,7 +313,10 @@ pub_gt <- pub_tsv %>%
     locations = cells_column_labels()
   ) %>%
   tab_source_note(
-    source_note = "n_outliers (case/control) = total outliers with case/control breakdown"
+    source_note = "Values: absolute count (percentage%). Overlap = same allele range between case/control."
+  ) %>%
+  tab_source_note(
+    source_note = "Outliers sem overlap = outlier observations where allele ranges do not overlap between groups."
   ) %>%
   tab_source_note(
     source_note = "Source: cross_DEGs_STRs.py output"
