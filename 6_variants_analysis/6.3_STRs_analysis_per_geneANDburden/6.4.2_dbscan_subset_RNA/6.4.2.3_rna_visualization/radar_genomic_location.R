@@ -83,8 +83,8 @@ cat(sprintf("  GSEs: %s\n", paste(all_gses, collapse = ", ")))
 # ==========================================
 # 3. Count STRs per region
 # ==========================================
-count_by_region <- function(dat, filter_expr) {
-  filtered <- dat[filter_expr]
+count_by_region <- function(dat, filter_fn) {
+  filtered <- dat[filter_fn(dat)]
   counts <- filtered[, .N, by = region]
   full <- data.table(region = region_order)
   counts <- merge(full, counts, by = "region", all.x = TRUE)
@@ -138,14 +138,14 @@ cat("  Outliers DBSCAN global...\n")
 radar_outlier_list <- list()
 for (gse in all_gses) {
   counts <- count_by_region(str_data[gse == gse],
-                            !is.na(n_outliers_dbscan_global) & n_outliers_dbscan_global >= 1)
+                            function(d) !is.na(d$n_outliers_dbscan_global) & d$n_outliers_dbscan_global >= 1)
   radar_outlier_list[[gse]] <- counts
   cat(sprintf("    %s: %d outliers em %d regioes\n",
               gse, sum(counts$N), sum(counts$N > 0)))
 }
 
 counts_comb_out <- count_by_region(str_data,
-                                   !is.na(n_outliers_dbscan_global) & n_outliers_dbscan_global >= 1)
+                                   function(d) !is.na(d$n_outliers_dbscan_global) & d$n_outliers_dbscan_global >= 1)
 cat(sprintf("    COMBINED: %d outliers em %d regioes\n",
             sum(counts_comb_out$N), sum(counts_comb_out$N > 0)))
 
@@ -167,14 +167,14 @@ cat("  Variantes sem sobreposicao...\n")
 radar_nooverlap_list <- list()
 for (gse in all_gses) {
   counts <- count_by_region(str_data[gse == gse],
-                            overlap_maior_alealo_grupos == "nao")
+                            function(d) d$overlap_maior_alealo_grupos == "nao")
   radar_nooverlap_list[[gse]] <- counts
   cat(sprintf("    %s: %d sem sobreposicao em %d regioes\n",
               gse, sum(counts$N), sum(counts$N > 0)))
 }
 
 counts_comb_no <- count_by_region(str_data,
-                                  overlap_maior_alealo_grupos == "nao")
+                                  function(d) d$overlap_maior_alealo_grupos == "nao")
 cat(sprintf("    COMBINED: %d sem sobreposicao em %d regioes\n",
             sum(counts_comb_no$N), sum(counts_comb_no$N > 0)))
 
