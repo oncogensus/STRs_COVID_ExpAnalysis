@@ -32,7 +32,7 @@ RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbs
 [ -f "$RNA_DIR/rna_summary_by_study.tsv" ] || { echo "ERRO: $RNA_DIR/rna_summary_by_study.tsv ausente"; exit 1; }
 
 echo "=== Instalando pacotes R ausentes ==="
-"$R_BIN" -e 'pkgs <- c("data.table","dplyr","ggplot2","patchwork","scales","fmsb"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
+"$R_BIN" -e 'pkgs <- c("data.table","dplyr","ggplot2","patchwork","scales"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
 
 echo "=== Radar plots: localizacao genômica ==="
 "$R_BIN" radar_genomic_location.R \
