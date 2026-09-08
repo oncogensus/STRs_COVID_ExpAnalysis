@@ -3,9 +3,9 @@
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Gera visualizacoes para o cruzamento RNA-Seq x STRs:
-#     1) Ridgeline plot: distribuicao de allele2_est por estudo (GSE),
-#        colorido por group (case/control), com outliers DBSCAN marcados.
-#     2) Tabela de publicacao: por gene, contagens e proporcoes de
+#     1) Raincloud plot: distribuicao de allele2_est por estudo (GSE),
+#        colorido por group (case/control), com outliers DBSCAN.
+#     2) Tabela de publicacao: por GSE, contagens e proporcoes de
 #        outliers DBSCAN e sobreposicao de alelos.
 #
 # ENTRADAS (por argumentos de linha de comando)
@@ -16,7 +16,7 @@
 #   --out-dir           Diretorio de saida
 #
 # SAIDAS
-#   rna_ridgeline_by_study.png   Ridgeline plot (apenas outliers DBSCAN)
+#   rna_raincloud_by_study.png   Raincloud plot (apenas outliers DBSCAN)
 #   rna_publication_table.tsv    Tabela por GSE
 #   rna_publication_table.html   Tabela gt formatada (HTML)
 # ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(tidyr)
   library(ggplot2)
-  library(ggridges)
+  library(ggrain)
   library(gt)
   library(scales)
 })
@@ -121,9 +121,9 @@ str_deg <- merge(str_deg,
                  all.x = TRUE)
 
 # ==========================================
-# 3. Ridgeline plot
+# 3. Raincloud plot
 # ==========================================
-cat("\nGerando ridgeline plot...\n")
+cat("\nGerando raincloud plot...\n")
 
 # Color palette: case = red, control = blue
 group_colors <- c(
@@ -141,18 +141,17 @@ str_deg_plot <- str_deg_plot[gene_name %in% valid_genes]
 
 str_deg_plot[, group := factor(group, levels = c("case", "control"))]
 
-cat(sprintf("  Variantes para ridgeline (apenas outliers DBSCAN global, >=10 obs): %d linhas, %d genes\n",
+cat(sprintf("  Variantes para raincloud (apenas outliers DBSCAN global, >=10 obs): %d linhas, %d genes\n",
             nrow(str_deg_plot), length(unique(str_deg_plot$gene_name))))
 
-# Facet by GSE, y-axis = gene_name
-p_ridge <- ggplot(str_deg_plot,
-                  aes(x = allele2_est, y = gene_name, fill = group)) +
-  geom_density_ridges(
-    alpha = 0.7,
-    scale = 1.2,
-    rel_min_height = 0.005,
-    color = "white",
-    bandwidth = 1.5
+# Facet by GSE, y-axis = gene_name, x = allele2_est
+p_rain <- ggplot(str_deg_plot,
+                 aes(x = allele2_est, y = gene_name, fill = group)) +
+  geom_rain(
+    alpha = 0.6,
+    box.width = 0.3,
+    point.args = list(size = 1.2, alpha = 0.5, position = position_dodge(width = 0.3)),
+    boxplot.args = list(outlier.shape = NA, width = 0.2)
   ) +
   facet_wrap(~ gse, scales = "free_y", ncol = 1) +
   scale_fill_manual(values = group_colors, name = "Group") +
@@ -166,9 +165,10 @@ p_ridge <- ggplot(str_deg_plot,
     title = "Allele 2 length distributions in DEG STRs",
     subtitle = "Per GSE study, colored by case/control status (DBSCAN global outliers only)",
     x = "Allele 2 length (repeat units, log1p)",
-    y = "Gene"
+    y = "Gene",
+    caption = "Only DBSCAN global outliers shown"
   ) +
-  theme_ridges(grid = TRUE) +
+  theme_minimal() +
   theme(
     legend.position = "bottom",
     strip.text = element_text(face = "bold", size = 11),
@@ -178,20 +178,18 @@ p_ridge <- ggplot(str_deg_plot,
     panel.spacing = unit(0.8, "lines")
   )
 
-    labs(caption = "Only DBSCAN global outliers shown")
-
-out_png <- file.path(out_dir, "rna_ridgeline_by_study.png")
-ridgeline_h <- min(40, max(6, length(unique(str_deg_plot$gene_name)) * 0.4 + 2))
+out_png <- file.path(out_dir, "rna_raincloud_by_study.png")
+raincloud_h <- min(40, max(6, length(unique(str_deg_plot$gene_name)) * 0.5 + 2))
 ggsave(
   filename = out_png,
-  plot = p_ridge,
+  plot = p_rain,
   width = 12,
-  height = ridgeline_h,
+  height = raincloud_h,
   dpi = 300,
   bg = "white",
   limitsize = FALSE
 )
-cat(sprintf("Ridgeline salvo em: %s\n", out_png))
+cat(sprintf("Raincloud salvo em: %s\n", out_png))
 
 # ==========================================
 # 4. Publication table (per GSE)
