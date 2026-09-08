@@ -31,6 +31,9 @@ STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
 [ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente"; exit 1; }
 
+echo "=== Instalando pacotes R ausentes ==="
+"$R_BIN" -e 'pkgs <- c("data.table","dplyr","ggplot2","ggpubr","rstatix","scales","patchwork"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
+
 echo "=== Mann-Whitney U test: mean_allele + allele2_est case vs control ==="
 "$R_BIN" mann_whitney_allele.R \
   --str-catalog "$STR_CATALOG" \
