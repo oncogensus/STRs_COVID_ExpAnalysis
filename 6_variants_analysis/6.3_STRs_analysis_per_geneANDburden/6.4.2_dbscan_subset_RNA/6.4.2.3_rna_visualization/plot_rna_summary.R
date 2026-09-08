@@ -179,13 +179,15 @@ if (any(str_deg_plot$is_outlier)) {
 }
 
 out_png <- file.path(out_dir, "rna_ridgeline_by_study.png")
+ridgeline_h <- min(40, max(6, length(de_strs) * 0.4 + 2))
 ggsave(
   filename = out_png,
   plot = p_ridge,
   width = 12,
-  height = max(6, length(de_strs) * 0.4 + 2),
+  height = ridgeline_h,
   dpi = 300,
-  bg = "white"
+  bg = "white",
+  limitsize = FALSE
 )
 cat(sprintf("Ridgeline salvo em: %s\n", out_png))
 
