@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N rna_visualization
+#PBS -o plot_rna_summary.out
+#PBS -e plot_rna_summary.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+# Etapa 3/3 de 6.4.2: visualizacao RNA-Seq x STRs.
+# Ridgeline plot + tabela de publicacao.
+# Pre-requisito: cross_DEGs_STRs.py ja rodou (gera rna_gene_strs.tsv,
+# rna_outlier_genes.tsv, rna_summary_by_study.tsv em results/).
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.3_rna_visualization"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate str
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+# Inputs
+RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results"
+STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
+
+[ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
+[ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente ( rode cross_DEGs_STRs.py primeiro )"; exit 1; }
+[ -f "$RNA_DIR/rna_outlier_genes.tsv" ] || { echo "ERRO: $RNA_DIR/rna_outlier_genes.tsv ausente"; exit 1; }
+[ -f "$RNA_DIR/rna_summary_by_study.tsv" ] || { echo "ERRO: $RNA_DIR/rna_summary_by_study.tsv ausente"; exit 1; }
+
+echo "=== Visualizacao RNA-Seq x STRs ==="
+Rscript plot_rna_summary.R \
+  --str-catalog "$STR_CATALOG" \
+  --rna-gene-strs "$RNA_DIR/rna_gene_strs.tsv" \
+  --rna-outliers "$RNA_DIR/rna_outlier_genes.tsv" \
+  --summary "$RNA_DIR/rna_summary_by_study.tsv" \
+  --out-dir results
+echo "=== FIM ==="

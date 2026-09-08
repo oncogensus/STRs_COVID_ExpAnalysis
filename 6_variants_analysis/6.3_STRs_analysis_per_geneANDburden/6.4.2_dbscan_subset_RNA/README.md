@@ -34,6 +34,73 @@ Cada registro das saídas RNA traz a origem do estudo: coluna `dataset`
 
 ---
 
+### 6.4.2.3 — Visualização RNA × STRs (`6.4.2.3_rna_visualization/`)
+
+**`plot_rna_summary.R`** gera visualizações para publicação a partir dos
+resultados de `cross_DEGs_STRs.py` e do catálogo de STRs.
+
+**Entradas**:
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv` (com coluna `group`: case/control)
+- `--rna-gene-strs` — `rna_gene_strs.tsv` (pares gene×STR com `datasets`)
+- `--rna-outliers` — `rna_outlier_genes.tsv` (outliers DBSCAN global)
+- `--summary` — `rna_summary_by_study.tsv` (resumo por estudo×gene)
+- `--out-dir` — diretório de saída (padrão `results/`)
+
+**Saídas** em `--out-dir`:
+| Arquivo | Conteúdo |
+|---|---|
+| `rna_ridgeline_by_study.png` | Ridgeline plot: allele2_est × densidade, facet por GSE, cor = case/control, triângulos pretos = outliers DBSCAN |
+| `rna_publication_table.tsv` | Tabela por gene: n_STRs, n_outliers, n_overlap, proporções |
+| `rna_publication_table.png` | Tabela `gt` formatada para publicação |
+
+**Submissão**: `plot_rna_summary.pbs`.
+
+### 6.4.2.3b — Teste estatístico Mann-Whitney (`mann_whitney_allele.R`)
+
+Teste de Mann-Whitney (Wilcoxon rank-sum) para comparar `allele2_est` entre
+grupos case e control, para cada STR localizado em genes DEGs.
+
+**Entradas**:
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv` (com `group`: case/control)
+- `--rna-gene-strs` — `rna_gene_strs.tsv`
+- `--out-dir` — diretório de saída (padrão `results/`)
+
+**Saídas** em `--out-dir`:
+| Arquivo | Conteúdo |
+|---|---|
+| `mann_whitney_mean_allele_results.tsv` | Tabela mean_allele: U, p, p_adjusted (BH), effect_size_r, medias/grupos |
+| `mann_whitney_allele2_results.tsv` | Tabela allele2: mesmas colunas |
+| `mann_whitney_manhattan_mean_allele.png` | Manhattan plot mean_allele: -log10(p) por STR |
+| `mann_whitney_manhattan_allele2.png` | Manhattan plot allele2: -log10(p) por STR |
+| `mann_whitney_boxplot_mean_allele.png` | Boxplot mean_allele case vs control (significativos BH<0.05) |
+| `mann_whitney_boxplot_allele2.png` | Boxplot allele2 case vs control (significativos BH<0.05) |
+| `mann_whitney_concordance.tsv` | Comparativo entre metricas (concordancia/discordancia) |
+| `mann_whitney_concordance_plot.png` | Scatter effect_size mean_allele vs allele2, colorido por concordancia |
+
+**Submissão**: `mann_whitney_allele.pbs`.
+
+### 6.4.2.3c — Radar: localização genômica (`radar_genomic_location.R`)
+
+Radar plots mostrando a distribuição de outliers e variantes sem sobreposição
+por **região genômica** (promoter, intron, UTR, intergenic, etc.), com facet
+por GSE study + radar combinado.
+
+**Entradas**:
+- `--rna-outliers` — `rna_outlier_genes.tsv`
+- `--summary` — `rna_summary_by_study.tsv`
+- `--out-dir` — diretório de saída (padrão `results/`)
+
+**Saídas** em `--out-dir`:
+| Arquivo | Conteúdo |
+|---|---|
+| `radar_outliers_by_study.png` | Radar outliers DBSCAN: facet por GSE + combinado (vermelho) |
+| `radar_no_overlap_by_study.png` | Radar sem sobreposição: facet por GSE + combinado (amarelo) |
+| `radar_genomic_summary.tsv` | Tabela: região × GSE × categoria (outliers/no_overlap) |
+
+**Submissão**: `radar_genomic_location.pbs`.
+
+---
+
 ## Avaliações entre GWAS × RNA
 
 O pipeline `6.4.3_burden_test` foi parametrizado para rodar sobre **ambos os

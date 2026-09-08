@@ -1,0 +1,36 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N rna_mann_whitney
+#PBS -o mann_whitney_allele.out
+#PBS -e mann_whitney_allele.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+# Teste de Mann-Whitney: allele2_est case vs control para STRs de DEGs.
+# Pre-requisito: 6.1_merge_datasets.r (gera STRs_analysis_dataset.tsv com group)
+#                cross_DEGs_STRs.py (gera rna_gene_strs.tsv)
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.3_rna_visualization"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate str
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+# Inputs
+RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results"
+STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
+
+[ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
+[ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente"; exit 1; }
+
+echo "=== Mann-Whitney U test: allele2_est case vs control ==="
+Rscript mann_whitney_allele.R \
+  --str-catalog "$STR_CATALOG" \
+  --rna-gene-strs "$RNA_DIR/rna_gene_strs.tsv" \
+  --out-dir results
+echo "=== FIM ==="

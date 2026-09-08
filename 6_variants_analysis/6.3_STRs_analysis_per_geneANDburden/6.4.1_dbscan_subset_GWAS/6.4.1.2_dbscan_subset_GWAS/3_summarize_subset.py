@@ -74,6 +74,7 @@ def main():
                     'start': row.get('start', ''),
                     'end': row.get('end', ''),
                     'repeat_unit': row.get('repeat_unit', ''),
+                    'group': row.get('group', ''),
                     'gwas_hit': gwas_hit,
                     'gwas_p': row.get('gwas_p', ''),
                     'gwas_phenotypes': row.get('gwas_phenotypes', ''),
@@ -230,7 +231,7 @@ def main():
             gene, info['chrom'], info['start'], info['end'],
             info['gwas_p'], gwas_significance, info['gwas_phenotypes'], info['gwas_lead_snp'],
             sid, info['region'], info['repeat_unit'],
-            info['global_outliers'], signal,
+            info['group'], info['global_outliers'], signal,
             sub_no, sub_os, sub_ore, sub_nc, sub_nr,
             sub_eps, sub_mpts, sub_cut, sub_mres, sub_meres
         ])
@@ -242,7 +243,7 @@ def main():
         w.writerow(['gene', 'chrom', 'gene_start', 'gene_end',
                      'gwas_p', 'gwas_significance', 'gwas_phenotypes', 'gwas_lead_snp',
                      'strs_id', 'region', 'repeat_unit',
-                     'global_outliers', 'signal_type',
+                     'group', 'global_outliers', 'signal_type',
                      'subset_n_outliers', 'subset_outlier_samples',
                      'subset_outlier_residuals', 'subset_n_clusters',
                      'subset_noise_ratio', 'subset_eps', 'subset_minPts',
