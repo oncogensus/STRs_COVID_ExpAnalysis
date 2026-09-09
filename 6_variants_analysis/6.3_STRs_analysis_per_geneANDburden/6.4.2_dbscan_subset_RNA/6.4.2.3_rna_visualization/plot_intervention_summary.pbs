@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N intervention_viz
+#PBS -o plot_intervention_summary.out
+#PBS -e plot_intervention_summary.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+# Visualização por intervenção: raincloud + tabela publication ready.
+# Pre-requisito: cross_intervention_STRs.py já rodou (gera intervention_*.tsv em results/).
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.3_rna_visualization"
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+R_BIN="$(command -v Rscript)"
+[ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p results
+
+# Inputs
+INTV_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results"
+STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
+
+[ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
+[ -f "$INTV_DIR/intervention_strs.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_strs.tsv ausente ( rode cross_intervention_STRs.py primeiro )"; exit 1; }
+[ -f "$INTV_DIR/intervention_outliers.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_outliers.tsv ausente"; exit 1; }
+[ -f "$INTV_DIR/intervention_summary.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_summary.tsv ausente"; exit 1; }
+
+echo "=== Instalando pacotes R ausentes ==="
+"$R_BIN" -e 'pkgs <- c("data.table","dplyr","ggplot2","ggrain","gt","scales"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
+
+echo "=== Visualização por intervenção ==="
+"$R_BIN" plot_intervention_summary.R \
+  --str-catalog "$STR_CATALOG" \
+  --intervention-strs "$INTV_DIR/intervention_strs.tsv" \
+  --intervention-outliers "$INTV_DIR/intervention_outliers.tsv" \
+  --intervention-summary "$INTV_DIR/intervention_summary.tsv" \
+  --out-dir results
+echo "=== FIM ==="
