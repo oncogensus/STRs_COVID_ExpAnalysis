@@ -57,10 +57,9 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
 ### 6.4.1.4 — (reservado)
 
-A antiga cross-validation de vias (`6.4.4_pathway_crossvalidation`) foi
-**removida**; a comparação entre as estratégias GWAS-filtrado e RNA-seq é agora
-feita pelo script único `6.4.3_burden_test/compare_gwas_rna.R`
-(outliers, burden SKAT e descritivo por STR × paciente).
+A antiga cross-validation de vias foi **removida**; a comparação entre as
+estratégias GWAS-filtrado e RNA-seq é agora feita pelo script único
+`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`.
 
 ---
 

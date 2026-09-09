@@ -67,7 +67,6 @@ strs_paper/
     │   │   ├── 6.4.1.1_covid19hg_overlap/
     │   │   └── 6.4.1.2_dbscan_subset_GWAS/
     │   ├── 6.4.2_dbscan_subset_RNA/
-    │   ├── 6.4.3_burden_test/
     │   ├── 6.4.5_igv_per_variant/
     │   └── 6.4.6_analysis_scRNA_Seq.ipynb
     ├── 6.4_STRs_filter/
@@ -332,60 +331,7 @@ cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_R
 qsub cross_DEGs_STRs.pbs
 ```
 
-#### 6.3.3: Burden Test / SKAT (`6.4.3_burden_test/`)
-
-### Purpose
-Test whether **outlier STR status** is associated with **COVID-19 mortality**
-(binary case/control: fatal vs. survivor, both age < 60, no comorbidities) at
-the **gene level** (burden + SKAT) and at the **individual STR level**
-(logistic regression). All models adjust for covariates
-`age`, `sex`, and the 3 EthSEQ ancestry principal components (`EV1`–`EV3`).
-
-### Methods
-- **Gene-level burden**: count of outlier STRs per sample within each gene is
-  the predictor in a logistic regression (`age`, `sex`, `EV1`–`EV3` as
-  covariates). Genes with `< 2` outlier STRs are excluded from the burden.
-- **SKAT** (per gene, `SKAT::SKAT`, `linear.weighted`, `out_type = "D"`):
-  rare-variant aggregation test over all outlier STRs in a gene
-  (`min_strs_per_gene = 2`). Small-sample adjustment is applied automatically
-  (n = 168 < 2000).
-- **STR-level burden** (`run_str_burden_test`): univariate logistic regression
-  per STR (outlier present/absent) with the same covariates, yielding
-  `str_burden.tsv`.
-
-**Traceability**: every gene-level result carries a `str_ids` column
-(`;`-separated `STRs_ID` list) so hits can be traced back to specific STR loci.
-This is essential because **intergenic STRs have `gene_name = "."`** and are only
-identifiable via `STRs_ID`.
-
-> **Critical implementation note**: the sample×STR outlier matrix is built with
-> `M[cbind(outlier_long$sample_id_clean, outlier_long$STRs_ID)] <- 1`. Using
-> `M[rows, cols] <- 1` would instead fill the full Cartesian product — a bug that
-> must be avoided when constructing the 0/1 burden matrix.
-
-### Script (`6.4.3_burden_test/`)
-| script | strategy | outlier source | `remove_sample_outliers` |
-|---|---|---|---|
-| `burden_gwas.R` (`strategy="gwas_burden"`) | GWAS-based (SKAT contínuo) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv` | `FALSE` |
-| `burden_gwas.R` (`strategy="gwas"`) | GWAS-based (binário) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv` | `FALSE` |
-| `burden_gwas.R` (`strategy="gwas_background"`) | Background (todos STRs) | `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_gene_strs.tsv` | `TRUE` |
-| `burden_gwas.pbs` | PBS wrapper | — | — |
-
-### Outputs (`results_gwas_burden/`, `results_gwas/`, or `results/`)
-- `burden_global.tsv` — omnibus gene-burden test across all genes.
-- `skat_per_gene.tsv` — per-gene SKAT p-values (with `str_ids`).
-- `gene_burden.tsv` — per-gene burden logistic regression (with `str_ids`).
-- `str_burden.tsv` — per-STR logistic regression (`STRs_ID`).
-- `*_hits_uncorrected.tsv` / `*_hits_corrected.tsv` — significant genes/STRs
-  (BH q < 0.05).
-
-### How to run (cluster, env `r_enrich_env`)
-```bash
-cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.3_burden_test
-qsub burden_gwas.pbs
-```
-
-#### 6.3.4: GWAS × RNA comparison (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
+#### 6.3.3: GWAS × RNA comparison (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
 
 Single comparison script ((replaces the old pathway cross-validation scripts and
 the `compare_burden_hits.*`): outliers per strategy (GWAS-sig p<5e-8 and RNA),
@@ -396,12 +342,10 @@ table (no statistical tests) including the largest-allele overlap between groups
 
 **Scripts**:
 - `6.4.4_pathway_crossvalidation/compare_gwas_rna.R` / `.pbs` — run the full comparison
-- `6.4.3_burden_test/burden_both.pbs` — runs both burden strategies then the comparison in chain
 
 **Required Inputs**:
 - `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
 - `6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv`
-- `6.4.3_burden_test/results_gwas_burden/skat_per_gene.tsv` and `results_rna/skat_per_gene.tsv`
 - `samples/STRs_analysis_dataset.tsv`
 
 **Outputs** (`6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/`):
@@ -595,16 +539,12 @@ micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
 7. Variant Analysis (`6_variants_analysis`)
    - 7.1 Dataset Integration (`6.1_merge_datasets/`)
    - 7.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
-   - 7.3 Per-STR Analysis & Burden Test (`6.3_STRs_analysis_per_geneANDburden/`)
+   - 7.3 Per-STR Analysis (`6.3_STRs_analysis_per_geneANDburden/`)
      - 7.3.1 COVID-19 HG × STRs overlap (`6.4.1.1_covid19hg_overlap/`)
      - 7.3.2 DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
-     - 7.3.3 Burden / SKAT (`6.4.3_burden_test/`)
-       - Strategy A: GWAS-based SKAT (continuous)
-       - Strategy B: GWAS-based (binary)
-       - Strategy C: Background (all STRs)
-     - 7.3.4 GWAS × RNA comparison (`compare_gwas_rna.R`)
-     - 7.3.5 IGV per variant (`6.4.5_igv_per_variant/`)
-     - 7.3.6 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+     - 7.3.3 GWAS × RNA comparison (`compare_gwas_rna.R`)
+     - 7.3.4 IGV per variant (`6.4.5_igv_per_variant/`)
+     - 7.3.5 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
    - 7.4 STR Filtering & scRNA-seq Overlap (`6.4_STRs_filter/`)
      - 7.4.1 STR-scRNA Overlap Import
      - 7.4.2 Statistical Filtering
@@ -655,10 +595,6 @@ strs_paper/
     │   ├── 6.4.2_dbscan_subset_RNA/
     │   │   └── 6.4.2.2_RNA_matrix/
     │   │       └── results/         # all_STRs_in_DEGs.tsv, outlier_STRs_in_DEGs.tsv
-    │   ├── 6.4.3_burden_test/
-    │   │   ├── results/
-    │   │   ├── results_gwas/
-    │   │   └── results_gwas_burden/
     │   ├── 6.4.4_pathway_crossvalidation/
     │   │   └── results_gwas_rna_comparison/  # compare_gwas_rna.R outputs
     │   ├── 6.4.5_igv_per_variant/
