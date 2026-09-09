@@ -156,6 +156,8 @@ cat(sprintf("Raincloud salvo em: %s\n", out_png))
 cat("\nGerando tabela de publicacao por intervenção...\n")
 
 # --- 4.1 Outlier counts per intervention x group (sample-level) ---
+setnames(intv_out, "gene_name", "gene")
+
 outlier_by_intv <- intv_out[!is.na(group), .(
   n_outliers = .N,
   n_out_case = sum(group == "case"),
