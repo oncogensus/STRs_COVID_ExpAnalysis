@@ -1,17 +1,17 @@
 #!/bin/bash
 #PBS -q workq
 #PBS -N intervention_viz
-#PBS -o plot_intervention_summary.out
-#PBS -e plot_intervention_summary.err
+#PBS -o 2_plot_intervention_summary.out
+#PBS -e 2_plot_intervention_summary.err
 #PBS -V
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Visualização por intervenção: raincloud + tabela publication ready.
-# Pre-requisito: cross_intervention_STRs.py já rodou (gera intervention_*.tsv em results/).
+# Etapa 2: Visualização por intervenção: raincloud + tabela publication ready.
+# Pre-requisito: 1_cross_intervention_STRs.pbs (gera intervention_*.tsv em results/).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.3_rna_visualization/per_intervention"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/per_intervention"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -23,12 +23,12 @@ R_BIN="$(command -v Rscript)"
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 mkdir -p results
 
-# Inputs
-INTV_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/per_intervention/results"
+# Inputs (resultados do passo 1)
+INTV_DIR="$WORKDIR/results"
 STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
-[ -f "$INTV_DIR/intervention_strs.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_strs.tsv ausente ( rode cross_intervention_STRs.py primeiro )"; exit 1; }
+[ -f "$INTV_DIR/intervention_strs.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_strs.tsv ausente ( rode 1_cross_intervention_STRs.pbs primeiro )"; exit 1; }
 [ -f "$INTV_DIR/intervention_outliers.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_outliers.tsv ausente"; exit 1; }
 [ -f "$INTV_DIR/intervention_summary.tsv" ] || { echo "ERRO: $INTV_DIR/intervention_summary.tsv ausente"; exit 1; }
 
@@ -36,7 +36,7 @@ echo "=== Instalando pacotes R ausentes ==="
 "$R_BIN" -e 'pkgs <- c("data.table","dplyr","ggplot2","ggrain","gt","scales"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
 
 echo "=== Visualização por intervenção ==="
-"$R_BIN" plot_intervention_summary.R \
+"$R_BIN" 2_plot_intervention_summary.R \
   --str-catalog "$STR_CATALOG" \
   --intervention-strs "$INTV_DIR/intervention_strs.tsv" \
   --intervention-outliers "$INTV_DIR/intervention_outliers.tsv" \

@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -q workq
 #PBS -N cross_intervention
-#PBS -o cross_intervention_STRs.out
-#PBS -e cross_intervention_STRs.err
+#PBS -o 1_cross_intervention_STRs.out
+#PBS -e 1_cross_intervention_STRs.err
 #PBS -V
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Cruza DEGs por intervenção com STRs da coorte.
+# Etapa 1: Cruzação DEGs por intervenção com STRs da coorte.
 # Pre-requisito: TSVs de DEGs nas subpastas GSE (GSE157103/, GSE183533/, GSE188847/).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
@@ -24,7 +24,7 @@ STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
 
 echo "=== Cruzamento DEGs x STRs por intervenção ==="
-python3 cross_intervention_STRs.py \
+python3 1_cross_intervention_STRs.py \
     --deg-dir ../.. \
     --str-catalog "$STR_CATALOG" \
     --out-dir results

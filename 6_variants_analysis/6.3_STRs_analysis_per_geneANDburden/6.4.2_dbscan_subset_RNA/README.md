@@ -12,34 +12,29 @@ Análises organizadas em duas categorias:
 
 ```
 6.4.2_dbscan_subset_RNA/
-├── 6.4.2.2_RNA_matrix/
-│   ├── per_study/
-│   │   ├── cross_DEGs_STRs.py          Cruzação DEGs × STRs (por GSE)
-│   │   └── cross_DEGs_STRs.pbs
-│   │
-│   └── per_intervention/
-│       ├── cross_intervention_STRs.py   Cruzação DEGs × STRs (por intervenção)
-│       └── cross_intervention_STRs.pbs
-│
-└── 6.4.2.3_rna_visualization/
+└── 6.4.2.2_RNA_matrix/
     ├── per_study/
-    │   ├── plot_rna_summary.R           Raincloud + tabela publication (por GSE)
-    │   ├── plot_rna_summary.pbs
-    │   ├── mann_whitney_allele.R        Mann-Whitney U test
-    │   ├── mann_whitney_allele.pbs
-    │   ├── radar_genomic_location.R     Radar: localização genômica
-    │   └── radar_genomic_location.pbs
+    │   ├── 1_cross_DEGs_STRs.py          Cruzação DEGs × STRs (por GSE)
+    │   ├── 1_cross_DEGs_STRs.pbs
+    │   ├── 2_plot_rna_summary.R          Raincloud + tabela publication (por GSE)
+    │   ├── 2_plot_rna_summary.pbs
+    │   ├── 3_mann_whitney_allele.R       Mann-Whitney U test
+    │   ├── 3_mann_whitney_allele.pbs
+    │   ├── 4_radar_genomic_location.R    Radar: localização genômica
+    │   └── 4_radar_genomic_location.pbs
     │
     └── per_intervention/
-        ├── plot_intervention_summary.R   Raincloud + tabela publication (por intervenção)
-        └── plot_intervention_summary.pbs
+        ├── 1_cross_intervention_STRs.py  Cruzação DEGs × STRs (por intervenção)
+        ├── 1_cross_intervention_STRs.pbs
+        ├── 2_plot_intervention_summary.R Raincloud + tabela publication (por intervenção)
+        └── 2_plot_intervention_summary.pbs
 ```
 
 ---
 
-## 6.4.2.2 — Matriz RNA × STRs
+## 1 — Cruzação DEGs × STRs
 
-### Per study: `cross_DEGs_STRs.py`
+### Per study: `1_cross_DEGs_STRs.py`
 
 Cruza DEGs (Significant=Yes) de cada subpasta `GSE*` com o catálogo de STRs.
 
@@ -59,9 +54,9 @@ Cruza DEGs (Significant=Yes) de cada subpasta `GSE*` com o catálogo de STRs.
 | `rna_outlier_genes_by_study.tsv` | contagem de STRs outlier por (gene, GSE) |
 | `rna_summary_by_study.tsv` | resumo por (GSE, gene): STRs, outliers, overlap |
 
-**Submissão**: `qsub per_study/cross_DEGs_STRs.pbs`
+**Submissão**: `qsub 1_cross_DEGs_STRs.pbs`
 
-### Per intervention: `cross_intervention_STRs.py`
+### Per intervention: `1_cross_intervention_STRs.py`
 
 Cruza DEGs de cada intervenção (arquivo TSV por comparação) com o catálogo de STRs.
 Nome da intervenção extraído do nome do arquivo (prefixo DEG(s)_ e sufixos removidos).
@@ -78,13 +73,13 @@ Nome da intervenção extraído do nome do arquivo (prefixo DEG(s)_ e sufixos re
 | `intervention_outliers.tsv` | STRs outliers por intervenção |
 | `intervention_summary.tsv` | resumo por (intervenção, gene): STRs, outliers, overlap |
 
-**Submissão**: `qsub per_intervention/cross_intervention_STRs.pbs`
+**Submissão**: `qsub 1_cross_intervention_STRs.pbs`
 
 ---
 
-## 6.4.2.3 — Visualização RNA × STRs
+## 2 — Visualização
 
-### Per study: `plot_rna_summary.R`
+### Per study: `2_plot_rna_summary.R`
 
 Raincloud plot (apenas outliers DBSCAN) + tabela publication ready por GSE.
 
@@ -102,9 +97,9 @@ Raincloud plot (apenas outliers DBSCAN) + tabela publication ready por GSE.
 | `rna_publication_table.tsv` | Tabela por GSE (1 row/GSE) |
 | `rna_publication_table.html` | Tabela `gt` publication ready (Arial, spanners) |
 
-**Submissão**: `qsub per_study/plot_rna_summary.pbs`
+**Submissão**: `qsub 2_plot_rna_summary.pbs`
 
-### Per intervention: `plot_intervention_summary.R`
+### Per intervention: `2_plot_intervention_summary.R`
 
 Raincloud plot + tabela publication ready por intervenção.
 
@@ -122,9 +117,11 @@ Raincloud plot + tabela publication ready por intervenção.
 | `intervention_publication_table.tsv` | Tabela por intervenção (1 row/intervenção) |
 | `intervention_publication_table.html` | Tabela `gt` publication ready (Arial, spanners) |
 
-**Submissão**: `qsub per_intervention/plot_intervention_summary.pbs`
+**Submissão**: `qsub 2_plot_intervention_summary.pbs`
 
-### 6.4.2.3b — Teste estatístico Mann-Whitney (`per_study/mann_whitney_allele.R`)
+---
+
+## 3 — Teste estatístico Mann-Whitney (`3_mann_whitney_allele.R`)
 
 Teste de Mann-Whitney (Wilcoxon rank-sum) para comparar `allele2_est` entre
 grupos case e control, para cada STR localizado em genes DEGs.
@@ -144,9 +141,11 @@ grupos case e control, para cada STR localizado em genes DEGs.
 | `mann_whitney_concordance.tsv` | Comparativo entre métricas |
 | `mann_whitney_concordance_plot.png` | Scatter effect_size |
 
-**Submissão**: `qsub per_study/mann_whitney_allele.pbs`
+**Submissão**: `qsub 3_mann_whitney_allele.pbs`
 
-### 6.4.2.3c — Radar: localização genômica (`per_study/radar_genomic_location.R`)
+---
+
+## 4 — Radar: localização genômica (`4_radar_genomic_location.R`)
 
 Radar plots: distribuição de outliers e variantes sem sobreposição
 por **região genômica**, facet por GSE + radar combinado.
@@ -163,7 +162,7 @@ por **região genômica**, facet por GSE + radar combinado.
 | `radar_no_overlap_by_study.png` | Radar sem sobreposição (amarelo) |
 | `radar_genomic_summary.tsv` | Tabela: região × GSE × categoria |
 
-**Submissão**: `qsub per_study/radar_genomic_location.pbs`
+**Submissão**: `qsub 4_radar_genomic_location.pbs`
 
 ---
 
@@ -172,15 +171,26 @@ por **região genômica**, facet por GSE + radar combinado.
 ### Pipeline per study (GSE):
 ```bash
 git pull
-qsub per_study/cross_DEGs_STRs.pbs
-qsub per_study/plot_rna_summary.pbs
-qsub per_study/mann_whitney_allele.pbs
-qsub per_study/radar_genomic_location.pbs
+qsub 1_cross_DEGs_STRs.pbs
+# aguardar conclusão
+qsub 2_plot_rna_summary.pbs
+# aguardar conclusão
+qsub 3_mann_whitney_allele.pbs
+# aguardar conclusão
+qsub 4_radar_genomic_location.pbs
 ```
 
 ### Pipeline per intervention:
 ```bash
 git pull
-qsub per_intervention/cross_intervention_STRs.pbs
-qsub per_intervention/plot_intervention_summary.pbs
+qsub 1_cross_intervention_STRs.pbs
+# aguardar conclusão
+qsub 2_plot_intervention_summary.pbs
+```
+
+### Depois de rodar:
+```bash
+# Voltar à pasta anterior
+cd ..
+# Criar pasta 4 para posteriores (validar outputs)
 ```

@@ -1,19 +1,19 @@
 #!/bin/bash
 #PBS -q workq
 #PBS -N rna_visualization
-#PBS -o plot_rna_summary.out
-#PBS -e plot_rna_summary.err
+#PBS -o 2_plot_rna_summary.out
+#PBS -e 2_plot_rna_summary.err
 #PBS -V
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Etapa 3/3 de 6.4.2: visualizacao RNA-Seq x STRs.
+# Etapa 2: visualizacao RNA-Seq x STRs por estudo.
 # Raincloud plot + tabela de publicacao.
-# Pre-requisito: cross_DEGs_STRs.py ja rodou (gera rna_gene_strs.tsv,
+# Pre-requisito: 1_cross_DEGs_STRs.pbs (gera rna_gene_strs.tsv,
 # rna_outlier_genes.tsv, rna_summary_by_study.tsv em results/).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.3_rna_visualization/per_study"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/per_study"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -25,12 +25,12 @@ R_BIN="$(command -v Rscript)"
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 mkdir -p results
 
-# Inputs
-RNA_DIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/per_study/results"
+# Inputs (resultados do passo 1)
+RNA_DIR="$WORKDIR/results"
 STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
-[ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente ( rode cross_DEGs_STRs.py primeiro )"; exit 1; }
+[ -f "$RNA_DIR/rna_gene_strs.tsv" ] || { echo "ERRO: $RNA_DIR/rna_gene_strs.tsv ausente ( rode 1_cross_DEGs_STRs.pbs primeiro )"; exit 1; }
 [ -f "$RNA_DIR/rna_outlier_genes.tsv" ] || { echo "ERRO: $RNA_DIR/rna_outlier_genes.tsv ausente"; exit 1; }
 [ -f "$RNA_DIR/rna_summary_by_study.tsv" ] || { echo "ERRO: $RNA_DIR/rna_summary_by_study.tsv ausente"; exit 1; }
 
@@ -38,7 +38,7 @@ echo "=== Instalando pacotes R ausentes ==="
 "$R_BIN" -e 'pkgs <- c("data.table","dplyr","tidyr","ggplot2","ggrain","gt","scales"); new <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if(length(new)) install.packages(new, repos="https://cloud.r-project.org")'
 
 echo "=== Visualizacao RNA-Seq x STRs ==="
-"$R_BIN" plot_rna_summary.R \
+"$R_BIN" 2_plot_rna_summary.R \
   --str-catalog "$STR_CATALOG" \
   --rna-gene-strs "$RNA_DIR/rna_gene_strs.tsv" \
   --rna-outliers "$RNA_DIR/rna_outlier_genes.tsv" \
