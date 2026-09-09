@@ -4,139 +4,183 @@ Cruzamento entre genes **diferencialmente expressos (DEGs)** de datasets de
 RNA-seq públicos (**GSE157103**, **GSE188847**, **GSE183533**) e o catálogo de
 STRs da coorte (STRling), com anotação de outliers DBSCAN (global e subset GWAS).
 
-## Sub-etapas
+Análises organizadas em duas categorias:
+- **Per study (GSE)** — análise por estudo de origem
+- **Per intervention** — análise por comparação/intervenção (ex: COVID_ICU_vs_NonICU)
 
-### 6.4.2.2 — Matriz RNA × STRs (`6.4.2.2_RNA_matrix/`)
+## Estrutura
 
-**`cross_DEGs_STRs.py`** cruza DEGs (Significant=Yes) de cada subpasta `GSE*` com
-o catálogo de STRs e anota métricas DBSCAN.
+```
+6.4.2_dbscan_subset_RNA/
+├── 6.4.2.2_RNA_matrix/
+│   ├── per_study/
+│   │   ├── cross_DEGs_STRs.py          Cruzação DEGs × STRs (por GSE)
+│   │   └── cross_DEGs_STRs.pbs
+│   │
+│   └── per_intervention/
+│       ├── cross_intervention_STRs.py   Cruzação DEGs × STRs (por intervenção)
+│       └── cross_intervention_STRs.pbs
+│
+└── 6.4.2.3_rna_visualization/
+    ├── per_study/
+    │   ├── plot_rna_summary.R           Raincloud + tabela publication (por GSE)
+    │   ├── plot_rna_summary.pbs
+    │   ├── mann_whitney_allele.R        Mann-Whitney U test
+    │   ├── mann_whitney_allele.pbs
+    │   ├── radar_genomic_location.R     Radar: localização genômica
+    │   └── radar_genomic_location.pbs
+    │
+    └── per_intervention/
+        ├── plot_intervention_summary.R   Raincloud + tabela publication (por intervenção)
+        └── plot_intervention_summary.pbs
+```
+
+---
+
+## 6.4.2.2 — Matriz RNA × STRs
+
+### Per study: `cross_DEGs_STRs.py`
+
+Cruza DEGs (Significant=Yes) de cada subpasta `GSE*` com o catálogo de STRs.
 
 **Entradas**:
-- `--deg-dir` — raiz com subpastas `GSE*/` (cada GSE tem seus tsv/csv de DEGs)
+- `--deg-dir` — raiz com subpastas `GSE*/`
 - `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
-- `--gwas-outliers` — `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
-- `--out-dir` — diretório de saída (padrão `results/`)
+- `--gwas-outliers` — `6.4.1.2_.../results/suggestive_strs_outliers.tsv`
+- `--out-dir` — diretório de saída
 
 **Saídas** em `--out-dir`:
 | Arquivo | Conteúdo |
 |---|---|
 | `all_STRs_in_DEGs.tsv` | todos os STRs anotados em genes DEGs |
 | `outlier_STRs_in_DEGs.tsv` | apenas STRs com outliers DBSCAN global |
-| `rna_gene_strs.tsv` | pares gene×STR dos DEGs (análogo GWAS `suggestive_gene_strs.tsv`), com coluna `datasets` (GSEs de origem) |
-| `rna_outlier_genes.tsv` | STRs outlier por gene/DEG, **análogo GWAS `covid_suggestive_genes_with_outlier_STRs.tsv`**, com `dataset` e `gse` de origem |
+| `rna_gene_strs.tsv` | pares gene×STR com `datasets` (GSEs de origem) |
+| `rna_outlier_genes.tsv` | STRs outlier por gene/DEG com `dataset` e `gse` |
 | `rna_outlier_genes_by_study.tsv` | contagem de STRs outlier por (gene, GSE) |
-| `rna_summary_by_study.tsv` | resumo pós-estudo por (GSE, gene): STRs identificadas (+outliers) e se há sobreposição do alelo maior entre grupos (`sim`/`nao`/`sem_dados`) |
+| `rna_summary_by_study.tsv` | resumo por (GSE, gene): STRs, outliers, overlap |
 
-Cada registro das saídas RNA traz a origem do estudo: coluna `dataset`
-(`GSE157103/<arquivo>`), `gse` (`GSE157103`) ou `datasets` (GSEs separados por `;`).
+**Submissão**: `qsub per_study/cross_DEGs_STRs.pbs`
 
-**Submissão**: `cross_DEGs_STRs.pbs`.
+### Per intervention: `cross_intervention_STRs.py`
 
----
-
-### 6.4.2.3 — Visualização RNA × STRs (`6.4.2.3_rna_visualization/`)
-
-**`plot_rna_summary.R`** gera visualizações para publicação a partir dos
-resultados de `cross_DEGs_STRs.py` e do catálogo de STRs.
+Cruza DEGs de cada intervenção (arquivo TSV por comparação) com o catálogo de STRs.
+Nome da intervenção extraído do nome do arquivo (prefixo DEG(s)_ e sufixos removidos).
 
 **Entradas**:
-- `--str-catalog` — `samples/STRs_analysis_dataset.tsv` (com coluna `group`: case/control)
-- `--rna-gene-strs` — `rna_gene_strs.tsv` (pares gene×STR com `datasets`)
-- `--rna-outliers` — `rna_outlier_genes.tsv` (outliers DBSCAN global)
-- `--summary` — `rna_summary_by_study.tsv` (resumo por estudo×gene)
-- `--out-dir` — diretório de saída (padrão `results/`)
+- `--deg-dir` — raiz com subpastas `GSE*/` (cada GSE tem TSVs de intervenções)
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
+- `--out-dir` — diretório de saída
 
 **Saídas** em `--out-dir`:
 | Arquivo | Conteúdo |
 |---|---|
-| `rna_ridgeline_by_study.png` | Ridgeline plot: allele2_est × densidade, facet por GSE, cor = case/control, triângulos pretos = outliers DBSCAN |
-| `rna_publication_table.tsv` | Tabela por gene: n_STRs, n_outliers, n_overlap, proporções |
-| `rna_publication_table.html` | Tabela `gt` formatada para publicação |
+| `intervention_strs.tsv` | todos os STRs anotados por intervenção |
+| `intervention_outliers.tsv` | STRs outliers por intervenção |
+| `intervention_summary.tsv` | resumo por (intervenção, gene): STRs, outliers, overlap |
 
-**Submissão**: `plot_rna_summary.pbs`.
+**Submissão**: `qsub per_intervention/cross_intervention_STRs.pbs`
 
-### 6.4.2.3b — Teste estatístico Mann-Whitney (`mann_whitney_allele.R`)
+---
+
+## 6.4.2.3 — Visualização RNA × STRs
+
+### Per study: `plot_rna_summary.R`
+
+Raincloud plot (apenas outliers DBSCAN) + tabela publication ready por GSE.
+
+**Entradas**:
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
+- `--rna-gene-strs` — `rna_gene_strs.tsv`
+- `--rna-outliers` — `rna_outlier_genes.tsv`
+- `--summary` — `rna_summary_by_study.tsv`
+- `--out-dir` — diretório de saída
+
+**Saídas** em `--out-dir`:
+| Arquivo | Conteúdo |
+|---|---|
+| `rna_raincloud_by_study.png` | Raincloud: allele2_est por GSE, cor = case/control |
+| `rna_publication_table.tsv` | Tabela por GSE (1 row/GSE) |
+| `rna_publication_table.html` | Tabela `gt` publication ready (Arial, spanners) |
+
+**Submissão**: `qsub per_study/plot_rna_summary.pbs`
+
+### Per intervention: `plot_intervention_summary.R`
+
+Raincloud plot + tabela publication ready por intervenção.
+
+**Entradas**:
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
+- `--intervention-strs` — `intervention_strs.tsv`
+- `--intervention-outliers` — `intervention_outliers.tsv`
+- `--intervention-summary` — `intervention_summary.tsv`
+- `--out-dir` — diretório de saída
+
+**Saídas** em `--out-dir`:
+| Arquivo | Conteúdo |
+|---|---|
+| `intervention_raincloud.png` | Raincloud: allele2_est por intervenção, cor = case/control |
+| `intervention_publication_table.tsv` | Tabela por intervenção (1 row/intervenção) |
+| `intervention_publication_table.html` | Tabela `gt` publication ready (Arial, spanners) |
+
+**Submissão**: `qsub per_intervention/plot_intervention_summary.pbs`
+
+### 6.4.2.3b — Teste estatístico Mann-Whitney (`per_study/mann_whitney_allele.R`)
 
 Teste de Mann-Whitney (Wilcoxon rank-sum) para comparar `allele2_est` entre
 grupos case e control, para cada STR localizado em genes DEGs.
 
 **Entradas**:
-- `--str-catalog` — `samples/STRs_analysis_dataset.tsv` (com `group`: case/control)
+- `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
 - `--rna-gene-strs` — `rna_gene_strs.tsv`
-- `--out-dir` — diretório de saída (padrão `results/`)
+- `--out-dir` — diretório de saída
 
 **Saídas** em `--out-dir`:
 | Arquivo | Conteúdo |
 |---|---|
-| `mann_whitney_mean_allele_results.tsv` | Tabela mean_allele: U, p, p_adjusted (BH), effect_size_r, medias/grupos |
+| `mann_whitney_mean_allele_results.tsv` | Tabela mean_allele: U, p, p_adjusted (BH), effect_size_r |
 | `mann_whitney_allele2_results.tsv` | Tabela allele2: mesmas colunas |
-| `mann_whitney_manhattan_mean_allele.png` | Manhattan plot mean_allele: -log10(p) por STR |
-| `mann_whitney_manhattan_allele2.png` | Manhattan plot allele2: -log10(p) por STR |
-| `mann_whitney_boxplot_mean_allele.png` | Boxplot mean_allele case vs control (significativos BH<0.05) |
-| `mann_whitney_boxplot_allele2.png` | Boxplot allele2 case vs control (significativos BH<0.05) |
-| `mann_whitney_concordance.tsv` | Comparativo entre metricas (concordancia/discordancia) |
-| `mann_whitney_concordance_plot.png` | Scatter effect_size mean_allele vs allele2, colorido por concordancia |
+| `mann_whitney_manhattan_*.png` | Manhattan plots |
+| `mann_whitney_boxplot_*.png` | Boxplots (significativos BH<0.05) |
+| `mann_whitney_concordance.tsv` | Comparativo entre métricas |
+| `mann_whitney_concordance_plot.png` | Scatter effect_size |
 
-**Submissão**: `mann_whitney_allele.pbs`.
+**Submissão**: `qsub per_study/mann_whitney_allele.pbs`
 
-### 6.4.2.3c — Radar: localização genômica (`radar_genomic_location.R`)
+### 6.4.2.3c — Radar: localização genômica (`per_study/radar_genomic_location.R`)
 
-Radar plots mostrando a distribuição de outliers e variantes sem sobreposição
-por **região genômica** (promoter, intron, UTR, intergenic, etc.), com facet
-por GSE study + radar combinado.
+Radar plots: distribuição de outliers e variantes sem sobreposição
+por **região genômica**, facet por GSE + radar combinado.
 
 **Entradas**:
 - `--rna-outliers` — `rna_outlier_genes.tsv`
 - `--summary` — `rna_summary_by_study.tsv`
-- `--out-dir` — diretório de saída (padrão `results/`)
+- `--out-dir` — diretório de saída
 
 **Saídas** em `--out-dir`:
 | Arquivo | Conteúdo |
 |---|---|
-| `radar_outliers_by_study.png` | Radar outliers DBSCAN: facet por GSE + combinado (vermelho) |
-| `radar_no_overlap_by_study.png` | Radar sem sobreposição: facet por GSE + combinado (amarelo) |
-| `radar_genomic_summary.tsv` | Tabela: região × GSE × categoria (outliers/no_overlap) |
+| `radar_outliers_by_study.png` | Radar outliers DBSCAN (vermelho) |
+| `radar_no_overlap_by_study.png` | Radar sem sobreposição (amarelo) |
+| `radar_genomic_summary.tsv` | Tabela: região × GSE × categoria |
 
-**Submissão**: `radar_genomic_location.pbs`.
+**Submissão**: `qsub per_study/radar_genomic_location.pbs`
 
 ---
 
-## Avaliações entre GWAS × RNA
+## Ordem de execução
 
-O pipeline `6.4.3_burden_test` foi parametrizado para rodar sobre **ambos os
-datasets** (GWAS-filtrado e RNA) e inclui um **script único** de comparação
-(`compare_gwas_rna.R`, PBS `compare_gwas_rna.pbs`).
-
-### Burden test — `6.4.3_burden_test`
-
-`burden_gwas.R` aceita argumentos:
-
-```
-Rscript burden_gwas.R --strategy gwas_burden   # default, usa suggestive_gene_strs.tsv
-Rscript burden_gwas.R --strategy rna_burden    # usa rna_gene_strs.tsv (RNA)
-Rscript burden_gwas.R --strategy rna_burden --background <arquivo> --out-dir <dir>
+### Pipeline per study (GSE):
+```bash
+git pull
+qsub per_study/cross_DEGs_STRs.pbs
+qsub per_study/plot_rna_summary.pbs
+qsub per_study/mann_whitney_allele.pbs
+qsub per_study/radar_genomic_location.pbs
 ```
 
-- `gwas_burden` → `results_gwas_burden/`
-- `rna_burden` → `results_rna/`
-
-PBS: `burden_gwas.pbs` (GWAS), `burden_rna.pbs` (RNA) e `burden_both.pbs` (os dois em sequência + comparativo).
-
-### Comparativo GWAS × RNA (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
-
-Script único que substitui o antigo `compare_burden_hits.*` (removido) e os
-scripts antigos de cross-validation da `6.4.4` (removidos). Gera em
-`6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/`:
-
-- `strategy_outlier_sets.tsv` — flags por STR (outlier GWAS-sig em p<5e-8, outlier RNA, STRs dos genes de burden GWAS/RNA)
-- `outlier_genes_union.tsv` — união de genes, nº de STRs por estratégia e overlap do maior alelo por gene
-- `burden_hits_union_{uncorrected,corrected}.tsv` e `burden_hits_overlap_{uncorrected,corrected}.tsv` — hits SKAT em sobreposição/união (mesma lógica do comparativo antigo)
-- `outlier_x_burden_by_gene.tsv` — matriz 2×2 outlier × burden-hit por gene
-- `patient_str.tsv` — tabela longa STR × paciente (alelos `allele1_est`/`allele2_est`, `maior_alelo`, `group`, flags de fonte)
-- `per_str_case_control.tsv` — descritivo por STR caso × controle (n, média/mediana/min/max/sd do maior alelo por grupo, nº de pacientes-outlier por grupo e `overlap_maior_alealo_grupos`) — **sem testes estatísticos**
-
-Entradas: P1 GWAS (`covid_suggestive_genes_with_outlier_STRs.tsv`), outliers RNA
-(`results/rna_outlier_genes.tsv`), SKAT das duas estratégias e o catálogo
-`samples/STRs_analysis_dataset.tsv`.
-
-PBS prontos: `compare_gwas_rna.pbs`; `burden_both.pbs` roda as duas estratégias e o comparativo em sequência.
+### Pipeline per intervention:
+```bash
+git pull
+qsub per_intervention/cross_intervention_STRs.pbs
+qsub per_intervention/plot_intervention_summary.pbs
+```
