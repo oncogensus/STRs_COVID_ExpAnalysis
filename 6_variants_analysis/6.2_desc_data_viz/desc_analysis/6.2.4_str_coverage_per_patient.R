@@ -41,7 +41,6 @@ args <- commandArgs(trailingOnly = TRUE)
 dataset_file <- get_opt(args, "--dataset", NULL)
 genome_file  <- get_opt(args, "--genome", NULL)
 out_dir      <- get_opt(args, "--out-dir", "results_coverage")
-valid_only   <- has_flag(args, "--valid-genotype-only")
 
 if (is.null(dataset_file) || is.null(genome_file))
   stop("Usage: Rscript 6.2.4_str_coverage_per_patient.R --dataset <tsv> --genome <genome.txt> [--out-dir <dir>] [--valid-genotype-only]")
@@ -52,7 +51,6 @@ cat("=== STR genomic coverage per patient (post-QC) ===\n")
 cat("dataset   :", dataset_file, "\n")
 cat("genome    :", genome_file, "\n")
 cat("out_dir   :", out_dir, "\n")
-cat("valid_only:", valid_only, "\n")
 
 ## ---------------------------------------------------------------
 ## 1. GENOME (chr 1-22, X, Y) -> total size in bp
@@ -78,10 +76,6 @@ strs[, chrom := sub("^chr", "", as.character(chrom))]
 strs[, start := as.numeric(start)][, end := as.numeric(end)]
 strs <- strs[!is.na(start) & !is.na(end)]
 
-if (valid_only) {
-  strs <- strs[!is.na(allele1_est) & !is.na(allele2_est)]
-  cat("Filter: kept only STRs with allele1_est and allele2_est non-NA.\n")
-}
 
 n_pat_total <- uniqueN(strs$sample_id)
 cat(sprintf("Samples in dataset: %d | STR x patient rows: %s\n",
