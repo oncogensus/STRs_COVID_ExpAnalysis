@@ -1,0 +1,37 @@
+#!/bin/bash
+#PBS -q workq
+#PBS -N raincloud_per_locus
+#PBS -o 3_plot_raincloud_per_locus.out
+#PBS -e 3_plot_raincloud_per_locus.err
+#PBS -V
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=01:00:00
+
+
+# Etapa 3: Raincloud por locus (outliers DBSCAN) para cada intervenção,
+#          incluindo um conjunto por GSE (acesso do estudo).
+# Pre-requisito: intervention_outliers.tsv em results/ (etapa 1).
+REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
+MAMBA="/storage2/matheusbomfim/projects/micromamba"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_intervention"
+OUTDIR="$WORKDIR/results/raincloud_per_locus"
+
+
+export MAMBA_ROOT_PREFIX="$MAMBA"
+eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
+micromamba activate r_enrich_env
+
+
+cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
+mkdir -p "$OUTDIR"
+
+
+INPUT="$WORKDIR/results/intervention_outliers.tsv"
+[ -f "$INPUT" ] || { echo "ERRO: $INPUT ausente (rode etapa 1)"; exit 1; }
+
+
+echo "=== Raincloud por locus (outliers DBSCAN) ==="
+Rscript 3_plot_raincloud_per_locus.R \
+    --intervention-outliers "$INPUT" \
+    --out-dir "$OUTDIR"
+echo "=== FIM ==="
