@@ -5,7 +5,7 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada gene
 ## Estrutura
 
 ```
-6.4.4_igv_per_variant/
+6.3.4_igv_per_variant/
 ├── 0_generate_beds.R          # gera BEDs + TSV (R)
 ├── 0_generate_beds.pbs        # PBS para rodar no cluster
 ├── str_samples_bams.tsv       # output: mapeamento gene->BAM
@@ -19,7 +19,7 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada gene
 ## Pipeline
 
 ```
-suggestive_strs_outliers.tsv (6.4.1.2)
+suggestive_strs_outliers.tsv (6.3.1.2)
     ↓
 0_generate_beds.R  →  *.bed + str_samples_bams.tsv
     ↓
@@ -29,7 +29,7 @@ igv_variant.sh GENE  →  IGV.js via HTTP
 ## 1. Gerar BEDs (no cluster)
 
 ```bash
-cd 6.4.4_igv_per_variant
+cd 6.3.4_igv_per_variant
 qsub 0_generate_beds.pbs
 ```
 
@@ -41,7 +41,7 @@ Rscript 0_generate_beds.R
 ## 2. Rodar IGV.js — todos os genes
 
 ```bash
-cd 6.4.4_igv_per_variant
+cd 6.3.4_igv_per_variant
 bash run_all.sh
 ```
 

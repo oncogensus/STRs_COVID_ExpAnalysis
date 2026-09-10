@@ -7,14 +7,14 @@
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Etapa 3/4 de 6.4.1.2: junta dataset unificado com outliers DBSCAN (filtra n_outliers>0) + resumo.
+# Etapa 3/4 de 6.3.1.2: junta dataset unificado com outliers DBSCAN (filtra n_outliers>0) + resumo.
 # Entrada: results/STRs_analysis_dataset_with_GWAS.tsv (etapa 1),
 #          results/suggestive_strs_outliers.tsv (etapa 2).
 # Saida:   results/covid_suggestive_genes_with_outlier_STRs.tsv,
 #          results/summary_overlap_dbscan.tsv
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"

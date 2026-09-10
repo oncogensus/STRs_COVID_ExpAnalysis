@@ -7,12 +7,12 @@
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=02:00:00
 
-# Etapa 1/4 de 6.4.1.2: cruza genes COVID sugestivos x STRs da coorte.
-# Entrada: results/covid_genes_suggestive.tsv (gerado em 6.4.1.1) + catalogo de STR.
+# Etapa 1/4 de 6.3.1.2: cruza genes COVID sugestivos x STRs da coorte.
+# Entrada: results/covid_genes_suggestive.tsv (gerado em 6.3.1.1) + catalogo de STR.
 # Saida:   results/suggestive_gene_strs.tsv, data/suggestive_strs_ids.txt
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -28,13 +28,13 @@ CATALOG="${CATALOG:-$REPO/samples/STRs_analysis_dataset.tsv}"
 [ -f "$CATALOG" ] || { echo "ERRO: catalogo $CATALOG ausente"; exit 1; }
 
 # Gera covid_genes_suggestive.tsv (p<1e-5) se ausente, reusando extract_covid_genes.py
-# de 6.4.1.1 (pre-requisito: 6.4.1.1 ja rodou download + build_gene_bed).
-EXTRACT="../6.4.1.1_covid19hg_overlap/3_extract_covid_genes.py"
-GTF_DIR="../6.4.1.1_covid19hg_overlap/data"
-GENE_BED="../6.4.1.1_covid19hg_overlap/genes.hg38.bed"
+# de 6.3.1.1 (pre-requisito: 6.3.1.1 ja rodou download + build_gene_bed).
+EXTRACT="../6.3.1.1_covid19hg_overlap/3_extract_covid_genes.py"
+GTF_DIR="../6.3.1.1_covid19hg_overlap/data"
+GENE_BED="../6.3.1.1_covid19hg_overlap/genes.hg38.bed"
 if [ ! -f results/covid_genes_suggestive.tsv ]; then
   if [ -f "$GENE_BED" ] && [ -f "$GTF_DIR/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz" ]; then
-    echo "Gerando results/covid_genes_suggestive.tsv (p<1e-5) a partir de 6.4.1.1..."
+    echo "Gerando results/covid_genes_suggestive.tsv (p<1e-5) a partir de 6.3.1.1..."
     "$PYBIN" "$EXTRACT" \
       --sumstats \
         "$GTF_DIR/COVID19_HGI_A2_ALL_leave_23andme_20220403.tsv.gz" \
@@ -44,8 +44,8 @@ if [ ! -f results/covid_genes_suggestive.tsv ]; then
       --out results/covid_genes_suggestive.tsv \
       --p-thresh 1e-5
   else
-    echo "ERRO: results/covid_genes_suggestive.tsv ausente e 6.4.1.1 nao preparado."
-    echo "      Rode 6.4.1.1 (download + build_gene_bed + extract) antes."
+    echo "ERRO: results/covid_genes_suggestive.tsv ausente e 6.3.1.1 nao preparado."
+    echo "      Rode 6.3.1.1 (download + build_gene_bed + extract) antes."
     exit 1
   fi
 fi

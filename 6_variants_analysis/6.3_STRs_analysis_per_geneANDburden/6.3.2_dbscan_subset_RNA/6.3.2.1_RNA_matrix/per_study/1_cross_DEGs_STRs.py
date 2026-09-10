@@ -269,7 +269,7 @@ def main():
     sys.stderr.write(f"Escrito: {out_outlier} ({len(outlier_matches)} linhas)\n")
 
     # ----------------------------------------------------------------------
-    # Saidas adicionais (análogas ao pipeline GWAS 6.4.1.2), com sufixo RNA
+    # Saidas adicionais (análogas ao pipeline GWAS 6.3.1.2), com sufixo RNA
     # e indicando o estudo de origem (acesso GSE) de cada registro.
     # ----------------------------------------------------------------------
 

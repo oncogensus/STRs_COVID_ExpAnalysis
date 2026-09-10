@@ -7,8 +7,8 @@
 #      (sem testes), incluindo overlap do tamanho do maior alelo entre grupos
 #
 # Entradas (padroes cluster):
-#   .../6.4.1.2.../results/covid_suggestive_genes_with_outlier_STRs.tsv (P1 GWAS)
-#   .../6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv                (outliers RNA)
+#   .../6.3.1.2.../results/covid_suggestive_genes_with_outlier_STRs.tsv (P1 GWAS)
+#   .../6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv                (outliers RNA)
 #   .../6.4.3_burden_test/results_gwas_burden/skat_per_gene.tsv         (burden GWAS)
 #   .../6.4.3_burden_test/results_rna/skat_per_gene.tsv                 (burden RNA)
 #   <repo>/samples/STRs_analysis_dataset.tsv                            (STR x paciente)
@@ -37,9 +37,9 @@ REPO <- get_opt(cmd_args, "--repo",
 TOP <- file.path(REPO, "6_variants_analysis", "6.3_STRs_analysis_per_geneANDburden")
 
 p1_file       <- get_opt(cmd_args, "--p1-file",
-  file.path(TOP, "6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"))
+  file.path(TOP, "6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"))
 rna_out       <- get_opt(cmd_args, "--rna-outliers",
-  file.path(TOP, "6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv"))
+  file.path(TOP, "6.3.2_dbscan_subset_RNA/6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv"))
 gwas_skat_file <- get_opt(cmd_args, "--gwas-skat",
   file.path(TOP, "6.4.3_burden_test/results_gwas_burden/skat_per_gene.tsv"))
 rna_skat_file  <- get_opt(cmd_args, "--rna-skat",
@@ -47,7 +47,7 @@ rna_skat_file  <- get_opt(cmd_args, "--rna-skat",
 catalog_file  <- get_opt(cmd_args, "--catalog",
   file.path(REPO, "samples/STRs_analysis_dataset.tsv"))
 out_dir       <- get_opt(cmd_args, "--out-dir",
-  file.path(TOP, "6.4.4_pathway_crossvalidation/results_gwas_rna_comparison"))
+  file.path(TOP, "6.3.3_pathway_crossvalidation/results_gwas_rna_comparison"))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 for (p in c(p1_file, rna_out, gwas_skat_file, rna_skat_file, catalog_file))

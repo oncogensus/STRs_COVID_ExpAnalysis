@@ -7,13 +7,13 @@
 #PBS -l nodes=1:ppn=2
 #PBS -l walltime=12:00:00
 
-# Etapa 2/4 de 6.4.1.2: subset dos residuos normalizados + re-roda DBSCAN.
+# Etapa 2/4 de 6.3.1.2: subset dos residuos normalizados + re-roda DBSCAN.
 # Entrada: data/suggestive_strs_ids.txt (etapa 1),
 #          residuos normalizados de 5_global_dbscan (RESIDUALS).
 # Saida:   results/suggestive_strs_outliers.tsv
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"

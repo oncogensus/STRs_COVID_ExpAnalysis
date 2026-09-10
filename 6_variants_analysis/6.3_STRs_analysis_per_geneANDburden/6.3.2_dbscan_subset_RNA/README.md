@@ -1,4 +1,4 @@
-# 6.4.2 — STRs em genes DEGs (RNA-seq) × DBSCAN
+# 6.3.2 — STRs em genes DEGs (RNA-seq) × DBSCAN
 
 Cruzamento entre genes **diferencialmente expressos (DEGs)** de datasets de
 RNA-seq públicos (**GSE157103**, **GSE188847**, **GSE183533**) e o catálogo de
@@ -11,8 +11,8 @@ Análises organizadas em duas categorias:
 ## Estrutura
 
 ```
-6.4.2_dbscan_subset_RNA/
-└── 6.4.2.2_RNA_matrix/
+6.3.2_dbscan_subset_RNA/
+└── 6.3.2.1_RNA_matrix/
     ├── per_study/
     │   ├── 1_cross_DEGs_STRs.py          Cruzação DEGs × STRs (por GSE)
     │   ├── 1_cross_DEGs_STRs.pbs
@@ -41,7 +41,7 @@ Cruza DEGs (Significant=Yes) de cada subpasta `GSE*` com o catálogo de STRs.
 **Entradas**:
 - `--deg-dir` — raiz com subpastas `GSE*/`
 - `--str-catalog` — `samples/STRs_analysis_dataset.tsv`
-- `--gwas-outliers` — `6.4.1.2_.../results/suggestive_strs_outliers.tsv`
+- `--gwas-outliers` — `6.3.1.2_.../results/suggestive_strs_outliers.tsv`
 - `--out-dir` — diretório de saída
 
 **Saídas** em `--out-dir`:

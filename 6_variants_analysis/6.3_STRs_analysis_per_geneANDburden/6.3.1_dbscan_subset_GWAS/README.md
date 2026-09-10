@@ -1,4 +1,4 @@
-# 6.4.1 — Per-STR Analysis
+# 6.3.1 — Per-STR Analysis
 
 Análises dirigidas a genes/STRs específicos, combinando evidências de
 **associação genética (COVID-19 HG r7)**, **outliers DBSCAN** e **vias
@@ -6,7 +6,7 @@ biológicas**.
 
 ## Sub-etapas
 
-### 6.4.1.1 — COVID-19 HG × STRs da coorte (`6.4.1.1_covid19hg_overlap/`)
+### 6.3.1.1 — COVID-19 HG × STRs da coorte (`6.3.1.1_covid19hg_overlap/`)
 
 Cruzamento entre genes significativos do COVID-19 Host Genetics Initiative (r7)
 e o catálogo completo de STRs da coorte (STRling).
@@ -27,12 +27,12 @@ gene** (sem janela de flanco); cruzamento coord-a-coord com catálogo de STRs.
 
 ---
 
-### 6.4.1.2 — DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+### 6.3.1.2 — DBSCAN subset GWAS (`6.3.1.2_dbscan_subset_GWAS/`)
 
 Re-execução do DBSCAN (mesmos parâmetros de `5_global_dbscan`) sobre STRs
 localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
-**Pré-requisito**: `6.4.1.1_covid19hg_overlap/` já rodado (precisa de
+**Pré-requisito**: `6.3.1.1_covid19hg_overlap/` já rodado (precisa de
 `genes.hg38.bed` e `data/*.tsv.gz`); `5_global_dbscan/norm_test/STRs_normalized_residuals.tsv`.
 
 **Ordem de execução**:
@@ -51,15 +51,15 @@ localizados em genes sugestivos do COVID-19 HG r7 (`p < 1e-5`).
 
 ---
 
-### 6.4.1.3 — (reservado)
+### 6.3.1.3 — (reservado)
 
 ---
 
-### 6.4.1.4 — (reservado)
+### 6.3.1.4 — (reservado)
 
 A antiga cross-validation de vias foi **removida**; a comparação entre as
 estratégias GWAS-filtrado e RNA-seq é agora feita pelo script único
-`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`.
+`6.3.3_pathway_crossvalidation/compare_gwas_rna.R`.
 
 ---
 

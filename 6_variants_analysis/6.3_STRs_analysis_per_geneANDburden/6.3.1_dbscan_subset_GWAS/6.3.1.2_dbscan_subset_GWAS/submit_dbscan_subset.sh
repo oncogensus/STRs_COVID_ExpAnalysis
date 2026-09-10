@@ -1,6 +1,6 @@
 #!/bin/bash
 # submit_dbscan_subset.sh  (roda NO NODE DE LOGIN, nao como PBS job)
-# Submete as etapas de 6.4.1.2 em cadeia via PBS, com dependencia afterok:
+# Submete as etapas de 6.3.1.2 em cadeia via PBS, com dependencia afterok:
 #   1_overlap -> 2_dbscan -> 3_summarize
 #
 #   bash submit_dbscan_subset.sh

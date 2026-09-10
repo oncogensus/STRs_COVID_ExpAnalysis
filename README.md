@@ -63,12 +63,12 @@ strs_paper/
     ├── 6.2_desc_data_viz/
     ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
-    │   ├── 6.4.1_dbscan_subset_GWAS/
-    │   │   ├── 6.4.1.1_covid19hg_overlap/
-    │   │   └── 6.4.1.2_dbscan_subset_GWAS/
-    │   ├── 6.4.2_dbscan_subset_RNA/
-    │   ├── 6.4.5_igv_per_variant/
-    │   └── 6.4.6_analysis_scRNA_Seq.ipynb
+    │   ├── 6.3.1_dbscan_subset_GWAS/
+    │   │   ├── 6.3.1.1_covid19hg_overlap/
+    │   │   └── 6.3.1.2_dbscan_subset_GWAS/
+    │   ├── 6.3.2_dbscan_subset_RNA/
+    │   ├── 6.3.4_igv_per_variant/
+    │   └── 6.3.5_analysis_scRNA_Seq.ipynb
     ├── 6.4_STRs_filter/
     └── 6.5_ancestry_analysis/
 ```
@@ -256,11 +256,11 @@ Generate genome-wide STR distribution plots.
 
 This section covers the core analytical pipelines for identifying STRs associated with COVID-19 mortality.
 
-#### 6.3.1: DBSCAN Subset — GWAS & COVID-19 HG Overlap (`6.4.1_dbscan_subset_GWAS/`)
+#### 6.3.1: DBSCAN Subset — GWAS & COVID-19 HG Overlap (`6.3.1_dbscan_subset_GWAS/`)
 
 Cross-references COVID-19 HG GWAS summary statistics with cohort STRs, and runs DBSCAN outlier detection on the GWAS-gene subset.
 
-##### 6.3.1.1: COVID-19 HG × STRs Overlap (`6.4.1.1_covid19hg_overlap/`)
+##### 6.3.1.1: COVID-19 HG × STRs Overlap (`6.3.1.1_covid19hg_overlap/`)
 
 Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts significant genes (p < 5e-8), and overlaps with cohort STR catalog.
 
@@ -272,7 +272,7 @@ Downloads COVID-19 HG r7 summary statistics, builds a gene BED, extracts signifi
 
 **Environment**: micromamba - `igv`
 
-##### 6.3.1.2: DBSCAN Subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+##### 6.3.1.2: DBSCAN Subset GWAS (`6.3.1.2_dbscan_subset_GWAS/`)
 
 Takes the GWAS-significant genes from 6.3.1.1, subsets normalized residuals to those loci, re-runs DBSCAN, summarizes results, and annotates with full STR catalog.
 
@@ -290,11 +290,11 @@ Takes the GWAS-significant genes from 6.3.1.1, subsets normalized residuals to t
 
 **Environment**: micromamba - `dbscan-r` (DBSCAN)
 
-#### 6.3.2: DBSCAN Subset — RNA (`6.4.2_dbscan_subset_RNA/`)
+#### 6.3.2: DBSCAN Subset — RNA (`6.3.2_dbscan_subset_RNA/`)
 
 Cross-references RNA-seq DEGs from multiple GEO datasets with the cohort STR catalog, enriching matches with global and GWAS DBSCAN outlier metrics.
 
-##### 6.3.2.1: Cross-reference DEGs x STRs (`6.4.2.2_RNA_matrix/`)
+##### 6.3.2.1: Cross-reference DEGs x STRs (`6.3.2.1_RNA_matrix/`)
 
 Scans all GSE subdirectories for DEG tables, overlaps gene names with the STR catalog, and produces two output tables: one with all overlapping STRs, and one filtered to STRs with global DBSCAN outliers.
 
@@ -308,13 +308,13 @@ Scans all GSE subdirectories for DEG tables, overlaps gene names with the STR ca
 **Arguments**:
 - `--deg-dir` — Root directory containing GSE subfolders with DEG TSV/CSV files
 - `--str-catalog` — Path to `STRs_analysis_dataset.tsv`
-- `--gwas-outliers` — Path to `suggestive_strs_outliers.tsv` (from 6.4.1.2)
+- `--gwas-outliers` — Path to `suggestive_strs_outliers.tsv` (from 6.3.1.2)
 - `--out-dir` — Output directory (default: `.`)
 
 **Required Inputs**:
 - RNA-seq DEG tables (TSV or CSV) in GSE subdirectories, with columns for gene name, significance, FDR, logFC, and direction
 - `samples/STRs_analysis_dataset.tsv` (master integrated STR dataset)
-- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
+- `6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
 
 **DBSCAN QC Filter** (for outlier output):
 - `n_clusters > 0`, `noise_ratio <= 0.10`, `n_outliers >= 1`
@@ -327,11 +327,11 @@ Scans all GSE subdirectories for DEG tables, overlaps gene names with the STR ca
 
 **How to run (cluster)**:
 ```bash
-cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix
+cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_dbscan_subset_RNA/6.3.2.1_RNA_matrix
 qsub cross_DEGs_STRs.pbs
 ```
 
-#### 6.3.3: GWAS × RNA comparison (`6.4.4_pathway_crossvalidation/compare_gwas_rna.R`)
+#### 6.3.3: GWAS × RNA comparison (`6.3.3_pathway_crossvalidation/compare_gwas_rna.R`)
 
 Single comparison script ((replaces the old pathway cross-validation scripts and
 the `compare_burden_hits.*`): outliers per strategy (GWAS-sig p<5e-8 and RNA),
@@ -341,14 +341,14 @@ table (no statistical tests) including the largest-allele overlap between groups
 (`overlap_maior_alealo_grupos`).
 
 **Scripts**:
-- `6.4.4_pathway_crossvalidation/compare_gwas_rna.R` / `.pbs` — run the full comparison
+- `6.3.3_pathway_crossvalidation/compare_gwas_rna.R` / `.pbs` — run the full comparison
 
 **Required Inputs**:
-- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
-- `6.4.2_dbscan_subset_RNA/6.4.2.2_RNA_matrix/results/rna_outlier_genes.tsv`
+- `6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv`
+- `6.3.2_dbscan_subset_RNA/6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv`
 - `samples/STRs_analysis_dataset.tsv`
 
-**Outputs** (`6.4.4_pathway_crossvalidation/results_gwas_rna_comparison/`):
+**Outputs** (`6.3.3_pathway_crossvalidation/results_gwas_rna_comparison/`):
 - `strategy_outlier_sets.tsv`, `outlier_genes_union.tsv`
 - `burden_hits_union_{uncorrected,corrected}.tsv`, `burden_hits_overlap_{uncorrected,corrected}.tsv`
 - `outlier_x_burden_by_gene.tsv`
@@ -356,7 +356,7 @@ table (no statistical tests) including the largest-allele overlap between groups
 
 **Environment**: micromamba - `r_enrich_env`
 
-#### 6.3.5: IGV Per Variant (`6.4.5_igv_per_variant/`)
+#### 6.3.4: IGV Per Variant (`6.3.4_igv_per_variant/`)
 
 Generates BED files and IGV.js scripts for visual inspection of STR variants. For each STR with outlier, produces a BED with the variant sample and a matched control sample.
 
@@ -366,7 +366,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 - `run_all.sh` — generate per-gene scripts in `scripts/`
 
 **Required Inputs**:
-- `6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
+- `6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
 - `5_global_dbscan/norm_test/STRs_normalized_residuals.tsv`
 
 **Outputs**:
@@ -377,7 +377,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 
 **Environment**: micromamba - `igv`
 
-#### 6.3.6: scRNA-seq Analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+#### 6.3.5: scRNA-seq Analysis (`6.3.5_analysis_scRNA_Seq.ipynb`)
 
 Generate cell-type-level visualizations of STR-scRNA overlaps.
 
@@ -540,11 +540,11 @@ micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
    - 7.1 Dataset Integration (`6.1_merge_datasets/`)
    - 7.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
    - 7.3 Per-STR Analysis (`6.3_STRs_analysis_per_geneANDburden/`)
-     - 7.3.1 COVID-19 HG × STRs overlap (`6.4.1.1_covid19hg_overlap/`)
-     - 7.3.2 DBSCAN subset GWAS (`6.4.1.2_dbscan_subset_GWAS/`)
+     - 7.3.1 COVID-19 HG × STRs overlap (`6.3.1.1_covid19hg_overlap/`)
+     - 7.3.2 DBSCAN subset GWAS (`6.3.1.2_dbscan_subset_GWAS/`)
      - 7.3.3 GWAS × RNA comparison (`compare_gwas_rna.R`)
-     - 7.3.4 IGV per variant (`6.4.5_igv_per_variant/`)
-     - 7.3.5 scRNA-seq analysis (`6.4.6_analysis_scRNA_Seq.ipynb`)
+     - 7.3.4 IGV per variant (`6.3.4_igv_per_variant/`)
+     - 7.3.5 scRNA-seq analysis (`6.3.5_analysis_scRNA_Seq.ipynb`)
    - 7.4 STR Filtering & scRNA-seq Overlap (`6.4_STRs_filter/`)
      - 7.4.1 STR-scRNA Overlap Import
      - 7.4.2 Statistical Filtering
@@ -585,24 +585,24 @@ strs_paper/
     ├── 6.2_desc_data_viz/
     ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
-    │   ├── 6.4.1_dbscan_subset_GWAS/
-    │   │   ├── 6.4.1.1_covid19hg_overlap/
+    │   ├── 6.3.1_dbscan_subset_GWAS/
+    │   │   ├── 6.3.1.1_covid19hg_overlap/
     │   │   │   ├── data/            # COVID-19 HG GWAS files + gene BED
     │   │   │   └── results/         # covid_genes.tsv, overlap tables
-    │   │   └── 6.4.1.2_dbscan_subset_GWAS/
+    │   │   └── 6.3.1.2_dbscan_subset_GWAS/
     │   │       ├── data/            # suggestive_strs_residuals.tsv
     │   │       └── results/         # suggestive_gene_strs.tsv, outliers
-    │   ├── 6.4.2_dbscan_subset_RNA/
-    │   │   └── 6.4.2.2_RNA_matrix/
+    │   ├── 6.3.2_dbscan_subset_RNA/
+    │   │   └── 6.3.2.1_RNA_matrix/
     │   │       └── results/         # all_STRs_in_DEGs.tsv, outlier_STRs_in_DEGs.tsv
-    │   ├── 6.4.4_pathway_crossvalidation/
+    │   ├── 6.3.3_pathway_crossvalidation/
     │   │   └── results_gwas_rna_comparison/  # compare_gwas_rna.R outputs
-    │   ├── 6.4.5_igv_per_variant/
+    │   ├── 6.3.4_igv_per_variant/
     │   │   ├── str_samples_bams.tsv
     │   │   ├── str_samples_with_variant.bed
     │   │   ├── str_samples_without_variant.bed
     │   │   └── scripts/             # per-gene IGV scripts
-    │   └── 6.4.6_analysis_scRNA_Seq.ipynb
+    │   └── 6.3.5_analysis_scRNA_Seq.ipynb
     ├── 6.4_STRs_filter/
     │   └── results/
     │       ├── STR_vs_scRNA_overlap_*.csv
