@@ -8,7 +8,7 @@
 # Etapa 1: Cruzação DEGs x STRs por estudo (GSE).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_dbscan_subset_RNA/6.3.2.1_RNA_matrix/per_study"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_study"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -19,5 +19,5 @@ cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 python3 1_cross_DEGs_STRs.py \
     --deg-dir ../.. \
     --str-catalog ../../../../../samples/STRs_analysis_dataset.tsv \
-    --gwas-outliers ../../../6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv \
+    --gwas-outliers ../../../6.3.1_GWAS_analysis/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv \
     --out-dir results

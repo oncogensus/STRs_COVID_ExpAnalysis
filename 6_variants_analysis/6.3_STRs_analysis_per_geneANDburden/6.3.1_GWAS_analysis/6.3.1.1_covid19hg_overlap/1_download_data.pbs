@@ -10,7 +10,7 @@
 # Etapa 1/4 de 6.3.1.1: baixa summary stats COVID-19 HG r7 + GENCODE v39 GTF.
 # Saida: data/COVID19_HGI_*.tsv.gz, data/gencode.v39.primary_assembly.annotation.gtf.gz
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_dbscan_subset_GWAS/6.3.1.1_covid19hg_overlap"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_GWAS_analysis/6.3.1.1_covid19hg_overlap"
 
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 

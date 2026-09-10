@@ -12,7 +12,7 @@
 # Saida:   results/suggestive_gene_strs.tsv, data/suggestive_strs_ids.txt
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_dbscan_subset_GWAS/6.3.1.2_dbscan_subset_GWAS"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_GWAS_analysis/6.3.1.2_dbscan_subset_GWAS"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"

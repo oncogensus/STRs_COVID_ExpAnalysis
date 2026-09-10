@@ -2,8 +2,8 @@ __pycache__/
 *.pyc
 
 # Dados e resultados (nao versionar)
-dbscan_subset_GWAS/data/
-dbscan_subset_GWAS/results/
+GWAS_analysis/data/
+GWAS_analysis/results/
 
 # Pasta de arquivo local (nao versionar)
 litcovid_archive/

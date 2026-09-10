@@ -11,7 +11,7 @@ Análises organizadas em duas categorias:
 ## Estrutura
 
 ```
-6.3.2_dbscan_subset_RNA/
+6.3.2_RNA_data_analysis/
 └── 6.3.2.1_RNA_matrix/
     ├── per_study/
     │   ├── 1_cross_DEGs_STRs.py          Cruzação DEGs × STRs (por GSE)
