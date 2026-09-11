@@ -255,44 +255,7 @@ This section covers the core analytical pipelines for identifying STRs associate
 
 Cross-references RNA-seq DEGs from multiple GEO datasets with the cohort STR catalog, enriching matches with global DBSCAN outlier metrics.
 
-##### 6.3.2.1: Cross-reference DEGs x STRs (`6.3.2.1_RNA_matrix/`)
-
-Scans all GSE subdirectories for DEG tables, overlaps gene names with the STR catalog, and produces two output tables: one with all overlapping STRs, and one filtered to STRs with global DBSCAN outliers.
-
-**RNA-seq Datasets** (GSE subdirectories expected under `--deg-dir`):
-- **GSE157103**
-- **GSE188847**
-- **GSE183533**
-
-**Script**: `cross_DEGs_STRs.py`
-
-**Arguments**:
-- `--deg-dir` — Root directory containing GSE subfolders with DEG TSV/CSV files
-- `--str-catalog` — Path to `STRs_analysis_dataset.tsv`
-- `--gwas-outliers` — Path to `suggestive_strs_outliers.tsv` (from 6.3.1.2)
-- `--out-dir` — Output directory (default: `.`)
-
-**Required Inputs**:
-- RNA-seq DEG tables (TSV or CSV) in GSE subdirectories, with columns for gene name, significance, FDR, logFC, and direction
-- `samples/STRs_analysis_dataset.tsv` (master integrated STR dataset)
-- `6.3.1_GWAS_analysis/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv`
-
-**DBSCAN QC Filter** (for outlier output):
-- `n_clusters > 0`, `noise_ratio <= 0.10`, `n_outliers >= 1`
-
-**Output** (`results/`):
-- `all_STRs_in_DEGs.tsv` — All STRs annotated in DEG genes across all datasets
-- `outlier_STRs_in_DEGs.tsv` — STRs with DBSCAN global outliers overlapping DEG genes
-
-**Environment**: micromamba - `str`
-
-**How to run (cluster)**:
-```bash
-cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix
-qsub cross_DEGs_STRs.pbs
-```
-
-#### 6.3.3: RNA-seq Outlier Analysis (`6.3.3_pathway_crossvalidation/compare_gwas_rna.R`)
+##### 6.3.2.1: Descriptive Analysis (`6.3.2.1_descriptive_analysis/compare_gwas_rna.R`)
 
 Descriptive analysis of RNA-seq outliers: STRs/genes with DBSCAN global outliers, patient-level allele distributions comparing case vs. control groups (no statistical tests).
 
@@ -300,16 +263,31 @@ Descriptive analysis of RNA-seq outliers: STRs/genes with DBSCAN global outliers
 - `compare_gwas_rna.R` / `.pbs` — run the analysis
 
 **Required Inputs**:
-- `6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv`
+- `6.3.2.2_RNA_matrix/results/intervention_strs.tsv`
 - `samples/STRs_analysis_dataset.tsv`
 
-**Outputs** (`6.3.3_pathway_crossvalidation/results_gwas_rna_comparison/`):
+**Outputs** (`results/`):
 - `rna_outlier_sets.tsv` — STRs with outliers and metadata
 - `rna_genes_summary.tsv` — genes with outlier counts and GSE provenance
 - `patient_str.tsv` — long-form STR × patient table
 - `per_str_case_control.tsv` — descriptive stats per STR: case/control counts, allele means/medians, overlap status
 
 **Environment**: micromamba - `r_enrich_env`
+
+##### 6.3.2.2: Per-intervention DEG x STR (`6.3.2.2_RNA_matrix/`)
+
+Scans all GSE subdirectories for intervention-specific DEG tables, overlaps gene names with the STR catalog, and produces output tables per intervention.
+
+**Scripts**:
+- `1_cross_intervention_STRs.py` / `.pbs` — DEG x STR crossing per intervention
+- `2_plot_intervention_summary.R` / `.pbs` — raincloud + publication table per intervention
+- `3_plot_raincloud_per_locus.R` — raincloud per locus (outlier DBSCAN only)
+
+**Required Inputs**:
+- GSE subdirectories with intervention DEG TSVs
+- `samples/STRs_analysis_dataset.tsv`
+
+**Environment**: micromamba - `str` (Python), `r_enrich_env` (R)
 
 #### 6.3.4: IGV Per Variant (`6.3.4_igv_per_variant/`)
 
@@ -321,7 +299,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 - `run_all.sh` — generate per-gene scripts in `scripts/`
 
 **Required Inputs**:
-- `6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_study/results/rna_outlier_genes.tsv`
+- `6.3.2.2_RNA_matrix/results/intervention_outliers.tsv`
 - `5_global_dbscan/norm_test/STRs_normalized_residuals.tsv`
 
 **Outputs**:
@@ -434,13 +412,12 @@ micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
    - 6.1 Dataset Integration (`6.1_merge_datasets/`)
    - 6.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
    - 6.3 Per-STR Analysis (`6.3_STRs_analysis_per_geneANDburden/`)
+     - 6.3.1 Pre-processing (`6.3.1_pre_processing/`)
      - 6.3.2 RNA-seq Analysis (`6.3.2_RNA_data_analysis/`)
-     - 6.3.3 RNA-seq Outlier Analysis (`compare_gwas_rna.R`)
+       - 6.3.2.1 Descriptive Analysis (`compare_gwas_rna.R`)
+       - 6.3.2.2 Per-intervention DEG x STR (`6.3.2.2_RNA_matrix/`)
      - 6.3.4 IGV per variant (`6.3.4_igv_per_variant/`)
    - 6.5 Ancestry Analysis (`6.5_ancestry_analysis/`)
-     - 7.5.1 Categorical Ancestry Comparison
-     - 7.5.2 High-Resolution Ancestry Correlation
-     - 7.5.3 Ancestry Data Visualization
 
 ## Output Structure
 
@@ -474,11 +451,12 @@ strs_paper/
     ├── 6.2_desc_data_viz/
     ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
+    │   ├── 6.3.1_pre_processing/
     │   ├── 6.3.2_RNA_data_analysis/
-    │   │   └── 6.3.2.1_RNA_matrix/
-    │   │       └── results/         # all_STRs_in_DEGs.tsv, outlier_STRs_in_DEGs.tsv
-    │   ├── 6.3.3_pathway_crossvalidation/
-    │   │   └── results_gwas_rna_comparison/  # compare_gwas_rna.R outputs
+    │   │   ├── 6.3.2.1_descriptive_analysis/
+    │   │   │   └── results/         # rna_outlier_sets.tsv, per_str_case_control.tsv
+    │   │   └── 6.3.2.2_RNA_matrix/
+    │   │       └── results/         # intervention_strs.tsv, intervention_outliers.tsv
     │   ├── 6.3.4_igv_per_variant/
     │   │   ├── str_samples_bams.tsv
     │   │   ├── str_samples_with_variant.bed

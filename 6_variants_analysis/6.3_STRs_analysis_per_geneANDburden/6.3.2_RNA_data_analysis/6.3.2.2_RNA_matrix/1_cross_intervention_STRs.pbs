@@ -11,7 +11,7 @@
 # Pre-requisito: TSVs de DEGs nas subpastas GSE (GSE157103/, GSE183533/, GSE188847/).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
-WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_intervention"
+WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -25,7 +25,7 @@ STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 
 echo "=== Cruzamento DEGs x STRs por intervenção ==="
 python3 1_cross_intervention_STRs.py \
-    --deg-dir ../.. \
+    --deg-dir .. \
     --str-catalog "$STR_CATALOG" \
     --out-dir results
 echo "=== FIM ==="

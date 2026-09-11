@@ -5,7 +5,7 @@
 # (sem testes), incluindo overlap do tamanho do maior alelo entre grupos.
 #
 # Entradas (padroes cluster):
-#   .../6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv  (outliers RNA)
+#   .../6.3.2.2_RNA_matrix/results/intervention_strs.tsv  (outliers RNA)
 #   <repo>/samples/STRs_analysis_dataset.tsv              (STR x paciente)
 #
 # Saidas (--out-dir, padrao results_gwas_rna_comparison/):
@@ -29,11 +29,11 @@ REPO <- get_opt(cmd_args, "--repo",
 TOP <- file.path(REPO, "6_variants_analysis", "6.3_STRs_analysis_per_geneANDburden")
 
 rna_out       <- get_opt(cmd_args, "--rna-outliers",
-  file.path(TOP, "6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv"))
+  file.path(TOP, "6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/results/intervention_strs.tsv"))
 catalog_file  <- get_opt(cmd_args, "--catalog",
   file.path(REPO, "samples/STRs_analysis_dataset.tsv"))
 out_dir       <- get_opt(cmd_args, "--out-dir",
-  file.path(TOP, "6.3.3_pathway_crossvalidation/results_gwas_rna_comparison"))
+  file.path(TOP, "6.3.2_RNA_data_analysis/6.3.2.1_descriptive_analysis/results"))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 for (p in c(rna_out, catalog_file))

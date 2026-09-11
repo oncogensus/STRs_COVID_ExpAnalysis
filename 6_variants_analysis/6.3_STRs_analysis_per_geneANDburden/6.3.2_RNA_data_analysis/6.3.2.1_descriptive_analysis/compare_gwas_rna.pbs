@@ -8,7 +8,7 @@
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
 TOP="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden"
-WORKDIR="$TOP/6.3.3_pathway_crossvalidation"
+WORKDIR="$TOP/6.3.2_RNA_data_analysis/6.3.2.1_descriptive_analysis"
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
@@ -20,10 +20,9 @@ R_BIN="$(command -v Rscript)"
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 
 "$R_BIN" compare_gwas_rna.R \
-  --p1-file "$TOP/6.4.1_dbscan_subset_GWAS/6.4.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv" \
-  --rna-outliers "$TOP/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_intervention/results/intervention_strs.tsv" \
+  --rna-outliers "$TOP/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/results/intervention_strs.tsv" \
   --catalog "$REPO/samples/STRs_analysis_dataset.tsv" \
-  --out-dir "$WORKDIR/results_gwas_rna_comparison" \
-  || { echo "ERRO no comparativo GWAS x RNA"; exit 1; }
+  --out-dir "$WORKDIR/results" \
+  || { echo "ERRO na analise descritiva RNA-seq"; exit 1; }
 
-echo "=== FIM: resultados em results_gwas_rna_comparison/ (6.3.3_pathway_crossvalidation) ==="
+echo "=== FIM: resultados em results/ (6.3.2.1_descriptive_analysis) ==="

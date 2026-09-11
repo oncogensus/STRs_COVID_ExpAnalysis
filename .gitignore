@@ -14,11 +14,7 @@ samples/*
 *.tsv
 *.gds
 *.pbs
-!7_variants_analysis/covid19hg_evaluation/*.pbs
-!7_variants_analysis/covid19hg_evaluation/dbscan_subset/*.pbs
-!7_variants_analysis/covid19hg_evaluation/pathway_crossvalidation/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/**/*.pbs
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.3_pathway_crossvalidation/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/*.pbs
 !6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/*.R
 *.gtf
@@ -47,15 +43,7 @@ strs_call/hg38.fa.*
 gtf_annot/*.gtf
 gtf_annot/Homo_sapiens*.gtf
 
-# External tracks downloaded at runtime (7.4.3.1_download_external_tracks.sh)
-7_variants_analysis/7.4_scRNA-seq_analysis/external_tracks/
-
-# Read-alignment plots 
-7_variants_analysis/7.4_scRNA-seq_analysis/igv_per_variant/data/*
-
 # ignore results
-7_variants_analysis/7.4_scRNA-seq_analysis/results/*
-7_variants_analysis/7.4_scRNA-seq_analysis/results_reads_alignment_gviz/*
 data/data/
 *.gtf.gz
 *.tsv.gz
