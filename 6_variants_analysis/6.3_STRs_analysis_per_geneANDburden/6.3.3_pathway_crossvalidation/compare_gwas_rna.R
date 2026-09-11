@@ -1,28 +1,20 @@
 # compare_gwas_rna.R
 # ---------------------------------------------------------------------------
-# Comparacao entre as estrategias GWAS-filtrado e RNA-seq (PER INTERVENTION):
-#   1) outliers  : STRs/genes com STR-outlier por estrategia + uniao
-#   2) sobreposicao por STR x paciente (grupo caso vs controle) - DESCRITIVO
-#      (sem testes), incluindo overlap do tamanho do maior alelo entre grupos
+# Analise descritiva dos outliers RNA-seq: STRs/genes com outlier DBSCAN
+# global, sobreposicao por STR x paciente (grupo caso vs controle) - DESCRITIVO
+# (sem testes), incluindo overlap do tamanho do maior alelo entre grupos.
 #
 # Entradas (padroes cluster):
-#   .../6.3.1.2.../results/covid_suggestive_genes_with_outlier_STRs.tsv (P1 GWAS)
-#   .../per_intervention/intervention_strs.tsv                         (RNA per intervention)
-#   <repo>/samples/STRs_analysis_dataset.tsv                            (STR x paciente)
-#
-# O arquivo intervention_strs.tsv contem TODOS os STRs anotados por
-# intervencao; aqui aplicamos o QC DBSCAN (n_clusters>0, noise_ratio<=0.10,
-# n_outliers>=1) para manter apenas STRs com outliers globais, replicando
-# a semantica do antigo rna_outlier_genes.tsv.
+#   .../6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv  (outliers RNA)
+#   <repo>/samples/STRs_analysis_dataset.tsv              (STR x paciente)
 #
 # Saidas (--out-dir, padrao results_gwas_rna_comparison/):
-#   strategy_outlier_sets.tsv / outlier_genes_union.tsv
+#   rna_outlier_sets.tsv / rna_genes_summary.tsv
 #   patient_str.tsv / per_str_case_control.tsv
 #
 # Uso:
 #   Rscript compare_gwas_rna.R [--repo <dir>] [--out-dir <dir>]
-#                              [--p1-file ...] [--rna-outliers ...]
-#                              [--catalog ...]
+#                              [--rna-outliers ...] [--catalog ...]
 # ---------------------------------------------------------------------------
 suppressMessages({ library(data.table) })
 
@@ -36,146 +28,59 @@ REPO <- get_opt(cmd_args, "--repo",
                 "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis")
 TOP <- file.path(REPO, "6_variants_analysis", "6.3_STRs_analysis_per_geneANDburden")
 
-p1_file       <- get_opt(cmd_args, "--p1-file",
-  file.path(TOP, "6.3.1_GWAS_analysis/6.3.1.2_dbscan_subset_GWAS/results/covid_suggestive_genes_with_outlier_STRs.tsv"))
 rna_out       <- get_opt(cmd_args, "--rna-outliers",
-  file.path(TOP, "6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_intervention/intervention_strs.tsv"))
+  file.path(TOP, "6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/results/rna_outlier_genes.tsv"))
 catalog_file  <- get_opt(cmd_args, "--catalog",
   file.path(REPO, "samples/STRs_analysis_dataset.tsv"))
 out_dir       <- get_opt(cmd_args, "--out-dir",
   file.path(TOP, "6.3.3_pathway_crossvalidation/results_gwas_rna_comparison"))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-for (p in c(p1_file, rna_out, catalog_file))
+for (p in c(rna_out, catalog_file))
   if (!file.exists(p)) stop("arquivo ausente: ", p)
 
 num <- function(x) suppressWarnings(as.numeric(x))
 
-cat("=== Comparacao GWAS-filtrado x RNA-seq (per intervention) ===\n")
-cat("p1_file      :", p1_file, "\n")
+cat("=== Analise descritiva outliers RNA-seq ===\n")
 cat("rna_outliers :", rna_out, "\n")
 cat("catalog      :", catalog_file, "\n")
 cat("out_dir      :", out_dir, "\n")
 
 ## ---------------------------------------------------------------------------
-## 1. OUTLIERS POR ESTRATEGIA
+## 1. OUTLIERS RNA-SEQ
 ## ---------------------------------------------------------------------------
-p1 <- fread(p1_file, header = TRUE, sep = "\t")
-p1[, sn_out := num(subset_n_outliers)]
-gwas_out <- p1[gwas_significance == "significant" & is.finite(sn_out) & sn_out >= 1]
+rna_outl <- fread(rna_out, header = TRUE, sep = "\t")
 
-RNA_DBSCAN_QC <- quote(n_cl > 0 & is.finite(n_cl) &
-                       nr <= 0.10 & is.finite(nr) &
-                       n_ol >= 1 & is.finite(n_ol))
-
-rna <- fread(rna_out, header = TRUE, sep = "\t")
-if (!"STRs_ID" %in% names(rna)) stop("coluna STRs_ID ausente em ", rna_out)
-setnames(rna, "STRs_ID", "strs_id")
-if (!"gene_name" %in% names(rna)) stop("coluna gene_name ausente em ", rna_out)
-setnames(rna, "gene_name", "gene")
-
-rna[, n_cl := num(n_clusters_dbscan_global)]
-rna[, nr   := num(noise_ratio_dbscan_global)]
-rna[, n_ol := num(n_outliers_dbscan_global)]
-if (!"intervention" %in% names(rna))
-  rna[, intervention := gse]
-rna_outl <- rna[eval(RNA_DBSCAN_QC)]
-rna_all  <- unique(rna[, .(strs_id, gene, region, repeat_unit,
-                           intervention, gse, n_out = n_ol)])
-
-rna_all_strs <- unique(rna_all$strs_id)
-gwas_strs    <- unique(gwas_out$strs_id)
-rna_strs     <- unique(rna_outl$strs_id)
-cat(sprintf("Outliers GWAS (significativos): %d STRs | %d genes\n",
-            length(gwas_strs), uniqueN(gwas_out$gene)))
-cat(sprintf("RNA per intervention - TODOS DEGs: %d STRs | %d genes\n",
-            length(rna_all_strs), uniqueN(rna_all$gene)))
-cat(sprintf("Outliers RNA (per intervention, QC DBSCAN): %d STRs | %d genes\n",
+rna_strs  <- unique(rna_outl$strs_id)
+cat(sprintf("Outliers RNA: %d STRs | %d genes\n",
             length(rna_strs), uniqueN(rna_outl$gene)))
 
-gwas_meta <- unique(gwas_out[, .(strs_id, gene, region, repeat_unit,
-                                 gwas_p = num(gwas_p), n_out_gwas = sn_out)])
-rna_all_meta <- unique(rna_all[, .(strs_id, gene, region, repeat_unit)])
-rna_meta     <- unique(rna_outl[, .(strs_id, gene, region, repeat_unit,
-                                    n_out_rna = num(n_outliers_dbscan_global))])
+rna_meta <- unique(rna_outl[, .(strs_id, gene, region, repeat_unit,
+                                n_out_rna = num(n_outliers_dbscan_global))])
 
-gwas_samp <- unique(gwas_out[, .(strs_id, os = subset_outlier_samples)])
-rna_samp  <- unique(rna_outl[, .(strs_id, os = outlier_samples_dbscan_global)])
+rna_samp <- unique(rna_outl[, .(strs_id, os = outlier_samples_dbscan_global)])
 
 ## ---------------------------------------------------------------------------
-## 2. CONJUNTOS DE STR POR ESTRATEGIA
+## 2. TABELA DE STRs COM OUTLIERS
 ## ---------------------------------------------------------------------------
-union_strs <- unique(c(gwas_strs, rna_all_strs))
-
-marker <- function(ids) data.table(strs_id = unique(ids))
-
-sets <- unique(rbindlist(list(
-  gwas_meta[, .(strs_id, gene)],
-  rna_all_meta[, .(strs_id, gene)]
-)))
-sets[, in_gwas_sig := 0L][marker(gwas_strs), in_gwas_sig := 1L, on = "strs_id"]
-sets[, in_rna_all := 0L][marker(rna_all_strs), in_rna_all := 1L, on = "strs_id"]
-sets[, in_rna := 0L][marker(rna_strs), in_rna := 1L, on = "strs_id"]
-
-str_info <- unique(rbindlist(list(
-  gwas_meta[, .(strs_id, region, repeat_unit, gwas_p, n_out_gwas)],
-  rna_all_meta[, .(strs_id, region, repeat_unit)],
-  rna_meta[, .(strs_id, n_out_rna)]
-), use.names = TRUE, fill = TRUE))
-str_info[, gwas_p     := if (all(is.na(gwas_p))) NA_real_ else min(gwas_p[!is.na(gwas_p)]), by = strs_id]
-str_info[, n_out_gwas := if (all(is.na(n_out_gwas))) NA_real_ else max(n_out_gwas[!is.na(n_out_gwas)]), by = strs_id]
-str_info[, n_out_rna  := if (all(is.na(n_out_rna)))  NA_real_ else max(n_out_rna[!is.na(n_out_rna)]),  by = strs_id]
-str_info[, region      := region[1],      by = strs_id]
-str_info[, repeat_unit := repeat_unit[1], by = strs_id]
-str_info <- unique(str_info, by = "strs_id")
-
-sets <- merge(sets, str_info, by = "strs_id", all.x = TRUE)
+sets <- unique(rna_meta[, .(strs_id, gene, region, repeat_unit, n_out_rna)])
 setorder(sets, gene, strs_id)
 
-fwrite(sets, file.path(out_dir, "strategy_outlier_sets.tsv"), sep = "\t")
-cat(sprintf("Uniao STRs: %d | in_gwas_sig=%d, in_rna_all=%d, in_rna=%d\n",
-            uniqueN(sets$strs_id),
-            length(gwas_strs), length(rna_all_strs), length(rna_strs)))
+fwrite(sets, file.path(out_dir, "rna_outlier_sets.tsv"), sep = "\t")
+cat(sprintf("STRs com outlier: %d\n", uniqueN(sets$strs_id)))
 
 ## ---------------------------------------------------------------------------
-## 3. UNIAO DE GENES POR ESTRATEGIA
+## 3. RESUMO POR GENE
 ## ---------------------------------------------------------------------------
-pairs <- unique(rbindlist(list(
-  sets[in_gwas_sig == 1L, .(gene, strs_id, src = "gwas_sig")],
-  sets[in_rna_all == 1L, .(gene, strs_id, src = "rna_all")],
-  sets[in_rna == 1L, .(gene, strs_id, src = "rna_out")]
-), use.names = TRUE))
+genes_summary <- rna_outl[, .(
+  n_strs = uniqueN(strs_id),
+  n_outliers = sum(num(n_outliers_dbscan_global), na.rm = TRUE),
+  gse = paste(sort(unique(gse)), collapse = ";")
+), by = gene]
+setorder(genes_summary, -n_strs, gene)
 
-genes_union <- dcast(pairs, gene ~ src, value.var = "strs_id",
-                     fun.aggregate = length)
-src_new <- c(gwas_sig = "n_strs_gwas_sig", rna_all = "n_strs_rna_all",
-             rna_out = "n_strs_rna")
-rn <- intersect(names(src_new), names(genes_union))
-setnames(genes_union, rn, src_new[rn])
-for (cc in c("n_strs_gwas_sig", "n_strs_rna_all", "n_strs_rna")) {
-  if (is.null(genes_union[[cc]])) genes_union[[cc]] <- 0L
-  genes_union[[cc]][is.na(genes_union[[cc]])] <- 0L
-  genes_union[[cc]] <- as.integer(genes_union[[cc]])
-}
-
-gwas_p_gene <- gwas_out[, .(gwas_p_min = min(num(gwas_p), na.rm = TRUE)), by = gene]
-genes_union <- merge(genes_union, gwas_p_gene, by = "gene", all.x = TRUE)
-rna_studies <- rna_all[, .(rna_intervention = paste(sort(unique(intervention)), collapse = ";"),
-                           rna_gse = paste(sort(unique(gse)), collapse = ";")), by = gene]
-genes_union <- merge(genes_union, rna_studies, by = "gene", all.x = TRUE)
-
-genes_union[, in_gwas_sig := as.integer(n_strs_gwas_sig > 0)]
-genes_union[, in_rna_all := as.integer(n_strs_rna_all > 0)]
-genes_union[, in_rna := as.integer(n_strs_rna > 0)]
-genes_union[, in_rna_only_out := as.integer(in_rna_all == 1L & in_rna == 0L)]
-setorder(genes_union, -in_gwas_sig, -in_rna_all, -in_rna, gene)
-
-fwrite(genes_union, file.path(out_dir, "outlier_genes_union.tsv"), sep = "\t")
-cat(sprintf("Genes na uniao: %d | GWAS sig=%d, RNA todos=%d, RNA outliers=%d\n",
-            nrow(genes_union),
-            sum(genes_union$in_gwas_sig == 1L),
-            sum(genes_union$in_rna_all == 1L),
-            sum(genes_union$in_rna == 1L)))
+fwrite(genes_summary, file.path(out_dir, "rna_genes_summary.tsv"), sep = "\t")
+cat(sprintf("Genes com outlier: %d\n", nrow(genes_summary)))
 
 ## ---------------------------------------------------------------------------
 ## 4. TABELA LONGA STR x PACIENTE (do catalogo da coorte)
@@ -185,7 +90,8 @@ cat_cols <- c("STRs_ID", "sample_id", "group", "allele1_est", "allele2_est",
 catc <- fread(catalog_file, header = TRUE, sep = "\t", select = cat_cols)
 cat(sprintf("Catalogo carregado: %d linhas\n", nrow(catc)))
 
-union_sid <- marker(union_strs)
+marker <- function(ids) data.table(strs_id = unique(ids))
+union_sid <- marker(rna_strs)
 pat <- catc[union_sid, on = c("STRs_ID" = "strs_id"), nomatch = 0L]
 setnames(pat, "STRs_ID", "strs_id")
 
@@ -198,8 +104,6 @@ pat[, maior_alelo := ifelse(is.na(allele1_est) & is.na(allele2_est), NA_real_,
 pat <- unique(pat, by = c("strs_id", "sample_id"))
 pat[, chrom := NULL][, start := NULL][, end := NULL]
 
-pat[, in_gwas_sig := 0L][marker(gwas_strs), in_gwas_sig := 1L, on = "strs_id"]
-pat[, in_rna_all := 0L][marker(rna_all_strs), in_rna_all := 1L, on = "strs_id"]
 pat[, in_rna := 0L][marker(rna_strs), in_rna := 1L, on = "strs_id"]
 
 setorder(pat, strs_id, sample_id)
@@ -234,8 +138,7 @@ count_out_grp <- function(ids, pat_s) {
   c(case = sum(h$group == "case"), control = sum(h$group == "control"))
 }
 
-gwas_os_key <- if (nrow(gwas_samp)) unique(gwas_samp, by = "strs_id") else data.table()
-rna_os_key  <- if (nrow(rna_samp))  unique(rna_samp, by = "strs_id")  else data.table()
+rna_os_key <- if (nrow(rna_samp)) unique(rna_samp, by = "strs_id") else data.table()
 
 per_str_list <- lapply(unique(pat$strs_id), function(sid) {
   info <- sets[strs_id == sid, ][1]
@@ -244,9 +147,7 @@ per_str_list <- lapply(unique(pat$strs_id), function(sid) {
   sc <- sum_stats(p1l[group == "case"]$maior_alelo)
   sn <- sum_stats(p1l[group == "control"]$maior_alelo)
 
-  os_g <- if (nrow(gwas_os_key)) gwas_os_key[strs_id == sid]$os[1] else NA_character_
-  os_r <- if (nrow(rna_os_key))  rna_os_key[strs_id == sid]$os[1]  else NA_character_
-  og <- count_out_grp(parse_ids(os_g), p1l)
+  os_r <- if (nrow(rna_os_key)) rna_os_key[strs_id == sid]$os[1]  else NA_character_
   orr <- count_out_grp(parse_ids(os_r), p1l)
 
   ov <- "sem_dados"
@@ -257,10 +158,8 @@ per_str_list <- lapply(unique(pat$strs_id), function(sid) {
     gene = info$gene,
     region = info$region,
     repeat_unit = info$repeat_unit,
-    in_gwas_sig = info$in_gwas_sig, in_rna_all = info$in_rna_all,
-    in_rna = info$in_rna,
+    in_rna = 1L,
     n_case = sc$n, n_control = sn$n,
-    n_out_gwas_case = og["case"], n_out_gwas_control = og["control"],
     n_out_rna_case = orr["case"], n_out_rna_control = orr["control"],
     mean_case = sc$mean, median_case = sc$median, min_case = sc$min,
     max_case = sc$max, sd_case = sc$sd,
@@ -274,35 +173,19 @@ setorder(per_str, strs_id)
 fwrite(per_str, file.path(out_dir, "per_str_case_control.tsv"), sep = "\t")
 
 ## ---------------------------------------------------------------------------
-## 6. OVERLAP DO MAIOR ALELO POR GENE (agregado dos STRs)
-## ---------------------------------------------------------------------------
-gene_overlap <- per_str[, .(flags = paste(overlap_maior_alealo_grupos, collapse = ";")),
-                        by = gene]
-gene_overlap[, overlap_maior_alealo_grupos := ifelse(
-  !grepl("sim|nao", flags), "sem_dados",
-  ifelse(vapply(strsplit(flags, ";"), function(z) "nao" %in% z, logical(1L)),
-         "nao", "sim"))]
-genes_union <- merge(genes_union,
-                     gene_overlap[, .(gene, overlap_maior_alealo_grupos)],
-                     by = "gene", all.x = TRUE)
-setorder(genes_union, -in_gwas_sig, -in_rna_all, -in_rna, gene)
-fwrite(genes_union, file.path(out_dir, "outlier_genes_union.tsv"), sep = "\t")
-
-## ---------------------------------------------------------------------------
-## 7. RESUMO FINAL
+## 6. RESUMO FINAL
 ## ---------------------------------------------------------------------------
 cat("\n=== RESULTADO DESCRITIVO POR STR (caso x controle) ===\n")
-cat(sprintf("  STRs na uniao: %d\n", uniqueN(per_str$strs_id)))
+cat(sprintf("  STRs com outlier RNA: %d\n", uniqueN(per_str$strs_id)))
 cat(sprintf("  overlap maior alelo 'sim': %d | 'nao': %d | 'sem_dados': %d\n",
             sum(per_str$overlap_maior_alealo_grupos == "sim"),
             sum(per_str$overlap_maior_alealo_grupos == "nao"),
             sum(per_str$overlap_maior_alealo_grupos == "sem_dados")))
-for (src in c("in_gwas_sig", "in_rna_all", "in_rna")) {
-  sub <- per_str[get(src) == 1L]
-  if (!nrow(sub)) next
+sub <- per_str[in_rna == 1L]
+if (nrow(sub)) {
   wm <- function(m, n) if (sum(n) > 0) sum(m * n) / sum(n) else NaN
-  cat(sprintf("  [%s] STRs=%d | overlap sim=%d nao=%d sem_dados=%d | caso n=%d (maior alelo med=%.1f) control n=%d (maior alelo med=%.1f)\n",
-              src, nrow(sub),
+  cat(sprintf("  [rna] STRs=%d | overlap sim=%d nao=%d sem_dados=%d | caso n=%d (med=%.1f) control n=%d (med=%.1f)\n",
+              nrow(sub),
               sum(sub$overlap_maior_alealo_grupos == "sim"),
               sum(sub$overlap_maior_alealo_grupos == "nao"),
               sum(sub$overlap_maior_alealo_grupos == "sem_dados"),

@@ -12,7 +12,7 @@
 REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
 outlier_file <- file.path(REPO_ROOT,
-  "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_GWAS_analysis/6.3.1.2_dbscan_subset_GWAS/results/suggestive_strs_outliers.tsv")
+  "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_study/results/rna_outlier_genes.tsv")
 norm_file <- file.path(REPO_ROOT,
   "5_global_dbscan/norm_test/STRs_normalized_residuals.tsv")
 bam_dir <- "/storage/users/tulio/Projeto_Luy_COVID/results/recal/"
