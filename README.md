@@ -62,8 +62,10 @@ strs_paper/
     ├── 6.2_desc_data_viz/
     ├── 6.3_STRs_analysis_per_geneANDburden/
     │   ├── .gitignore
+    │   ├── 6.3.1_pre_processing/
     │   ├── 6.3.2_RNA_data_analysis/
-    │   ├── 6.3.3_pathway_crossvalidation/
+    │   │   ├── 6.3.2.1_descriptive_analysis/
+    │   │   └── 6.3.2.2_RNA_matrix/
     │   └── 6.3.4_igv_per_variant/
     └── 6.5_ancestry_analysis/
 ```
