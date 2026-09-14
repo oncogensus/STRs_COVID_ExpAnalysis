@@ -23,7 +23,6 @@ suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
   library(ggplot2)
-  library(ggrain)
   library(gt)
   library(scales)
 })
@@ -98,13 +97,18 @@ n_interv <- length(levels(plot_data$intervention))
 
 p_rain <- ggplot(plot_data,
                  aes(x = allele2_est, y = intervention, fill = group)) +
-  geom_rain(
-    alpha = 0.6,
-    point.args = list(size = 1.2, alpha = 0.5),
-    boxplot.args = list(outlier.shape = NA, width = 0.2)
-  ) +
+  # Violin (cloud)
+  geom_violin(aes(fill = group), alpha = 0.6,
+              position = position_dodge(width = 0.9), width = 0.8) +
+  # Boxplot
+  geom_boxplot(width = 0.15, outlier.shape = NA,
+               position = position_dodge(width = 0.9)) +
+  # Dots (rain)
+  geom_jitter(aes(color = group), size = 1, alpha = 0.5,
+              position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.9)) +
   facet_wrap(~ gse, scales = "free_y", ncol = 1) +
   scale_fill_manual(values = group_colors, name = "Group") +
+  scale_color_manual(values = group_colors, name = "Group") +
   scale_x_continuous(
     trans = "log1p",
     breaks = c(0, 1, 5, 10, 50, 100, 500, 1000),

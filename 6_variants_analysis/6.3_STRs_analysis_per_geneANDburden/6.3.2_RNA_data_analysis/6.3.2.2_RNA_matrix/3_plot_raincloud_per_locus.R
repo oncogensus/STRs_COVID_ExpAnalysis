@@ -22,7 +22,6 @@
 suppressPackageStartupMessages({
   library(data.table)
   library(ggplot2)
-  library(ggrain)
   library(scales)
 })
 
@@ -105,12 +104,17 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
 
     p <- ggplot(pdat,
                 aes(x = allele2_est, y = locus_label, fill = group)) +
-      geom_rain(
-        alpha = 0.5,
-        point.args = list(size = 1.2, alpha = 0.6),
-        boxplot.args = list(outlier.shape = NA, width = 0.2)
-      ) +
+      # Violin (cloud)
+      geom_violin(aes(fill = group), alpha = 0.5,
+                  position = position_dodge(width = 0.9), width = 0.8) +
+      # Boxplot
+      geom_boxplot(width = 0.15, outlier.shape = NA,
+                   position = position_dodge(width = 0.9)) +
+      # Dots (rain)
+      geom_jitter(aes(color = group), size = 1, alpha = 0.6,
+                  position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.9)) +
       scale_fill_manual(values = group_colors, name = "Group") +
+      scale_color_manual(values = group_colors, name = "Group") +
       scale_x_continuous(
         trans = "log1p",
         breaks = c(0, 1, 5, 10, 50, 100, 500, 1000),
