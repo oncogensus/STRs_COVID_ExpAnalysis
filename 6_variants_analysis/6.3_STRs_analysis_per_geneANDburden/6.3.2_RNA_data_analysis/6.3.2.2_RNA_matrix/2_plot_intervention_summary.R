@@ -3,8 +3,7 @@
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Gera visualizacoes para o cruzamento RNA-Seq x STRs POR INTERVENCAO:
-#     1) Raincloud plot: distribuicao de allele2_est por intervencao,
-#        colorido por group (case/control), com outliers DBSCAN.
+#     1) 2D Density heatmap: allele2_est vs depth por GSE e group.
 #     2) Tabela de publicacao: por intervencao, contagens e proporcoes.
 #
 # ENTRADAS (por argumentos de linha de comando)
@@ -15,7 +14,7 @@
 #   --out-dir           Diretório de saída
 #
 # SAIDAS
-#   intervention_raincloud.png
+#   intervention_density.png
 #   intervention_publication_table.tsv
 #   intervention_publication_table.html
 # ---------------------------------------------------------------------------
@@ -73,86 +72,70 @@ intv_sum <- fread(path_intv_summary, header = TRUE, sep = "\t")
 cat(sprintf("  intervention_summary.tsv: %d linhas\n", nrow(intv_sum)))
 
 # ==========================================
-# 2. Prepare data for raincloud
+# 2. Prepare data for density plot
 # ==========================================
-cat("\nPreparando dados para raincloud...\n")
+cat("\nPreparando dados para density plot...\n")
 
-# Mapear gene_name -> intervention a partir de intv_strs
-# Cada linha de intv_strs tem intervention, gene_name, STRs_ID, allele2_est, group
-plot_data <- intv_strs[!is.na(group) & group != ""]
+plot_data <- intv_out[!is.na(group) & group != ""]
 plot_data[, group := factor(group, levels = c("case", "control"))]
-plot_data[, intervention := factor(intervention)]
 
-cat(sprintf("  Intervenções: %s\n", paste(levels(plot_data$intervention), collapse = ", ")))
-cat(sprintf("  Observações: %d (genes: %d)\n", nrow(plot_data), uniqueN(plot_data$gene_name)))
+cat(sprintf("  Intervenções: %s\n", paste(unique(plot_data$intervention), collapse = ", ")))
+cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
 
 # ==========================================
-# 3. Raincloud plot (scientific theme)
+# 3. 2D Density heatmap: allele2_est vs depth
 # ==========================================
-cat("\nGerando raincloud plot por intervenção...\n")
+cat("\nGerando density plot...\n")
 
-group_colors <- c("case" = "#E41A1C", "control" = "#377EB8")
+n_gse <- uniqueN(plot_data$gse)
 
-n_interv <- length(levels(plot_data$intervention))
-
-p_rain <- ggplot(plot_data,
-                 aes(x = allele2_est, y = intervention, fill = group)) +
-  # Violin (cloud)
-  geom_violin(aes(fill = group), alpha = 0.6,
-              position = position_dodge(width = 0.9), width = 0.8) +
-  # Boxplot
-  geom_boxplot(width = 0.15, outlier.shape = NA,
-               position = position_dodge(width = 0.9)) +
-  # Dots (rain)
-  geom_jitter(aes(color = group), size = 1, alpha = 0.5,
-              position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.9)) +
-  facet_wrap(~ gse, scales = "free_y", ncol = 1) +
-  scale_fill_manual(values = group_colors, name = "Group") +
-  scale_color_manual(values = group_colors, name = "Group") +
-  scale_x_continuous(
-    trans = "log1p",
-    breaks = c(0, 1, 5, 10, 50, 100, 500, 1000),
-    labels = c("0", "1", "5", "10", "50", "100", "500", "1k"),
-    expand = c(0.01, 0)
+p_density <- ggplot(plot_data, aes(x = allele2_est, y = depth)) +
+  stat_density_2d(
+    aes(fill = after_stat(density), alpha = after_stat(density)),
+    geom = "polygon", contour = FALSE
   ) +
+  facet_wrap(~ gse + group, scales = "free", ncol = 2) +
+  scale_fill_viridis_c(name = "Density", option = "C") +
+  scale_alpha(range = c(0.2, 0.9), guide = "none") +
+  scale_x_continuous(expand = c(0.02, 0)) +
+  scale_y_continuous(expand = c(0.02, 0)) +
   labs(
-    title = "Allele 2 length distributions by intervention",
-    subtitle = "DBSCAN global outliers, colored by case/control status",
-    x = "Allele 2 length (repeat units, log1p)",
-    y = "Intervention",
-    caption = "Only DBSCAN global outliers shown"
+    title = "2D Density: Allele size vs Coverage",
+    subtitle = "DBSCAN global outliers, faceted by GSE and group",
+    x = "Allele 2 length (repeat units)",
+    y = "Coverage (depth)",
+    caption = "DBSCAN global outliers only"
   ) +
   theme_minimal(base_size = 12) +
   theme(
     panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
-    panel.grid.major.x = element_line(color = "grey85", linewidth = 0.3),
     panel.grid.minor = element_blank(),
     strip.background = element_rect(fill = "grey92", color = NA),
-    strip.text = element_text(size = 12, face = "bold"),
+    strip.text = element_text(size = 11, face = "bold"),
     axis.title = element_text(size = 11, face = "bold"),
     axis.text = element_text(size = 10, color = "grey20"),
     plot.title = element_text(size = 13, hjust = 0.5, face = "bold",
                               margin = margin(b = 15)),
     plot.subtitle = element_text(size = 11, color = "grey40",
                                  margin = margin(b = 10)),
-    legend.position = "bottom",
-    panel.spacing = unit(1.5, "lines"),
+    legend.position = "right",
+    panel.spacing = unit(1.2, "lines"),
     panel.background = element_rect(fill = "white", color = NA),
     plot.background = element_rect(fill = "white", color = NA)
   )
 
-out_png <- file.path(out_dir, "intervention_raincloud.png")
-raincloud_h <- max(5, n_interv * 0.8 + 3)
+out_png <- file.path(out_dir, "intervention_density.png")
+density_h <- max(5, n_gse * 3 + 2)
 ggsave(
   filename = out_png,
-  plot = p_rain,
-  width = 12,
-  height = raincloud_h,
+  plot = p_density,
+  width = 10,
+  height = density_h,
   dpi = 600,
   bg = "white",
   limitsize = FALSE
 )
-cat(sprintf("Raincloud salvo em: %s\n", out_png))
+cat(sprintf("Density plot salvo em: %s\n", out_png))
 
 # ==========================================
 # 4. Publication table (per intervention)
