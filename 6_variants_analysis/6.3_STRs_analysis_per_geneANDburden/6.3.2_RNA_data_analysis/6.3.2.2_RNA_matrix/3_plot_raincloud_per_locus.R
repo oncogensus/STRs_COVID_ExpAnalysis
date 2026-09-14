@@ -127,9 +127,10 @@ intv_out[, group := tolower(trimws(as.character(group)))]
 intv_out <- intv_out[!is.na(group) & group != ""]
 intv_out[, group := factor(group, levels = c("case", "control"))]
 
+intv_out[, str_variant := sub("^[^:]+:[^:]+:(.+)$", "\\1", STRs_ID)]
 intv_out[, locus_label := ifelse(is.na(gene_name) | gene_name == "",
-                                 STRs_ID,
-                                 sprintf("%s | %s", gene_name, STRs_ID))]
+                                 str_variant,
+                                 sprintf("%s (%s)", gene_name, str_variant))]
 
 available <- sort(unique(intv_out$intervention))
 cat(sprintf("  Intervenções disponíveis: %s\n",
