@@ -119,14 +119,10 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
   dt[, target_metric := get(metric_col)]
   dt <- dt[!is.na(target_metric)]
 
-  # Aggregate per patient: one value per (STRs_ID, gse, sample_id)
-  dt_agg <- dt[, .(target_metric = mean(target_metric, na.rm = TRUE)),
-               by = .(STRs_ID, gse, sample_id, group)]
-
-  cat(sprintf("  Observacoes apos agregacao por paciente: %d\n", nrow(dt_agg)))
+  cat(sprintf("  Observacoes validas: %d\n", nrow(dt)))
 
   # Filter loci with sufficient samples per group (per variant x study)
-  eligible <- dt_agg[, .N, by = .(STRs_ID, gse, group)]
+  eligible <- dt[, .N, by = .(STRs_ID, gse, group)]
   eligible <- dcast(eligible, STRs_ID + gse ~ group, value.var = "N", fill = 0)
   eligible <- eligible[case >= min_n_per_group & control >= min_n_per_group]
 
@@ -138,7 +134,7 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
   }
 
   # Run Wilcoxon test per variant x study
-  dt_eligible <- merge(dt_agg, eligible[, .(STRs_ID, gse)],
+  dt_eligible <- merge(dt, eligible[, .(STRs_ID, gse)],
                        by = c("STRs_ID", "gse"), allow.cartesian = TRUE)
 
   results <- dt_eligible %>%
