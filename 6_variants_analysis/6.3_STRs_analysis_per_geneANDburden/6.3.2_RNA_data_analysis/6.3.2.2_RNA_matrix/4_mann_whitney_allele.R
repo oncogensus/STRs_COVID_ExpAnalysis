@@ -52,6 +52,30 @@ df <- fread(path_str_catalog, header = TRUE, sep = "\t")
 cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 
 # ==========================================
+# DEBUG: Check loaded data
+# ==========================================
+cat("\n--- DEBUG: Colunas carregadas ---\n")
+cat(paste(names(df), collapse = "\n"), "\n")
+
+cat("\n--- DEBUG: Primeiras 3 linhas ---\n")
+print(head(df, 3))
+
+cat("\n--- DEBUG: Resumo das colunas DBSCAN ---\n")
+dbscan_cols <- intersect(names(df), c("n_clusters_dbscan_global", "noise_ratio_dbscan_global", "n_outliers_dbscan_global"))
+for (col in dbscan_cols) {
+  vals <- df[[col]]
+  cat(sprintf("  %s: min=%s, max=%s, NAs=%d, unique=%d\n",
+              col, min(vals, na.rm=TRUE), max(vals, na.rm=TRUE),
+              sum(is.na(vals)), length(unique(vals))))
+}
+
+cat("\n--- DEBUG: Distribuicao de n_clusters_dbscan_global ---\n")
+print(table(df$n_clusters_dbscan_global, useNA = "ifany"))
+
+cat("\n--- DEBUG: Distribuicao de n_outliers_dbscan_global ---\n")
+print(table(df$n_outliers_dbscan_global, useNA = "ifany"))
+
+# ==========================================
 # 2. Filter by DBSCAN quality (stricter than file default)
 # ==========================================
 df_filtered <- df[
@@ -59,7 +83,7 @@ df_filtered <- df[
   noise_ratio_dbscan_global < 0.10 &
   n_outliers_dbscan_global > 1
 ]
-cat(sprintf("  Apos filtro DBSCAN (clusters > 1, noise < 10%%, outliers > 1): %d linhas\n",
+cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers > 1): %d linhas\n",
             nrow(df_filtered)))
 
 # ==========================================
