@@ -53,30 +53,6 @@ setnames(df, "intervention", "comparison_type")
 cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 
 # ==========================================
-# DEBUG: Check loaded data
-# ==========================================
-cat("\n--- DEBUG: Colunas carregadas ---\n")
-cat(paste(names(df), collapse = "\n"), "\n")
-
-cat("\n--- DEBUG: Primeiras 3 linhas ---\n")
-print(head(df, 3))
-
-cat("\n--- DEBUG: Resumo das colunas DBSCAN ---\n")
-dbscan_cols <- intersect(names(df), c("n_clusters_dbscan_global", "noise_ratio_dbscan_global", "n_outliers_dbscan_global"))
-for (col in dbscan_cols) {
-  vals <- df[[col]]
-  cat(sprintf("  %s: min=%s, max=%s, NAs=%d, unique=%d\n",
-              col, min(vals, na.rm=TRUE), max(vals, na.rm=TRUE),
-              sum(is.na(vals)), length(unique(vals))))
-}
-
-cat("\n--- DEBUG: Distribuicao de n_clusters_dbscan_global ---\n")
-print(table(df$n_clusters_dbscan_global, useNA = "ifany"))
-
-cat("\n--- DEBUG: Distribuicao de n_outliers_dbscan_global ---\n")
-print(table(df$n_outliers_dbscan_global, useNA = "ifany"))
-
-# ==========================================
 # 2. Filter by DBSCAN quality (stricter than file default)
 # ==========================================
 df_filtered <- df[
@@ -86,22 +62,6 @@ df_filtered <- df[
 ]
 cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): %d linhas\n",
             nrow(df_filtered)))
-
-# ==========================================
-# DEBUG: Check GSE values
-# ==========================================
-cat("\n--- DEBUG: Valores unicos de gse ---\n")
-print(sort(unique(df_filtered$gse)))
-
-cat("\n--- DEBUG: Contagem por gse ---\n")
-print(table(df_filtered$gse, useNA = "ifany"))
-
-cat("\n--- DEBUG: Comparacao com intervention ---\n")
-cat(sprintf("  intervention (parametro): '%s'\n", intervention))
-cat(sprintf("  GSEs nos dados: %s\n", paste(sort(unique(df_filtered$gse)), collapse = ", ")))
-cat(sprintf("  Match exato: %s\n", intervention %in% unique(df_filtered$gse)))
-cat(sprintf("  Match trimmed: %s\n", trimws(intervention) %in% trimws(unique(df_filtered$gse))))
-cat(sprintf("  Match ignore.case: %s\n", toupper(intervention) %in% toupper(unique(df_filtered$gse))))
 
 # ==========================================
 # 3. Filter by intervention

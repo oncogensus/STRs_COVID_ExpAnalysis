@@ -175,7 +175,7 @@ suffix <- if (intervention == "ALL") "ALL" else intervention
 
 if (nrow(res_mean) > 0) {
   out_mean <- file.path(out_dir, paste0(suffix, "_no_overlap_mean_allele.csv"))
-  write_csv2(as.data.frame(res_mean), out_mean)
+  fwrite(as.data.frame(res_mean), out_mean, sep = ";", dec = ",")
   cat(sprintf("\n  Mean Allele no-overlap salvo em: %s\n", out_mean))
 } else {
   cat("\n  Nenhum resultado para Mean Allele.\n")
@@ -183,7 +183,7 @@ if (nrow(res_mean) > 0) {
 
 if (nrow(res_allele2) > 0) {
   out_allele2 <- file.path(out_dir, paste0(suffix, "_no_overlap_allele2.csv"))
-  write_csv2(as.data.frame(res_allele2), out_allele2)
+  fwrite(as.data.frame(res_allele2), out_allele2, sep = ";", dec = ",")
   cat(sprintf("  Allele 2 no-overlap salvo em: %s\n", out_allele2))
 } else {
   cat("  Nenhum resultado para Allele 2.\n")
