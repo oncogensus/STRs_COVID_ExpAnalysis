@@ -55,7 +55,7 @@ cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 # 2. Filter by DBSCAN quality (stricter than file default)
 # ==========================================
 df_filtered <- df[
-  n_clusters_dbscan_global > 1 &
+  n_clusters_dbscan_global >= 1 &
   noise_ratio_dbscan_global < 0.10 &
   n_outliers_dbscan_global > 1
 ]
