@@ -49,6 +49,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 cat("--- No-Overlap Analysis: Case vs Control (Outlier Loci) ---\n")
 
 df <- fread(path_str_catalog, header = TRUE, sep = "\t")
+setnames(df, "intervention", "comparison_type")
 cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 
 # ==========================================
@@ -60,6 +61,7 @@ df_filtered <- df[
   n_outliers_dbscan_global >= 1
 ]
 cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): %d linhas\n",
+            nrow(df_filtered)))
 
 # ==========================================
 # 3. Filter by intervention

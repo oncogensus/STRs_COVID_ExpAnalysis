@@ -49,6 +49,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 cat("--- Mann-Whitney U Test: Case vs Control (Outlier Loci) ---\n")
 
 df <- fread(path_str_catalog, header = TRUE, sep = "\t")
+setnames(df, "intervention", "comparison_type")
 cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 
 # ==========================================
