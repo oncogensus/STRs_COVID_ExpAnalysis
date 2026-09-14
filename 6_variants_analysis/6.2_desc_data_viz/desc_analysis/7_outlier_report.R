@@ -53,6 +53,19 @@ cat("--- Unified Outlier Report (Cohort Global) ---\n")
 df_strs <- fread(path_str_catalog, header = TRUE, sep = "\t")
 cat(sprintf("  STRs_analysis_dataset.tsv: %d linhas\n", nrow(df_strs)))
 
+# Rename DBSCAN columns (with _dbscan_global suffix) to short names
+col_names <- names(df_strs)
+if ("n_clusters_dbscan_global" %in% col_names) {
+  setnames(df_strs,
+           c("n_clusters_dbscan_global", "noise_ratio_dbscan_global",
+             "n_outliers_dbscan_global", "outlier_samples_dbscan_global",
+             "outlier_residuals_dbscan_global"),
+           c("n_clusters", "noise_ratio",
+             "n_outliers", "outlier_samples",
+             "outlier_residuals"))
+  cat("  Colunas DBSCAN renomeadas (removido _dbscan_global)\n")
+}
+
 # ==========================================
 # 2. Build unified report
 # ==========================================
