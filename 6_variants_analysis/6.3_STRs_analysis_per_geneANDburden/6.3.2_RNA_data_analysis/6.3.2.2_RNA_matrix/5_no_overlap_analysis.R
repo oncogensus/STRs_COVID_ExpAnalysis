@@ -57,9 +57,9 @@ cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
 df_filtered <- df[
   n_clusters_dbscan_global >= 1 &
   noise_ratio_dbscan_global < 0.10 &
-  n_outliers_dbscan_global > 1
+  n_outliers_dbscan_global >= 1
 ]
-cat(sprintf("  Apos filtro DBSCAN: %d linhas\n", nrow(df_filtered)))
+cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): %d linhas\n",
 
 # ==========================================
 # 3. Filter by intervention
