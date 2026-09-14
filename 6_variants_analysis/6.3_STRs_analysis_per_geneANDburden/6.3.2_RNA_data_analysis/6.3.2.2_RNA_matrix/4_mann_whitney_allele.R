@@ -87,6 +87,22 @@ cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): 
             nrow(df_filtered)))
 
 # ==========================================
+# DEBUG: Check GSE values
+# ==========================================
+cat("\n--- DEBUG: Valores unicos de gse ---\n")
+print(sort(unique(df_filtered$gse)))
+
+cat("\n--- DEBUG: Contagem por gse ---\n")
+print(table(df_filtered$gse, useNA = "ifany"))
+
+cat("\n--- DEBUG: Comparacao com intervention ---\n")
+cat(sprintf("  intervention (parametro): '%s'\n", intervention))
+cat(sprintf("  GSEs nos dados: %s\n", paste(sort(unique(df_filtered$gse)), collapse = ", ")))
+cat(sprintf("  Match exato: %s\n", intervention %in% unique(df_filtered$gse)))
+cat(sprintf("  Match trimmed: %s\n", trimws(intervention) %in% trimws(unique(df_filtered$gse))))
+cat(sprintf("  Match ignore.case: %s\n", toupper(intervention) %in% toupper(unique(df_filtered$gse))))
+
+# ==========================================
 # 3. Filter by intervention
 # ==========================================
 if (intervention != "ALL") {
