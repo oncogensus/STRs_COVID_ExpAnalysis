@@ -95,45 +95,52 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
   dt[, target_metric := get(metric_col)]
   dt <- dt[!is.na(target_metric)]
 
-  # Filter loci with sufficient samples per group
-  eligible_loci <- dt[, .N, by = .(STRs_ID, group)]
-  eligible_loci <- dcast(eligible_loci, STRs_ID ~ group, value.var = "N", fill = 0)
-  eligible_loci <- eligible_loci[case >= min_n_per_group & control >= min_n_per_group]
-  eligible_ids <- eligible_loci$STRs_ID
+  # Aggregate per patient: one value per (STRs_ID, gse, sample_id)
+  dt_agg <- dt[, .(target_metric = mean(target_metric, na.rm = TRUE)),
+               by = .(STRs_ID, gse, sample_id, group)]
 
-  cat(sprintf("  Loci elegiveis: %d\n", length(eligible_ids)))
+  cat(sprintf("  Observacoes apos agregacao por paciente: %d\n", nrow(dt_agg)))
 
-  if (length(eligible_ids) == 0) {
-    cat("  Nenhum locus elegivel.\n")
+  # Filter loci with sufficient samples per group (per variant x study)
+  eligible <- dt_agg[, .N, by = .(STRs_ID, gse, group)]
+  eligible <- dcast(eligible, STRs_ID + gse ~ group, value.var = "N", fill = 0)
+  eligible <- eligible[case >= min_n_per_group & control >= min_n_per_group]
+
+  cat(sprintf("  Combinacoes variantexestudo elegiveis: %d\n", nrow(eligible)))
+
+  if (nrow(eligible) == 0) {
+    cat("  Nenhuma combinacao elegivel.\n")
     return(data.table())
   }
 
-  # Run Wilcoxon test per locus
-  dt_eligible <- dt[STRs_ID %in% eligible_ids]
+  # Run Wilcoxon test per variant x study
+  dt_eligible <- merge(dt_agg, eligible[, .(STRs_ID, gse)],
+                       by = c("STRs_ID", "gse"), allow.cartesian = TRUE)
 
   results <- dt_eligible %>%
-    group_by(STRs_ID) %>%
+    group_by(STRs_ID, gse) %>%
     wilcox_test(target_metric ~ group) %>%
+    ungroup() %>%
     adjust_pvalue(method = "BH") %>%
     add_significance("p.adj") %>%
     as.data.table()
 
   sig_results <- results[p.adj < 0.05]
-  sig_ids <- sig_results$STRs_ID
 
-  cat(sprintf("  Significativos (p.adj < 0.05): %d\n", length(sig_ids)))
+  cat(sprintf("  Significativos (p.adj < 0.05): %d\n", nrow(sig_results)))
 
-  if (length(sig_ids) == 0) {
-    cat("  Nenhum locus significativo apos FDR.\n")
+  if (nrow(sig_results) == 0) {
+    cat("  Nenhum resultado significativo apos FDR.\n")
     return(data.table())
   }
 
-  # Extract full observations for significant loci
-  final <- dt[STRs_ID %in% sig_ids]
+  # Extract full observations for significant variant x study combinations
+  sig_keys <- sig_results[, .(STRs_ID, gse)]
+  final <- merge(dt, sig_keys, by = c("STRs_ID", "gse"), allow.cartesian = TRUE)
   final <- merge(final,
-                 sig_results[, .(STRs_ID, p, p.adj, p.adj.signif)],
-                 by = "STRs_ID", all.x = TRUE)
-  final <- final[order(p.adj, STRs_ID)]
+                 sig_results[, .(STRs_ID, gse, p, p.adj, p.adj.signif)],
+                 by = c("STRs_ID", "gse"), all.x = TRUE)
+  final <- final[order(p.adj, STRs_ID, gse)]
 
   cat(sprintf("  Observacoes exportadas: %d\n", nrow(final)))
   return(final)
@@ -158,7 +165,7 @@ suffix <- if (intervention == "ALL") "ALL" else intervention
 
 if (nrow(res_allele2) > 0) {
   out_allele2 <- file.path(out_dir, paste0(suffix, "_allele2_mw.csv"))
-  write_csv2(as.data.frame(res_allele2), out_allele2)
+  fwrite(as.data.frame(res_allele2), out_allele2, sep = ";", dec = ",")
   cat(sprintf("\n  Allele2 MW salvo em: %s\n", out_allele2))
 } else {
   cat("\n  Nenhum resultado significativo para Allele 2.\n")
@@ -166,7 +173,7 @@ if (nrow(res_allele2) > 0) {
 
 if (nrow(res_mean) > 0) {
   out_mean <- file.path(out_dir, paste0(suffix, "_mean_allele_mw.csv"))
-  write_csv2(as.data.frame(res_mean), out_mean)
+  fwrite(as.data.frame(res_mean), out_mean, sep = ";", dec = ",")
   cat(sprintf("  Mean Allele MW salvo em: %s\n", out_mean))
 } else {
   cat("  Nenhum resultado significativo para Mean Allele.\n")
