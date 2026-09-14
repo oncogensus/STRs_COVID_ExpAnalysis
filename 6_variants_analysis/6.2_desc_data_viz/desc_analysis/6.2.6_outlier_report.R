@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 7_outlier_report.R
+# 6.2.6_outlier_report.R
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Relatorio unificado de outliers DBSCAN para a coorte global:
@@ -156,7 +156,7 @@ pub_gt <- df_friendly %>%
   group_by(category) %>%
   gt() %>%
   tab_header(
-    title = md("**Table 1. Technical Validation of STR Genotyping**"),
+    title = md("**Technical Validation of DBSCAN strategy**"),
     subtitle = "DBSCAN efficiency, cluster stability, and noise metrics"
   ) %>%
   cols_label(
@@ -177,7 +177,7 @@ pub_gt <- df_friendly %>%
     table.font.size = px(14),
     table.border.top.color = "black",
     table.border.bottom.color = "black",
-    heading.align = "left",
+    heading.align = "center",
     data_row.padding = px(6)
   ) %>%
   cols_align(align = "left",   columns = c(metric)) %>%
