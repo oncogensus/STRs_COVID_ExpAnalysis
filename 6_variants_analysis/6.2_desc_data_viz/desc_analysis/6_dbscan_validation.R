@@ -190,7 +190,7 @@ cat(sprintf("\nDual-panel salvo em: %s\n", out_png))
 
 # Save quality table
 out_csv <- file.path(out_dir, "quality_funnel_summary.csv")
-write_csv2(as.data.frame(quality_table), out_csv)
+fwrite(quality_table, out_csv, sep = ";", dec = ",")
 cat(sprintf("Quality table salva em: %s\n", out_csv))
 
 cat("\nConcluido.\n")

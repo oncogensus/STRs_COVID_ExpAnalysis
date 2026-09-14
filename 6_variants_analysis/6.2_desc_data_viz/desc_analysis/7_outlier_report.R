@@ -131,7 +131,7 @@ print(as.data.frame(df_report))
 # 3. Export CSV
 # ==========================================
 out_csv <- file.path(out_dir, "unified_binary_outlier_report.csv")
-write_csv2(as.data.frame(df_report), out_csv)
+fwrite(df_report, out_csv, sep = ";", dec = ",")
 cat(sprintf("\nCSV salvo em: %s\n", out_csv))
 
 # ==========================================
@@ -188,7 +188,7 @@ cat(sprintf("Tabela gt HTML salva em: %s\n", out_gt_html))
 
 # Save raw CSV for the report
 out_report_csv <- file.path(out_dir, "unified_technical_report.csv")
-write_csv2(as.data.frame(df_report), out_report_csv)
+fwrite(df_report, out_report_csv, sep = ";", dec = ",")
 cat(sprintf("CSV exportado em: %s\n", out_report_csv))
 
 cat("\nConcluido.\n")
