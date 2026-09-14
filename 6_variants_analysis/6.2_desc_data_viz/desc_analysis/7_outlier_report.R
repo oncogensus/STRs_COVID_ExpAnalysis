@@ -78,7 +78,8 @@ general_summary <- df_strs[, .(
   no_signal   = .N - sum(!is.na(n_clusters) & n_clusters > 0)
 )]
 
-df_general <- melt(general_summary, variable.name = "metric", value.name = "raw_value")
+df_general <- melt(general_summary, measure.vars = c("total_obs", "with_signal", "no_signal"),
+                   variable.name = "metric", value.name = "raw_value")
 df_general[, category := "General Summary"]
 df_general[, percentage := round(raw_value / first(raw_value) * 100, 2)]
 
@@ -141,11 +142,14 @@ cat("\nGerando tabela publication-ready...\n")
 
 # Friendly labels
 df_friendly <- copy(df_report)
-df_friendly[, metric := fifelse(
-  metric == "total_obs",     "Total Observations",
-  fifelse(metric == "with_signal",   "Observations with Signal",
-  fifelse(metric == "no_signal",     "Observations without Signal",
-  fifelse(metric == "1 Cluster(s)",  "1 Cluster", metric))))]
+df_friendly[, metric := as.character(metric)]
+df_friendly[, metric := case_when(
+  metric == "total_obs"      ~ "Total Observations",
+  metric == "with_signal"    ~ "Observations with Signal",
+  metric == "no_signal"      ~ "Observations without Signal",
+  metric == "1 Cluster(s)"   ~ "1 Cluster",
+  TRUE                       ~ metric
+)]
 df_friendly[, percentage_str := paste0(round(percentage, 2), "%")]
 
 pub_gt <- df_friendly %>%
