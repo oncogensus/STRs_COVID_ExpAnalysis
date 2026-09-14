@@ -111,8 +111,8 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
                       fill = NA)
 
   # Check both groups exist
-  has_case   <- "min_val_case"   in names(locus_wide)
-  has_control <- "min_val_control" in names(locus_wide)
+  has_case   <- "min_val_case"   %in% names(locus_wide)
+  has_control <- "min_val_control" %in% names(locus_wide)
 
   if (!has_case || !has_control) {
     cat("  Nao ha dados para ambos os grupos.\n")
