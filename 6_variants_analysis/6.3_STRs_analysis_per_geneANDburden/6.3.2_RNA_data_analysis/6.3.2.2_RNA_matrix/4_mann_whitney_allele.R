@@ -197,6 +197,10 @@ res_allele2 <- res_allele2[, Metric := "Allele 2"]
 res_mean <- res_mean[, Metric := "Mean Allele"]
 res_combined <- rbind(res_allele2, res_mean, fill = TRUE)
 
+# Map gene_name from STRs_ID
+gene_map <- unique(df_filtered[, .(STRs_ID, gene_name)])
+res_combined <- merge(res_combined, gene_map, by = "STRs_ID", all.x = TRUE)
+
 if (nrow(res_combined) == 0) {
   cat("  Nenhum resultado para tabela.\n")
   cat("\nConcluido.\n")
