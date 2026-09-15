@@ -84,19 +84,19 @@ fmt_fdr <- function(x) {
 }
 fmt_noise <- function(x) sprintf("%.1f%%", x * 100)
 
-# Format noise ratio as percentage
-fmt_noise <- function(x) {
-  sprintf("%.1f%%", x * 100)
-}
-
-# Truncate outlier samples for display
-fmt_samples <- function(x, max_chars = 50) {
-  x <- as.character(x)
-  x[is.na(x) | x == ""] <- "-"
-  ifelse(nchar(x) > max_chars,
-         paste0(substr(x, 1, max_chars), "..."),
-         x)
-}
+# Prettify region labels
+region_labels <- c(
+  "three_prime_utr"  = "3\u2032 UTR",
+  "five_prime_utr"   = "5\u2032 UTR",
+  "promoter"         = "Promoter",
+  "intron"           = "Intron",
+  "exon"             = "Exon",
+  "non_coding_exons" = "Non-coding exon",
+  "intergenic"       = "Intergenic",
+  "others"           = "Other"
+)
+dt[, region := fifelse(region %in% names(region_labels),
+                       region_labels[region], region)]
 
 # Aggregate by STR_ID: one row per unique STR per GSE × Comparison
 tbl <- dt[, .(
@@ -158,23 +158,23 @@ out_gt <- tbl %>%
     columns = c(Gene, Region, Chrom, Start, Motif)
   ) %>%
   tab_spanner(
-    label = "Allele 1 (median/min/max)",
+    label = md("Allele 1 (median/min/max)^a^"),
     columns = c(Allele_1_Med, Allele_1_Min, Allele_1_Max)
   ) %>%
   tab_spanner(
-    label = "Allele 2 (median/min/max)",
+    label = md("Allele 2 (median/min/max)^a^"),
     columns = c(Allele_2_Med, Allele_2_Min, Allele_2_Max)
   ) %>%
   tab_spanner(
-    label = "Depth (median/min/max)",
+    label = md("Depth (median/min/max)^a^"),
     columns = c(Depth_Med, Depth_Min, Depth_Max)
   ) %>%
   tab_spanner(
-    label = "DBSCAN Metrics",
+    label = md("DBSCAN Metrics^b^"),
     columns = c(Clusters, `Noise %`, `N Outliers`)
   ) %>%
   tab_spanner(
-    label = "Differential Expression",
+    label = md("Differential Expression^c^"),
     columns = c(logFC, FDR)
   ) %>%
   cols_label(
@@ -183,20 +183,20 @@ out_gt <- tbl %>%
     Chrom = "Chr",
     Start = "Start",
     Motif = "Motif",
-    Allele_1_Med = "Med",
-    Allele_1_Min = "Min",
-    Allele_1_Max = "Max",
-    Allele_2_Med = "Med",
-    Allele_2_Min = "Min",
-    Allele_2_Max = "Max",
-    Depth_Med = "Med",
-    Depth_Min = "Min",
-    Depth_Max = "Max",
-    Clusters = "Clusters",
-    `Noise %` = "Noise",
-    `N Outliers` = "N",
-    logFC = "logFC",
-    FDR = "FDR"
+    Allele_1_Med = md("Med^a^"),
+    Allele_1_Min = md("Min^a^"),
+    Allele_1_Max = md("Max^a^"),
+    Allele_2_Med = md("Med^a^"),
+    Allele_2_Min = md("Min^a^"),
+    Allele_2_Max = md("Max^a^"),
+    Depth_Med = md("Med^a^"),
+    Depth_Min = md("Min^a^"),
+    Depth_Max = md("Max^a^"),
+    Clusters = md("Clusters^b^"),
+    `Noise %` = md("Noise^b^"),
+    `N Outliers` = md("N^b^"),
+    logFC = md("logFC^c^"),
+    FDR = md("FDR^c^")
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
@@ -242,17 +242,17 @@ out_gt <- tbl %>%
     data_row.padding = px(3),
     row_group.padding = px(6)
   ) %>%
-  tab_source_note(
-    source_note = md("*Allele sizes in repeat units. Depth = sequencing coverage at locus. Values shown as median (min–max) per STR locus.*")
+  tab_footnote(
+    footnote = md("*^a^* Allele sizes in repeat units. Depth = sequencing coverage at locus. Values represent median (min\u2013max) per locus across outlier samples."),
+    locations = cells_column_labels(columns = c(Allele_1_Med, Allele_1_Min, Allele_1_Max, Allele_2_Med, Allele_2_Min, Allele_2_Max, Depth_Med, Depth_Min, Depth_Max))
   ) %>%
-  tab_source_note(
-    source_note = md("*DBSCAN clusters = number of genotype clusters detected. Noise = fraction of unclustered observations.*")
+  tab_footnote(
+    footnote = md("*^b^* DBSCAN clustering metrics. Noise = fraction of unclustered observations (cluster 0). Outlier loci = STRs with \u22651 genotypic cluster detected."),
+    locations = cells_column_labels(columns = c(Clusters, `Noise %`, `N Outliers`))
   ) %>%
-  tab_source_note(
-    source_note = md("*FDR = Benjamini-Hochberg adjusted p-value from DEG analysis.*")
-  ) %>%
-  tab_source_note(
-    source_note = md("*Source: intervention_outliers.tsv (cross_intervention_STRs.py)*")
+  tab_footnote(
+    footnote = md("*^c^* Log~2~ fold-change and Benjamini\u2013Hochberg adjusted *P*-value from differential expression analysis (DESeq2)."),
+    locations = cells_column_labels(columns = c(logFC, FDR))
   )
 
 # ==========================================
