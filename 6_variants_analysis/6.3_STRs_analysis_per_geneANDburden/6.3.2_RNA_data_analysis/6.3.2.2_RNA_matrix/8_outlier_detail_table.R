@@ -242,17 +242,14 @@ out_gt <- tbl %>%
     data_row.padding = px(3),
     row_group.padding = px(6)
   ) %>%
-  tab_footnote(
-    footnote = md("*^a^* Allele sizes in repeat units. Depth = sequencing coverage at locus. Values represent median (min\u2013max) per locus across outlier samples."),
-    locations = cells_column_labels(columns = c(Allele_1_Med, Allele_1_Min, Allele_1_Max, Allele_2_Med, Allele_2_Min, Allele_2_Max, Depth_Med, Depth_Min, Depth_Max))
+  tab_source_note(
+    source_note = md("*(a)* Allele sizes in repeat units. Depth = sequencing coverage at locus. Values represent median (min\u2013max) per locus across outlier samples.")
   ) %>%
-  tab_footnote(
-    footnote = md("*^b^* DBSCAN clustering metrics. Noise = fraction of unclustered observations (cluster 0). Outlier loci = STRs with \u22651 genotypic cluster detected."),
-    locations = cells_column_labels(columns = c(Clusters, `Noise %`, `N Outliers`))
+  tab_source_note(
+    source_note = md("*(b)* DBSCAN clustering metrics. Noise = fraction of unclustered observations (cluster 0). Outlier loci = STRs with \u22651 genotypic cluster detected.")
   ) %>%
-  tab_footnote(
-    footnote = md("*^c^* Log~2~ fold-change and Benjamini\u2013Hochberg adjusted *P*-value from differential expression analysis (DESeq2)."),
-    locations = cells_column_labels(columns = c(logFC, FDR))
+  tab_source_note(
+    source_note = md("*(c)* Log~2~ fold-change and Benjamini\u2013Hochberg adjusted *P*-value from differential expression analysis (DESeq2).")
   )
 
 # ==========================================
