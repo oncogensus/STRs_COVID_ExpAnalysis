@@ -4,7 +4,7 @@
 # PROPOSITO
 #   Raincloud POR LOCUS (STR) com apenas outliers DBSCAN.
 #   Para cada intervenção (ou uma única, se --intervention) gera, para
-#   cada GSE (acesso do estudo) e para a visão agregada (ALL):
+#   cada GSE (acesso do estudo):
 #     1) Raincloud por locus, salvo em <out-dir>/<GSE>/<intervention>_*.png
 #     2) CSV por paciente, salvo em <out-dir>/<GSE>/<intervention>_patients.csv
 #
@@ -14,20 +14,13 @@
 #   --out-dir               Diretorio de saida
 #
 # SAIDAS
-#   <out-dir>/ALL/<intervention>_patients.csv
-#   <out-dir>/ALL/<intervention>_raincloud_per_locus_pXX.png   (facet todos GSEs)
 #   <out-dir>/<GSE>/<intervention>_patients.csv
 #   <out-dir>/<GSE>/<intervention>_raincloud_per_locus_pXX.png
 #
 # ESTILO
-#   Raincloud em ggplot2 puro (sem {ggrain}), seguindo a abordagem de
-#   Cedric Scherer:
-#   https://www.cedricscherer.com/2021/06/06/
-#   visualizing-distributions-with-raincloud-plots-and-how-to-create-them-with-ggplot2/
-#
-#   GeomFlatViolin adaptado para ggplot2 >= 3.4 (xmin/xmax manuais).
-#   Boxplot, pontos e violino sao deslocados com position_nudge para
-#   evitar sobreposicao dentro de cada locus.
+#   Raincloud em ggplot2 puro. Repeat units em escala LINEAR (sem log1p).
+#   Sem subtitle. Exceção: COVID_vs_CONTROL||GSE183533 (split + box/dots
+#   separados + caption com o critério de estratificação).
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(data.table)
@@ -37,11 +30,6 @@ suppressPackageStartupMessages({
 
 options(ragg.max_dim = 200000)
 
-# ==========================================
-# geom_flat_violin — meia-violino para raincloud
-# Definida manualmente (nao existe nativamente no ggplot2).
-# Adaptada do post de Cedric Scherer, com fix para ggplot2 >= 3.4.
-# ==========================================
 "%||%" <- function(a, b) if (!is.null(a)) a else b
 
 geom_flat_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
@@ -55,22 +43,14 @@ geom_flat_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
 }
 
 GeomFlatViolin <- ggproto("GeomFlatViolin", Geom,
-
   setup_data = function(data, params) {
     data$width <- data$width %||%
       params$width %||% (resolution(data$x, FALSE) * 0.9)
-
-    # --- FIX ggplot2 >= 3.4 ---------------------------------------------
-    # xmin/xmax deixaram de ser adicionados automaticamente pela escala
-    # discreta. Calculamos manualmente para o draw_group funcionar.
-    # --------------------------------------------------------------------
     data$x    <- as.numeric(data$x)
     data$xmin <- data$x - data$width / 2
     data$xmax <- data$x + data$width / 2
-
     data
   },
-
   draw_group = function(data, panel_params, coord) {
     data <- transform(data,
       xminv = x - violinwidth * (x - xmin),
@@ -84,7 +64,6 @@ GeomFlatViolin <- ggproto("GeomFlatViolin", Geom,
     ggplot2:::ggname("geom_flat_violin",
                      GeomPolygon$draw_panel(newdata, panel_params, coord))
   },
-
   draw_key = draw_key_polygon,
   default_aes = aes(weight = 1, colour = "grey20", fill = "white",
                     linewidth = 0.5, linetype = "solid", alpha = NA),
@@ -112,6 +91,47 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 group_colors  <- c("case" = "#E41A1C", "control" = "#377EB8")
 loci_per_page <- 20
+
+# ==========================================
+# Overrides de estetica por (intervencao, GSE)
+# ==========================================
+style_overrides <- list(
+  "COVID_vs_CONTROL||GSE183533" = list(
+    box_dots_separate = TRUE,
+    split_by_allele   = TRUE,
+    show_violin       = FALSE,
+    box_nudge         = -0.22,
+    box_width         = 0.20,
+    dots_nudge        = 0.22,
+    point_jitter      = 0.05,
+    point_size        = 2.5,
+    height_factor     = 0.35,
+    height_offset     = 3
+  )
+)
+
+default_style <- list(
+  box_dots_separate = FALSE,
+  split_by_allele   = FALSE,
+  show_violin       = TRUE,
+  violin_nudge      = 0.30,
+  violin_width      = 0.50,
+  box_nudge         = -0.30,
+  box_width         = 0.12,
+  dots_nudge        = 0.00,
+  point_size        = 3,
+  point_jitter      = 0.03,
+  height_factor     = 0.35,
+  height_offset     = 3
+)
+
+get_style <- function(intv, gse_tag) {
+  key_exact <- paste0(intv, "||", gse_tag)
+  key_any   <- paste0(intv, "||*")
+  if (!is.null(style_overrides[[key_exact]])) return(style_overrides[[key_exact]])
+  if (!is.null(style_overrides[[key_any]]))   return(style_overrides[[key_any]])
+  default_style
+}
 
 # ==========================================
 # 1. Load data
@@ -149,14 +169,6 @@ if (toupper(intervention_sel) == "ALL") {
 # ==========================================
 # Helper: gera rainclouds de um dataset (paginação por locus)
 # ==========================================
-# gse_tag: "ALL" (facet por gse) ou nome do GSE. Define a pasta de destino.
-#
-# LAYOUT (dentro de um locus, apos coord_flip):
-#   x-0.36 .. x-0.24  -> boxplot  (nudge -0.30, width 0.12)
-#   x-0.03 .. x+0.03  -> pontos   (jitter 0.03)
-#   x+0.05 .. x+0.55  -> violino  (nudge +0.30, width 0.50)
-# Assim os tres elementos nao se sobrepoem.
-# ==========================================
 make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
   dest_dir <- file.path(out_dir, gsub("[^A-Za-z0-9._-]", "_", gse_tag))
   dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
@@ -168,93 +180,200 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
 
   pages <- split(loci, ceiling(seq_along(loci) / loci_per_page))
 
+  st <- get_style(intv, gse_tag)
+  cat(sprintf("    [%s] estilo: sep=%s split=%s violin=%s\n",
+              gse_tag, st$box_dots_separate, st$split_by_allele,
+              st$show_violin))
+
   for (pg_i in seq_along(pages)) {
     page_loci <- pages[[pg_i]]
     pdat <- dat[locus_label %in% page_loci]
     pdat[, locus_label := factor(locus_label,
                                  levels = rev(sort(unique(locus_label))))]
 
-    p <- ggplot(pdat,
-                aes(x = locus_label, y = allele2_est,
-                    fill = group, colour = group)) +
-      # ---- 1) Meia-violino (a "nuvem"), a direita do locus ----
-      geom_flat_violin(
-        position = position_nudge(x = 0.30),
-        trim     = FALSE,
-        alpha    = 0.5,
-        colour   = NA,
-        width    = 0.50
-      ) +
-      # ---- 2) Boxplot (a "chuva" inferior), a esquerda do locus ----
-      geom_boxplot(
-        width         = 0.12,
-        outlier.shape = NA,
-        alpha         = 0.6,
-        colour        = "black",
-        position      = position_nudge(x = -0.30),
-        show.legend   = FALSE
-      ) +
-      # ---- 3) Pontos jittered (a "chuva" superior), no centro do locus ----
-      geom_point(
-        size        = 3,
-        alpha       = 0.5,
-        position    = position_jitter(width = 0.03, seed = 321),
-        show.legend = FALSE
-      ) +
-      scale_fill_manual(values = group_colors, name = "Group") +
-      scale_colour_manual(values = group_colors, guide = "none") +
-      # coord_flip deixa o raincloud horizontal (locus no eixo Y)
-      coord_flip() +
-      scale_y_continuous(
-        trans  = "log1p",
-        breaks = c(0, 1, 5, 10, 50, 100, 500, 1000),
-        labels = c("0", "1", "5", "10", "50", "100", "500", "1k"),
-        expand = c(0.01, 0)
-      ) +
-      labs(
-        title    = title,
-        subtitle = subtitle,
-        x        = NULL,
-        y        = "Allele length (repeat units, log1p)",
-      ) +
-      theme_classic(base_size = 11) +
-      theme(
-        # Eixo categórico (locus) limpo
-        axis.ticks.y     = element_blank(),
-        axis.line.y      = element_blank(),
-        axis.title.y     = element_blank(),
-        axis.text.y      = element_text(size = 7, color = "grey20"),
-        # Eixo contínuo (allele length)
-        axis.text.x      = element_text(size = 9, color = "grey20"),
-        axis.title.x     = element_text(size = 11, face = "bold"),
-        # Títulos
-        plot.title       = element_text(size = 13, hjust = 0.5, face = "bold"),
-        plot.subtitle    = element_text(size = 10, color = "grey40", hjust = 0.5),
-        # Strip (facet) sutil
-        strip.background = element_rect(fill = "grey92", color = NA),
-        strip.text       = element_text(size = 11, face = "bold"),
-        # Legenda embaixo
-        legend.position  = "bottom",
-        legend.title     = element_text(size = 10),
-        # Espaçamento entre facets
-        panel.spacing    = unit(1.2, "lines"),
-        panel.background = element_rect(fill = "white", color = NA),
-        plot.background  = element_rect(fill = "white", color = NA)
+    # ---- Split por tamanho do alelo (opcional) ----
+    use_facet     <- FALSE
+    split_caption <- NULL
+
+    if (isTRUE(st$split_by_allele) && n_loci > 2) {
+      loci_max <- pdat[, .(max_al = max(allele2_est, na.rm = TRUE)),
+                       by = locus_label]
+      thr <- median(loci_max$max_al, na.rm = TRUE)
+
+      loci_max[, size_group := ifelse(max_al <= thr, "Short STRs", "Long STRs")]
+      pdat <- merge(pdat, loci_max[, .(locus_label, size_group)],
+                    by = "locus_label", all.x = TRUE)
+      pdat[, size_group := factor(size_group,
+                                   levels = c("Short STRs", "Long STRs"))]
+      setorder(loci_max, max_al)
+      pdat[, locus_label := factor(locus_label, levels = loci_max$locus_label)]
+      use_facet <- TRUE
+
+      split_caption <- sprintf(
+        paste0("Loci were stratified into Short and Long STRs by the median ",
+               "of the per-locus maximum allele length ",
+               "(threshold = %d repeat units)."),
+        round(thr)
       )
 
-    # ATENCAO: facet por gse apenas na visao agregada (ALL)
-    if (toupper(gse_tag) == "ALL") {
-      p <- p + facet_wrap(~ gse, scales = "free_y", ncol = 1)
+      cat(sprintf("    [%s] split: %d short + %d long (thr=%d)\n",
+                  gse_tag,
+                  sum(loci_max$max_al <= thr), sum(loci_max$max_al > thr),
+                  round(thr)))
+    }
+
+    # ==========================================================
+    # MODO A: boxplot e dots em faixas separadas
+    # ==========================================================
+    if (isTRUE(st$box_dots_separate)) {
+      pdat[, locus_num := as.numeric(locus_label)]
+
+      p <- ggplot(pdat, aes(y = allele2_est, fill = group, colour = group))
+
+      if (isTRUE(st$show_violin)) {
+        p <- p + geom_flat_violin(
+          aes(x = locus_num + st$violin_nudge),
+          trim   = FALSE,
+          alpha  = 0.5,
+          colour = NA,
+          width  = st$violin_width
+        )
+      }
+
+      p <- p + geom_point(
+        aes(x = locus_num + st$dots_nudge),
+        size        = st$point_size,
+        alpha       = 0.6,
+        position    = position_jitter(width = st$point_jitter, seed = 321),
+        show.legend = FALSE
+      )
+
+      p <- p + geom_boxplot(
+        aes(x = locus_num + st$box_nudge,
+            group = interaction(locus_label, group)),
+        width         = st$box_width,
+        outlier.shape = NA,
+        alpha         = 1,
+        colour        = "black",
+        position      = position_dodge(width = st$box_width),
+        show.legend   = FALSE
+      )
+
+      p <- p +
+        scale_fill_manual(values = group_colors, name = "Group") +
+        scale_colour_manual(values = group_colors, guide = "none") +
+        scale_x_continuous(
+          breaks = seq_along(levels(pdat$locus_label)),
+          labels = levels(pdat$locus_label)
+        ) +
+        scale_y_continuous(
+          breaks = scales::breaks_pretty(n = 8),
+          expand = expansion(mult = c(0.02, 0.05))
+        ) +
+        coord_flip() +
+        labs(
+          title    = title,
+          subtitle = NULL,
+          x        = NULL,
+          y        = "Allele length (repeat units)",
+          caption  = split_caption
+        ) +
+        theme_classic(base_size = 11) +
+        theme(
+          axis.ticks.y     = element_blank(),
+          axis.line.y      = element_blank(),
+          axis.title.y     = element_blank(),
+          axis.text.y      = element_text(size = 10, color = "grey20"),
+          axis.text.x      = element_text(size = 10, color = "grey20"),
+          axis.title.x     = element_text(size = 11, face = "bold"),
+          plot.title       = element_text(size = 13, hjust = 0.5, face = "bold"),
+          plot.caption     = element_text(size = 10, color = "grey30",
+                                          hjust = 0.5, face = "italic",
+                                          margin = margin(t = 10)),
+          strip.background = element_rect(fill = "grey92", color = NA),
+          strip.text       = element_text(size = 11, face = "bold"),
+          legend.position  = "bottom",
+          legend.title     = element_text(size = 10),
+          panel.spacing    = unit(0.8, "lines"),
+          panel.background = element_rect(fill = "white", color = NA),
+          plot.background  = element_rect(fill = "white", color = NA)
+        )
+
+      if (use_facet) {
+        p <- p + facet_wrap(~ size_group, scales = "free", ncol = 1)
+      }
+
+    # ==========================================================
+    # MODO B: layout original
+    # ==========================================================
+    } else {
+      p <- ggplot(pdat,
+                  aes(x = locus_label, y = allele2_est,
+                      fill = group, colour = group)) +
+        geom_flat_violin(
+          position = position_nudge(x = st$violin_nudge),
+          trim     = FALSE,
+          alpha    = 0.5,
+          colour   = NA,
+          width    = st$violin_width
+        ) +
+        geom_boxplot(
+          width         = st$box_width,
+          outlier.shape = NA,
+          alpha         = 0.6,
+          colour        = "black",
+          position      = position_nudge(x = st$box_nudge),
+          show.legend   = FALSE
+        ) +
+        geom_point(
+          size        = st$point_size,
+          alpha       = 0.5,
+          position    = position_jitter(width = st$point_jitter, seed = 321),
+          show.legend = FALSE
+        ) +
+        scale_fill_manual(values = group_colors, name = "Group") +
+        scale_colour_manual(values = group_colors, guide = "none") +
+        coord_flip() +
+        scale_y_continuous(
+          breaks = scales::breaks_pretty(n = 8),
+          expand = expansion(mult = c(0.02, 0.05))
+        ) +
+        labs(
+          title    = title,
+          subtitle = NULL,
+          x        = NULL,
+          y        = "Allele length (repeat units)"
+        ) +
+        theme_classic(base_size = 11) +
+        theme(
+          axis.ticks.y     = element_blank(),
+          axis.line.y      = element_blank(),
+          axis.title.y     = element_blank(),
+          axis.text.y      = element_text(size = 10, color = "grey20"),
+          axis.text.x      = element_text(size = 9, color = "grey20"),
+          axis.title.x     = element_text(size = 11, face = "bold"),
+          plot.title       = element_text(size = 13, hjust = 0.5, face = "bold"),
+          strip.background = element_rect(fill = "grey92", color = NA),
+          strip.text       = element_text(size = 11, face = "bold"),
+          legend.position  = "bottom",
+          legend.title     = element_text(size = 10),
+          panel.spacing    = unit(1.2, "lines"),
+          panel.background = element_rect(fill = "white", color = NA),
+          plot.background  = element_rect(fill = "white", color = NA)
+        )
+      # (facet_wrap(~ gse) removido — nao ha mais visao ALL)
     }
 
     out_file <- file.path(dest_dir,
       sprintf("%s_raincloud_per_locus_p%02d.png",
               gsub("[^A-Za-z0-9._-]", "_", intv), pg_i))
+
+    n_rows_effective <- if (use_facet) n_loci * 1.6 else n_loci
     ggsave(
       filename  = out_file,
       plot      = p,
       width     = 12,
-      height    = max(6, length(page_loci) * 0.35 + 3),
+      height    = max(6, n_rows_effective * st$height_factor + st$height_offset),
       dpi       = 600,
       bg        = "white",
       limitsize = FALSE
@@ -285,7 +404,7 @@ write_patients_csv <- function(dat, intv, gse_tag) {
 }
 
 # ==========================================
-# 2. Loop por intervenção
+# 2. Loop por intervenção — apenas por GSE
 # ==========================================
 for (intv in interventions) {
   cat(sprintf("\n=== Intervenção: %s ===\n", intv))
@@ -299,16 +418,7 @@ for (intv in interventions) {
               nrow(dat), uniqueN(dat$locus_label),
               paste(sort(unique(dat$gse)), collapse = ", ")))
 
-  # --- 2.1 Visão agregada (ALL): CSV + raincloud facet por gse ---
-  cat("  Gerando visão agregada (todos GSEs)...\n")
-  write_patients_csv(dat, intv, "ALL")
-  make_raincloud(
-    dat = dat, intv = intv, gse_tag = "ALL",
-    title = sprintf("DBSCAN outliers per locus - %s", gsub("_", " ", intv)),
-    subtitle = "All GSEs | alleles by case/control"
-  )
-
-  # --- 2.2 Por GSE (acesso do estudo): CSV + raincloud ---
+  # --- Apenas por GSE ---
   for (gse_i in sort(unique(dat$gse))) {
     dat_gse <- dat[gse == gse_i]
     cat(sprintf("  Gerando por GSE: %s\n", gse_i))
@@ -317,7 +427,7 @@ for (intv in interventions) {
       dat = dat_gse, intv = intv, gse_tag = gse_i,
       title = sprintf("DBSCAN outliers per locus - %s (%s)",
                       gsub("_", " ", intv), gse_i),
-      subtitle = sprintf("%s | alleles by case/control", gse_i)
+      subtitle = NULL
     )
   }
 }
