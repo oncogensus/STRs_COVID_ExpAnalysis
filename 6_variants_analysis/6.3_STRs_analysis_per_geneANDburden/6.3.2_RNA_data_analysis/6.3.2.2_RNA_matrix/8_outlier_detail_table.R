@@ -142,13 +142,14 @@ tbl[, n_cases := as.integer(n_cases_vec[tbl_key])]
 tbl[, n_controls := as.integer(n_controls_vec[tbl_key])]
 tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
 tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
-tbl[, Group := paste0(GSE, " | ", Comparison, " | Cases: ", n_cases, " / Controls: ", n_controls)]
+tbl[, Group := paste0(GSE, " | ", Comparison)]
 
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
 
-# Drop GSE, Comparison, STRs_ID (now encoded in Group)
-tbl[, c("GSE", "Comparison", "STRs_ID", "n_cases", "n_controls") := NULL]
+# Rename count columns and drop auxiliary columns
+setnames(tbl, c("n_cases", "n_controls"), c("Cases", "Controls"))
+tbl[, c("GSE", "Comparison", "STRs_ID") := NULL]
 
 cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
@@ -193,6 +194,10 @@ out_gt <- tbl %>%
     label = md("Differential Expression^c^"),
     columns = c(logFC, FDR)
   ) %>%
+  tab_spanner(
+    label = "Sample Counts",
+    columns = c(Cases, Controls)
+  ) %>%
   cols_label(
     Gene = "Gene",
     Region = "Region",
@@ -212,7 +217,9 @@ out_gt <- tbl %>%
     `Noise %` = md("Noise^b^"),
     `N Outliers` = md("N^b^"),
     logFC = md("logFC^c^"),
-    FDR = md("FDR^c^")
+    FDR = md("FDR^c^"),
+    Cases = "Cases",
+    Controls = "Controls"
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
