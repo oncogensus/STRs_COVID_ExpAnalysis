@@ -31,6 +31,14 @@ merged_dt <- fread(input_file)
 
 # ---- RENAME COLUMNS TO MATCH PIPELINE ----
 # Standardize column names for consistency throughout the analysis
+
+# Remove DBSCAN global suffix from column names
+db_cols <- grep("_dbscan_global$", names(merged_dt), value = TRUE)
+if (length(db_cols) > 0) {
+  short_names <- sub("_dbscan_global$", "", db_cols)
+  setnames(merged_dt, db_cols, short_names)
+}
+
 setnames(
   merged_dt,
   old = c("pop"),
