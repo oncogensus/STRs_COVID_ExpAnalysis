@@ -4,9 +4,10 @@
 # PROPOSITO
 #   Mann-Whitney U test: case vs. control para STRs com outliers DBSCAN,
 #   por intervencao (GSE). Dois testes:
-#     (a) allele2_est com N > 3 por grupo
+#     (a) allele2_est com N >= 3 por grupo
 #     (b) mean_allele = (allele1 + allele2) / 2 com N >= 3 por grupo
-#   Aplica FDR (Benjamini-Hochberg) para correcao de multiplos testes.
+#   Inclui effect size (rank-biserial r) e FDR (Benjamini-Hochberg).
+#   Gera tabela publication-ready (gt HTML) com todos os loci testados.
 #
 # ENTRADAS (por argumentos de linha de comando)
 #   --str-catalog    intervention_outliers.tsv (saida do step 1)
@@ -21,6 +22,8 @@ suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
   library(rstatix)
+  library(gt)
+  library(scales)
 })
 
 # ==========================================
@@ -122,32 +125,36 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
     add_significance("p.adj") %>%
     as.data.table()
 
-  sig_results <- results[p.adj < 0.05]
+  # Add effect size (rank-biserial correlation)
+  effsize <- dt_eligible %>%
+    group_by(STRs_ID, gse) %>%
+    wilcox_effsize(target_metric ~ group) %>%
+    ungroup() %>%
+    as.data.table()
 
-  cat(sprintf("  Significativos (p.adj < 0.05): %d\n", nrow(sig_results)))
+  results <- merge(results,
+                   effsize[, .(STRs_ID, gse, effsize)],
+                   by = c("STRs_ID", "gse"), all.x = TRUE)
 
-  if (nrow(sig_results) == 0) {
-    cat("  Nenhum resultado significativo apos FDR.\n")
-    return(data.table())
-  }
+  # Add sample counts per group
+  n_counts <- dt_eligible[, .(n_total = .N), by = .(STRs_ID, gse, group)]
+  n_wide <- dcast(n_counts, STRs_ID + gse ~ group, value.var = "n_total", fill = 0)
+  setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
+  results <- merge(results, n_wide, by = c("STRs_ID", "gse"), all.x = TRUE)
 
-  # Extract full observations for significant variant x study combinations
-  sig_keys <- sig_results[, .(STRs_ID, gse)]
-  final <- merge(dt, sig_keys, by = c("STRs_ID", "gse"), allow.cartesian = TRUE)
-  final <- merge(final,
-                 sig_results[, .(STRs_ID, gse, p, p.adj, p.adj.signif)],
-                 by = c("STRs_ID", "gse"), all.x = TRUE)
-  final <- final[order(p.adj, STRs_ID, gse)]
+  results <- results[order(p.adj, STRs_ID, gse)]
 
-  cat(sprintf("  Observacoes exportadas: %d\n", nrow(final)))
-  return(final)
+  cat(sprintf("  Total de testes: %d\n", nrow(results)))
+  cat(sprintf("  Significativos (p.adj < 0.05): %d\n", sum(results$p.adj < 0.05, na.rm = TRUE)))
+
+  return(results)
 }
 
 # ==========================================
 # 5. Run tests
 # ==========================================
 # (a) Allele 2
-res_allele2 <- run_mann_whitney(df_filtered, "allele2_est", min_n_per_group = 4,
+res_allele2 <- run_mann_whitney(df_filtered, "allele2_est", min_n_per_group = 3,
                                 label = "Mann-Whitney: Allele 2")
 
 # (b) Mean Allele
@@ -156,7 +163,7 @@ res_mean <- run_mann_whitney(df_filtered, "mean_allele", min_n_per_group = 3,
                              label = "Mann-Whitney: Mean Allele")
 
 # ==========================================
-# 6. Export results
+# 6. Export individual CSVs
 # ==========================================
 suffix <- if (intervention == "ALL") "ALL" else intervention
 
@@ -165,7 +172,7 @@ if (nrow(res_allele2) > 0) {
   fwrite(as.data.frame(res_allele2), out_allele2, sep = ";", dec = ",")
   cat(sprintf("\n  Allele2 MW salvo em: %s\n", out_allele2))
 } else {
-  cat("\n  Nenhum resultado significativo para Allele 2.\n")
+  cat("\n  Nenhum resultado para Allele 2.\n")
 }
 
 if (nrow(res_mean) > 0) {
@@ -173,7 +180,157 @@ if (nrow(res_mean) > 0) {
   fwrite(as.data.frame(res_mean), out_mean, sep = ";", dec = ",")
   cat(sprintf("  Mean Allele MW salvo em: %s\n", out_mean))
 } else {
-  cat("  Nenhum resultado significativo para Mean Allele.\n")
+  cat("  Nenhum resultado para Mean Allele.\n")
 }
+
+# ==========================================
+# 7. Combine results and build publication-ready table
+# ==========================================
+cat("\n--- Publication-Ready Table ---\n")
+
+intervention_labels <- c(
+  "GSE183533" = "Fatal COVID-19 vs. Controls",
+  "GSE188847" = "Non-Survivors vs. Controls",
+  "GSE157103" = "ICU vs. Non-Critical"
+)
+
+fmt_pval <- function(x) {
+  ifelse(x < 0.001, formatC(x, format = "e", digits = 1),
+         ifelse(x < 0.05, sprintf("%.3f", x),
+                sprintf("%.2f", x)))
+}
+
+# Combine both metrics
+res_allele2 <- res_allele2[, Metric := "Allele 2"]
+res_mean <- res_mean[, Metric := "Mean Allele"]
+res_combined <- rbind(res_allele2, res_mean, fill = TRUE)
+
+if (nrow(res_combined) == 0) {
+  cat("  Nenhum resultado para tabela.\n")
+  cat("\nConcluido.\n")
+  quit(status = 0)
+}
+
+# Extract motif:size from STRs_ID
+res_combined[, Variant := sub("^[^:]+:[^:]+:(.+)$", "\\1", STRs_ID)]
+
+# Map intervention labels
+res_combined[, Comparison := fifelse(
+  gse %in% names(intervention_labels),
+  intervention_labels[gse], gse
+)]
+
+# Build table
+tbl <- res_combined[, .(
+  Gene = gene_name,
+  Variant = Variant,
+  Metric = Metric,
+  `N Cases` = n_cases,
+  `N Controls` = n_controls,
+  `U Statistic` = round(statistic, 2),
+  `p-value` = fmt_pval(p),
+  FDR = fmt_pval(p.adj),
+  `Effect Size (r)` = round(effsize, 3),
+  Significant = fifelse(p.adj < 0.05, "Yes", "")
+)]
+tbl <- tbl[order(Comparison, Gene, Metric)]
+
+n_loci <- uniqueN(tbl$Gene)
+n_comps <- uniqueN(tbl$Comparison)
+
+cat(sprintf("  Tabela: %d testes em %d loci x %d comparacoes\n", nrow(tbl), n_loci, n_comps))
+
+# Build gt table
+out_gt <- tbl %>%
+  gt(groupname_col = "Comparison") %>%
+  tab_header(
+    title = md("**Mann-Whitney U Test: Case vs Control**"),
+    subtitle = sprintf("%d loci tested across %d comparisons", n_loci, n_comps)
+  ) %>%
+  tab_spanner(
+    label = "Sample Size",
+    columns = c(`N Cases`, `N Controls`)
+  ) %>%
+  tab_spanner(
+    label = md("Statistical Test^a^"),
+    columns = c(`U Statistic`, `p-value`, FDR)
+  ) %>%
+  tab_spanner(
+    label = md("Effect Size^b^"),
+    columns = c(`Effect Size (r)`, Significant)
+  ) %>%
+  cols_label(
+    Gene = "Gene",
+    Variant = "Variant",
+    Metric = "Metric",
+    `N Cases` = "Cases",
+    `N Controls` = "Controls",
+    `U Statistic` = "U",
+    `p-value` = "p-value",
+    FDR = "FDR",
+    `Effect Size (r)` = md("r^b^"),
+    Significant = "Sig."
+  ) %>%
+  sub_missing(columns = everything(), missing_text = "-") %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold", size = px(10)),
+      cell_borders(sides = "bottom", weight = px(1.5), color = "grey60")
+    ),
+    locations = cells_column_labels()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold", size = px(10)),
+    locations = cells_column_spanners()
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(9)),
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold", size = px(9)),
+    locations = cells_body(columns = Gene)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "grey95"),
+      cell_text(weight = "bold", size = px(11))
+    ),
+    locations = cells_row_groups()
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "#e6f3ff"),
+    locations = cells_body(rows = Significant == "Yes")
+  ) %>%
+  tab_options(
+    table.font.names = "Arial",
+    table.font.size = px(9),
+    heading.align = "left",
+    column_labels.border.top.width = px(2),
+    column_labels.border.top.color = "black",
+    column_labels.border.bottom.width = px(1),
+    column_labels.border.bottom.color = "black",
+    table_body.border.bottom.width = px(1.5),
+    table_body.border.bottom.color = "black",
+    table_body.hlines.color = "grey92",
+    table_body.hlines.width = px(0.5),
+    table.border.left.width = px(0),
+    table.border.right.width = px(0),
+    data_row.padding = px(3),
+    row_group.padding = px(6)
+  ) %>%
+  tab_source_note(
+    source_note = md("*^a^* Mann-Whitney U test with Benjamini\u2013Hochberg FDR correction. Groups: case vs control per variant per study.")
+  ) %>%
+  tab_source_note(
+    source_note = md("*^b^* Effect size: rank-biserial correlation (r). Interpretation: |r| < 0.1 negligible, 0.1\u20130.3 small, 0.3\u20130.5 medium, > 0.5 large.")
+  ) %>%
+  tab_source_note(
+    source_note = md("*Highlighted rows: FDR-adjusted p-value < 0.05.*")
+  )
+
+out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
+gtsave(out_gt, out_html)
+cat(sprintf("  Tabela salva em: %s\n", out_html))
 
 cat("\nConcluido.\n")
