@@ -231,11 +231,14 @@ tbl <- res_combined[, .(
   Sig = fifelse(p.adj < 0.05, "**", fifelse(p < 0.05, "*", ""))
 )]
 tbl[, GeneLabel := fifelse(
-  Sig == "**", paste0("**", Gene, "**<sup>**</sup>"),
-  fifelse(Sig == "*", paste0("**", Gene, "**<sup>*</sup>"),
-         paste0("**", Gene, "**"))
+  Sig == "**", paste0("<b>", Gene, "</b><sup>**</sup>"),
+  fifelse(Sig == "*", paste0("<b>", Gene, "</b><sup>*</sup>"),
+         paste0("<b>", Gene, "</b>"))
 )]
 tbl <- tbl[order(Comparison, Gene, Metric)]
+
+# Reorder columns: GeneLabel first
+setcolorder(tbl, c("Comparison", "GeneLabel", setdiff(names(tbl), c("Comparison", "GeneLabel"))))
 
 n_loci <- uniqueN(tbl$Gene)
 n_comps <- uniqueN(tbl$Comparison)
@@ -273,8 +276,10 @@ out_gt <- tbl %>%
     `Effect Size (r)` = md("r^b^")
   ) %>%
   cols_hide(columns = c(Gene, Sig)) %>%
-  fmt_markdown(columns = GeneLabel) %>%
-  cols_move(columns = GeneLabel, after = everything()) %>%
+  text_transform(
+    fn = function(x) lapply(x, gt::html),
+    locations = cells_body(columns = GeneLabel)
+  ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = list(
