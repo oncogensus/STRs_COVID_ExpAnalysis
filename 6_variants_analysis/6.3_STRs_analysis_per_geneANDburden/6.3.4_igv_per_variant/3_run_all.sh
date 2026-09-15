@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# run_all.sh — Gera scripts bash para IGV.js de cada STR com outlier.
+# 3_run_all.sh — Gera scripts bash para IGV.js de cada STR com outlier.
 # Le STRs_ID unicos de str_samples_bams.tsv e cria um .sh por STR.
-# Uso: bash run_all.sh
+# Uso: bash 3_run_all.sh
 set -u
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
 TSV="str_samples_bams.tsv"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente."; echo "Gere os BEDs primeiro: qsub 0_generate_beds.pbs"; exit 1; }
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente."; echo "Gere os BEDs primeiro: qsub 1_generate_beds.pbs"; exit 1; }
 
 strs=($(awk -F'\t' 'NR>1{print $2}' "$TSV" | sort -u))
 [ ${#strs[@]} -eq 0 ] && { echo "Nenhum STR encontrado no TSV."; exit 1; }
@@ -22,7 +22,7 @@ for s in "${strs[@]}"; do
 # IGV.js para ${s}
 # Uso: bash $script
 cd "$BASE"
-bash igv_variant.sh "$s" $PORT
+bash 2_igv_variant.sh "$s" $PORT
 EOF
   chmod +x "$script"
   echo "Gerado: $script (porta $PORT) -> $s"

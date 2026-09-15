@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# igv_variant.sh — IGV.js para um STR/variante.
+# 2_igv_variant.sh — IGV.js para um STR/variante.
 # Recebe STRS_ID como argumento; le str_samples_bams.tsv para mappings.
-# Uso: bash igv_variant.sh chr1:76143392:GT:16 [PORT]
+# Uso: bash 2_igv_variant.sh chr1:76143392:GT:16 [PORT]
 set -u
 
 STRS_ID="${1:?Uso: $0 STRS_ID [PORT]}"
@@ -12,7 +12,7 @@ BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
 TSV="str_samples_bams.tsv"
 ANN="str_samples_with_variant.bed"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 0_generate_beds.R)."; exit 1; }
+[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 1_generate_beds.R)."; exit 1; }
 [ -f "$ANN" ] || echo "WARN: $ANN ausente; anotacao pode faltar." >&2
 
 SAFE=$(echo "$STRS_ID" | tr ':' '_')

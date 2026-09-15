@@ -18,4 +18,4 @@ R_BIN="$(command -v Rscript)"
 
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 
-"$R_BIN" 0_generate_beds.R
+"$R_BIN" 1_generate_beds.R

@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 0_generate_beds.R
+# 1_generate_beds.R
 # Gera BEDs + mapeamento BAM para IGV.js (6.3.4).
 # Outputs sao escritos no dir de execucao.
 #
@@ -41,7 +41,7 @@ db <- read.delim(outlier_file, header = TRUE, stringsAsFactors = FALSE)
 db$STRs_ID <- trimws(db$STRs_ID)
 db <- db[nzchar(trimws(db$outlier_samples_dbscan_global)), ]
 
-cat("[0_generate_beds] STRs com outlier:", nrow(db), "\n")
+cat("[1_generate_beds] STRs com outlier:", nrow(db), "\n")
 
 variants <- data.frame(
   STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples_dbscan_global, split_samples))),
@@ -59,7 +59,7 @@ variants$end    <- variants$start0 + nchar(variants$motif) * variants$copy
 variants$gene[is.na(variants$gene) | variants$gene == ""] <- "UNKNOWN"
 
 variants <- variants[!duplicated(variants$STRs_ID), ]
-cat("[0_generate_beds] STRs_ID unicos:", nrow(variants), "\n")
+cat("[1_generate_beds] STRs_ID unicos:", nrow(variants), "\n")
 
 norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)

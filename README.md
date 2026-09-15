@@ -296,9 +296,9 @@ Scans all GSE subdirectories for intervention-specific DEG tables, overlaps gene
 Generates BED files and IGV.js scripts for visual inspection of STR variants. For each STR with outlier, produces a BED with the variant sample and a matched control sample.
 
 **Scripts**:
-- `0_generate_beds.R` / `.pbs` — generate BEDs + BAM mapping from outliers
-- `igv_variant.sh` — run IGV.js viewer for a single gene
-- `run_all.sh` — generate per-gene scripts in `scripts/`
+- `1_generate_beds.R` / `.pbs` — generate BEDs + BAM mapping from outliers
+- `2_igv_variant.sh` — run IGV.js viewer for a single gene
+- `3_run_all.sh` — generate per-gene scripts in `scripts/`
 
 **Required Inputs**:
 - `6.3.2.2_RNA_matrix/results/intervention_outliers.tsv`

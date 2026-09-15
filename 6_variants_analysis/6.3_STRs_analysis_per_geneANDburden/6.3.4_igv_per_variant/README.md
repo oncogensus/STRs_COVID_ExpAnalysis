@@ -6,13 +6,13 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada STR 
 
 ```
 6.3.4_igv_per_variant/
-├── 0_generate_beds.R          # gera BEDs + TSV (R)
-├── 0_generate_beds.pbs        # PBS para rodar no cluster
+├── 1_generate_beds.R          # gera BEDs + TSV (R)
+├── 1_generate_beds.pbs        # PBS para rodar no cluster
 ├── str_samples_bams.tsv       # output: mapeamento STR->BAM
 ├── str_samples_with_variant.bed
 ├── str_samples_without_variant.bed
-├── igv_variant.sh             # IGV.js para 1 STR
-├── run_all.sh                 # IGV.js para todos os STRs
+├── 2_igv_variant.sh             # IGV.js para 1 STR
+├── 3_run_all.sh                 # IGV.js para todos os STRs
 └── README.md
 ```
 
@@ -21,35 +21,35 @@ Workflow completo: gera BEDs + mapeamento BAM, depois sobe IGV.js para cada STR 
 ```
 intervention_outliers.tsv (6.3.2.2_RNA_matrix/results/)
     ↓
-0_generate_beds.R  →  *.bed + str_samples_bams.tsv
+1_generate_beds.R  →  *.bed + str_samples_bams.tsv
     ↓
-igv_variant.sh STRS_ID  →  IGV.js via HTTP
+2_igv_variant.sh STRS_ID  →  IGV.js via HTTP
 ```
 
 ## 1. Gerar BEDs (no cluster)
 
 ```bash
 cd 6.3.4_igv_per_variant
-qsub 0_generate_beds.pbs
+qsub 1_generate_beds.pbs
 ```
 
 Ou localmente (se BAM dir acessivel):
 ```bash
-Rscript 0_generate_beds.R
+Rscript 1_generate_beds.R
 ```
 
 ## 2. Rodar IGV.js — todos os STRs
 
 ```bash
 cd 6.3.4_igv_per_variant
-bash run_all.sh
+bash 3_run_all.sh
 ```
 
 ## 3. Rodar IGV.js — 1 STR
 
 ```bash
-bash igv_variant.sh chr1:76143392:GT:16
-bash igv_variant.sh chr1:76143392:GT:16 9000
+bash 2_igv_variant.sh chr1:76143392:GT:16
+bash 2_igv_variant.sh chr1:76143392:GT:16 9000
 ```
 
 ## No PC (PowerShell)
