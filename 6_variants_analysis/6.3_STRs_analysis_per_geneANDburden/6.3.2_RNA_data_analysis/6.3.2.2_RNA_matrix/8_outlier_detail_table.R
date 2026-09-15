@@ -71,6 +71,14 @@ key <- paste0(dt$gse, ":", dt$intervention)
 dt[, Comparison := fifelse(key %in% names(intervention_labels),
                            intervention_labels[key], intervention)]
 
+# Count unique outlier samples per group per comparison
+dt[, sample_id := sub(";$", "", outlier_samples)]
+n_per_group <- unique(dt[, .(gse, Comparison, group, sample_id)])[, .N, by = .(gse, Comparison, group)]
+n_wide <- dcast(n_per_group, gse + Comparison ~ group, value.var = "N", fill = 0)
+if ("case" %in% names(n_wide) && "control" %in% names(n_wide)) {
+  setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
+}
+
 # ==========================================
 # 4. Prepare table data (aggregated per STR_ID)
 # ==========================================
@@ -126,7 +134,12 @@ tbl <- dt[, .(
 setnames(tbl, "gse", "GSE")
 
 # Create combined group column for gt (avoids duplicate column error)
-tbl[, Group := paste0(GSE, " | ", Comparison)]
+# Merge sample counts
+tbl <- merge(tbl, n_wide, by.x = c("GSE", "Comparison"), by.y = c("gse", "Comparison"),
+             all.x = TRUE)
+tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
+tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
+tbl[, Group := paste0(GSE, " | ", Comparison, " | n = ", n_cases, " / ", n_controls)]
 
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
