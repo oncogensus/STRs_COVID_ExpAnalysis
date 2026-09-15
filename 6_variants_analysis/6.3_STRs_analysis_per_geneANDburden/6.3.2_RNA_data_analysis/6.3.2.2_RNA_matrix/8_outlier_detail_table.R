@@ -144,13 +144,13 @@ tbl[, n_cases := n_cases_vec[tbl_key]]
 tbl[, n_controls := n_controls_vec[tbl_key]]
 tbl[, n_cases := fifelse(is.na(n_cases), 0L, as.integer(n_cases))]
 tbl[, n_controls := fifelse(is.na(n_controls), 0L, as.integer(n_controls))]
-tbl[, Group := paste0(GSE, " | ", Comparison, " | n = ", n_cases, " / ", n_controls)]
+tbl[, Group := paste0(GSE, " | ", Comparison, " | Cases: ", n_cases, " / Controls: ", n_controls)]
 
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
 
 # Drop GSE, Comparison, STRs_ID (now encoded in Group)
-tbl[, c("GSE", "Comparison", "STRs_ID") := NULL]
+tbl[, c("GSE", "Comparison", "STRs_ID", "n_cases", "n_controls") := NULL]
 
 cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
