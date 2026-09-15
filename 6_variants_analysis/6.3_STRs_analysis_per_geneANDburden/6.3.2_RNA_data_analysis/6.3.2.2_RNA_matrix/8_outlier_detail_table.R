@@ -222,8 +222,7 @@ out_gt <- tbl %>%
     table.border.left.width = px(0),
     table.border.right.width = px(0),
     data_row.padding = px(3),
-    row_group.padding = px(6),
-    source_note.font.size = px(8)
+    row_group.padding = px(6)
   ) %>%
   tab_source_note(
     source_note = md("*Allele sizes in repeat units. Depth = sequencing coverage at locus.*")
