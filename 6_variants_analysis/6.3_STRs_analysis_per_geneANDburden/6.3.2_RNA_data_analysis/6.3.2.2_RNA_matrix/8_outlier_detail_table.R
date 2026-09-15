@@ -72,7 +72,7 @@ dt[, Comparison := fifelse(key %in% names(intervention_labels),
                            intervention_labels[key], intervention)]
 
 # ==========================================
-# 4. Prepare table data
+# 4. Prepare table data (aggregated per STR_ID)
 # ==========================================
 cat("\nPreparando dados da tabela...\n")
 
@@ -89,7 +89,7 @@ fmt_noise <- function(x) {
 }
 
 # Truncate outlier samples for display
-fmt_samples <- function(x, max_chars = 40) {
+fmt_samples <- function(x, max_chars = 50) {
   x <- as.character(x)
   x[is.na(x) | x == ""] <- "-"
   ifelse(nchar(x) > max_chars,
@@ -97,32 +97,37 @@ fmt_samples <- function(x, max_chars = 40) {
          x)
 }
 
-# Build table
+# Aggregate by STR_ID: one row per unique STR per GSE × Comparison
 tbl <- dt[, .(
-  Gene = gene_name,
-  STRs_ID = STRs_ID,
-  Region = region,
-  Chrom = chrom,
-  Start = format(start, big.mark = ","),
-  End = format(end, big.mark = ","),
-  Motif = repeat_unit,
-  Allele_1 = allele1_est,
-  Allele_2 = allele2_est,
-  Depth = depth,
-  Clusters = n_clusters,
-  `Noise %` = fmt_noise(noise_ratio),
-  `N Outliers` = n_outliers,
-  `Outlier Samples` = fmt_samples(outlier_samples),
-  logFC = round(logFC, 2),
-  FDR = fmt_fdr(FDR),
-  Direction = Direction,
-  GSE = gse,
-  Comparison = Comparison
-)]
+  GSE = first(gse),
+  Comparison = first(Comparison),
+  Gene = first(gene_name),
+  Region = first(region),
+  Chrom = first(chrom),
+  Start = first(start),
+  End = first(end),
+  Motif = first(repeat_unit),
+  Allele_1_Med = round(median(allele1_est), 1),
+  Allele_1_Min = min(allele1_est),
+  Allele_1_Max = max(allele1_est),
+  Allele_2_Med = round(median(allele2_est), 1),
+  Allele_2_Min = min(allele2_est),
+  Allele_2_Max = max(allele2_est),
+  Depth_Med = round(median(depth), 1),
+  Depth_Min = min(depth),
+  Depth_Max = max(depth),
+  Clusters = first(n_clusters),
+  `Noise %` = fmt_noise(first(noise_ratio)),
+  `N Outliers` = first(n_outliers),
+  `Outlier Samples` = fmt_samples(paste(unique(outlier_samples), collapse = ";")),
+  logFC = first(round(logFC, 2)),
+  FDR = fmt_fdr(first(FDR))
+), by = .(STRs_ID, GSE, Comparison)]
 
-# Sort by FDR ascending (most significant first)
-tbl <- tbl[order(Gene, Comparison)]
+# Sort by GSE, Comparison, Gene
+tbl <- tbl[order(GSE, Comparison, Gene)]
 
+cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
 
 # ==========================================
@@ -132,21 +137,30 @@ cat("\nGerando tabela gt...\n")
 
 n_comparisons <- uniqueN(tbl$Comparison)
 n_genes <- uniqueN(tbl$Gene)
+n_strs <- nrow(tbl)
 
 out_gt <- tbl %>%
-  gt(groupname_col = "Comparison") %>%
+  gt(groupname_col = c("GSE", "Comparison")) %>%
   tab_header(
     title = md("**DBSCAN Outlier Loci in RNA-Seq DEGs**"),
-    subtitle = sprintf("%d outlier loci across %d comparisons and %d genes",
-                       nrow(tbl), n_comparisons, n_genes)
+    subtitle = sprintf("%d outlier STR loci across %d comparisons and %d genes",
+                       n_strs, n_comparisons, n_genes)
   ) %>%
   tab_spanner(
     label = "Genomic Location",
     columns = c(Gene, STRs_ID, Region, Chrom, Start, End, Motif)
   ) %>%
   tab_spanner(
-    label = "Allele Estimates",
-    columns = c(Allele_1, Allele_2, Depth)
+    label = "Allele 1 (median/min/max)",
+    columns = c(Allele_1_Med, Allele_1_Min, Allele_1_Max)
+  ) %>%
+  tab_spanner(
+    label = "Allele 2 (median/min/max)",
+    columns = c(Allele_2_Med, Allele_2_Min, Allele_2_Max)
+  ) %>%
+  tab_spanner(
+    label = "Depth (median/min/max)",
+    columns = c(Depth_Med, Depth_Min, Depth_Max)
   ) %>%
   tab_spanner(
     label = "DBSCAN Metrics",
@@ -154,7 +168,7 @@ out_gt <- tbl %>%
   ) %>%
   tab_spanner(
     label = "Differential Expression",
-    columns = c(logFC, FDR, Direction)
+    columns = c(logFC, FDR)
   ) %>%
   cols_label(
     Gene = "Gene",
@@ -164,18 +178,22 @@ out_gt <- tbl %>%
     Start = "Start",
     End = "End",
     Motif = "Motif",
-    Allele_1 = "Allele 1",
-    Allele_2 = "Allele 2",
-    Depth = "Depth",
+    Allele_1_Med = "Med",
+    Allele_1_Min = "Min",
+    Allele_1_Max = "Max",
+    Allele_2_Med = "Med",
+    Allele_2_Min = "Min",
+    Allele_2_Max = "Max",
+    Depth_Med = "Med",
+    Depth_Min = "Min",
+    Depth_Max = "Max",
     Clusters = "Clusters",
     `Noise %` = "Noise",
     `N Outliers` = "N",
     `Outlier Samples` = "Samples",
     logFC = "logFC",
-    FDR = "FDR",
-    Direction = "Dir."
+    FDR = "FDR"
   ) %>%
-  cols_hide(columns = c(GSE)) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = list(
@@ -225,13 +243,13 @@ out_gt <- tbl %>%
     row_group.padding = px(6)
   ) %>%
   tab_source_note(
-    source_note = md("*Allele sizes in repeat units. Depth = sequencing coverage at locus.*")
+    source_note = md("*Allele sizes in repeat units. Depth = sequencing coverage at locus. Values shown as median (min–max) per STR locus.*")
   ) %>%
   tab_source_note(
     source_note = md("*DBSCAN clusters = number of genotype clusters detected. Noise = fraction of unclustered observations.*")
   ) %>%
   tab_source_note(
-    source_note = md("*FDR = Benjamini-Hochberg adjusted p-value from DEG analysis. Dir. = expression direction in severe COVID-19.*")
+    source_note = md("*FDR = Benjamini-Hochberg adjusted p-value from DEG analysis.*")
   ) %>%
   tab_source_note(
     source_note = md("*Source: intervention_outliers.tsv (cross_intervention_STRs.py)*")
