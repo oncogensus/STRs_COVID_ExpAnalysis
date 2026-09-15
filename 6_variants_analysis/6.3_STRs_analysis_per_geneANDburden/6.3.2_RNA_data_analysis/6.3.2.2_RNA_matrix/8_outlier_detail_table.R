@@ -71,9 +71,8 @@ key <- paste0(dt$gse, ":", dt$intervention)
 dt[, Comparison := fifelse(key %in% names(intervention_labels),
                            intervention_labels[key], intervention)]
 
-# Count unique outlier samples per group per STR_ID per comparison
-dt[, sample_id := sub(";$", "", outlier_samples)]
-n_per_group <- unique(dt[, .(STRs_ID, gse, Comparison, group, sample_id)])[, .N, by = .(STRs_ID, gse, Comparison, group)]
+# Count outlier samples per group per variant (each row = 1 sample observation)
+n_per_group <- dt[, .N, by = .(STRs_ID, gse, Comparison, group)]
 n_wide <- dcast(n_per_group, STRs_ID + gse + Comparison ~ group, value.var = "N", fill = 0)
 if ("case" %in% names(n_wide) && "control" %in% names(n_wide)) {
   setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
