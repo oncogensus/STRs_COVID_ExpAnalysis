@@ -26,7 +26,7 @@ mkdir -p results
 # Inputs
 INTV_DIR="$WORKDIR/results"
 OUTLIERS="$INTV_DIR/intervention_outliers.tsv"
-OTHERS_CSV="$REPO/samples/others_regions_statistics.csv"
+OTHERS_CSV="$REPO/samples/STRs_annotated_others_detailed.tsv"
 
 [ -f "$OUTLIERS" ] || { echo "ERRO: $OUTLIERS ausente ( rode 1_cross_intervention_STRs.pbs primeiro )"; exit 1; }
 

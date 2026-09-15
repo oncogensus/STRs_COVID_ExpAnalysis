@@ -106,11 +106,12 @@ region_labels <- c(
 dt[, region := fifelse(region %in% names(region_labels),
                        region_labels[region], region)]
 
-# Lookup biotype for 'others' regions from annotation CSV
+# Lookup biotype for 'others' regions from annotation TSV
 if (!is.null(path_others_csv) && file.exists(path_others_csv)) {
-  others_dt <- fread(path_others_csv, select = c("key", "gene_biotype"))
+  others_dt <- fread(path_others_csv, select = c("STRs_ID", "gene_biotype"))
   others_dt <- others_dt[gene_biotype != "" & !is.na(gene_biotype)]
-  biotype_map <- setNames(others_dt$gene_biotype, others_dt$key)
+  others_dt <- unique(others_dt, by = "STRs_ID")
+  biotype_map <- setNames(others_dt$gene_biotype, others_dt$STRs_ID)
   other_rows <- which(dt$region == "Other")
   if (length(other_rows) > 0) {
     matched <- biotype_map[dt$STRs_ID[other_rows]]
