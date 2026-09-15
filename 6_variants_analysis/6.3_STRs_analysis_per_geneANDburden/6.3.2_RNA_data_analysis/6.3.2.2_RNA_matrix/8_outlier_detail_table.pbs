@@ -26,13 +26,18 @@ mkdir -p results
 # Inputs
 INTV_DIR="$WORKDIR/results"
 OUTLIERS="$INTV_DIR/intervention_outliers.tsv"
+OTHERS_CSV="$REPO/samples/others_regions_statistics.csv"
 
 [ -f "$OUTLIERS" ] || { echo "ERRO: $OUTLIERS ausente ( rode 1_cross_intervention_STRs.pbs primeiro )"; exit 1; }
 
 echo "=== Outlier Detail Table (Publication-Ready) ==="
 
+OTHERS_ARG=""
+[ -f "$OTHERS_CSV" ] && OTHERS_ARG="--others-csv $OTHERS_CSV"
+
 "$R_BIN" 8_outlier_detail_table.R \
   --intervention-outliers "$OUTLIERS" \
-  --out-dir results
+  --out-dir results \
+  $OTHERS_ARG
 
 echo "=== FIM ==="

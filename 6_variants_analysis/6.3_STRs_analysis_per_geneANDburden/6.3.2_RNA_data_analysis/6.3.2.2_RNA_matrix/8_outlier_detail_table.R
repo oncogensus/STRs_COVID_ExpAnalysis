@@ -31,6 +31,7 @@ parse_arg <- function(flag, default = NULL) {
 }
 
 path_outliers <- parse_arg("--intervention-outliers")
+path_others_csv <- parse_arg("--others-csv")
 out_dir       <- parse_arg("--out-dir", ".")
 
 if (is.null(path_outliers)) {
@@ -104,6 +105,21 @@ region_labels <- c(
 )
 dt[, region := fifelse(region %in% names(region_labels),
                        region_labels[region], region)]
+
+# Lookup biotype for 'others' regions from annotation CSV
+if (!is.null(path_others_csv) && file.exists(path_others_csv)) {
+  others_dt <- fread(path_others_csv, select = c("key", "gene_biotype"))
+  others_dt <- others_dt[gene_biotype != "" & !is.na(gene_biotype)]
+  biotype_map <- setNames(others_dt$gene_biotype, others_dt$key)
+  other_rows <- which(dt$region == "Other")
+  if (length(other_rows) > 0) {
+    matched <- biotype_map[dt$STRs_ID[other_rows]]
+    n_reclass <- sum(!is.na(matched))
+    dt$region[other_rows] <- ifelse(is.na(matched), "Non-coding", matched)
+    cat(sprintf("  Biotype lookup: %d/%d variantes 'others' reclassificados\n",
+                n_reclass, length(other_rows)))
+  }
+}
 
 # Aggregate by STR_ID: one row per unique STR per GSE × Comparison
 tbl <- dt[, .(
