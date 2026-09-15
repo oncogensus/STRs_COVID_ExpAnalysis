@@ -50,7 +50,11 @@ cat("out_dir      :", out_dir, "\n")
 ## 1. OUTLIERS RNA-SEQ
 ## ---------------------------------------------------------------------------
 rna_outl <- fread(rna_out, header = TRUE, sep = "\t")
-setnames(rna_outl, c("STRs_ID", "gene_name"), c("strs_id", "gene"), skip.absent = TRUE)
+cols_to_rename <- intersect(c("STRs_ID", "gene_name"), names(rna_outl))
+if (length(cols_to_rename)) {
+  new_names <- ifelse(cols_to_rename == "STRs_ID", "strs_id", "gene")
+  setnames(rna_outl, cols_to_rename, new_names)
+}
 
 rna_strs  <- unique(rna_outl$strs_id)
 cat(sprintf("Outliers RNA: %d STRs | %d genes\n",
