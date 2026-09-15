@@ -126,8 +126,14 @@ tbl <- dt[, .(
 
 setnames(tbl, "gse", "GSE")
 
+# Create combined group column for gt (avoids duplicate column error)
+tbl[, Group := paste0(GSE, " | ", Comparison)]
+
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
+
+# Drop GSE and Comparison (now encoded in Group)
+tbl[, c("GSE", "Comparison") := NULL]
 
 cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
@@ -142,7 +148,7 @@ n_genes <- uniqueN(tbl$Gene)
 n_strs <- nrow(tbl)
 
 out_gt <- tbl %>%
-  gt(groupname_col = c("GSE", "Comparison")) %>%
+  gt(groupname_col = "Group") %>%
   tab_header(
     title = md("**DBSCAN Outlier Loci in RNA-Seq DEGs**"),
     subtitle = sprintf("%d outlier STR loci across %d comparisons and %d genes",
