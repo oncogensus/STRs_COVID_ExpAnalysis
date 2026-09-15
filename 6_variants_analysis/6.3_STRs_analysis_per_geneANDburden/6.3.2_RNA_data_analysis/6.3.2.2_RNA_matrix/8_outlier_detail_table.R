@@ -135,8 +135,8 @@ setnames(tbl, "gse", "GSE")
 
 # Create combined group column for gt (avoids duplicate column error)
 # Merge sample counts
-tbl <- merge(tbl, n_wide, by.x = c("GSE", "Comparison"), by.y = c("gse", "Comparison"),
-             all.x = TRUE)
+setnames(n_wide, "gse", "GSE")
+tbl <- merge(tbl, n_wide, by = c("GSE", "Comparison"), all.x = TRUE)
 tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
 tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
 tbl[, Group := paste0(GSE, " | ", Comparison, " | n = ", n_cases, " / ", n_controls)]
