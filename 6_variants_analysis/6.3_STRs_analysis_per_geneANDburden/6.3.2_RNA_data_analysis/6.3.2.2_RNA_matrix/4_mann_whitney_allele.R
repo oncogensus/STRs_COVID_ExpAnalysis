@@ -230,6 +230,11 @@ tbl <- res_combined[, .(
   `Effect Size (r)` = round(effsize, 3),
   Sig = fifelse(p.adj < 0.05, "**", fifelse(p < 0.05, "*", ""))
 )]
+tbl[, GeneLabel := fifelse(
+  Sig == "**", paste0("**", Gene, "**<sup>**</sup>"),
+  fifelse(Sig == "*", paste0("**", Gene, "**<sup>*</sup>"),
+         paste0("**", Gene, "**"))
+)]
 tbl <- tbl[order(Comparison, Gene, Metric)]
 
 n_loci <- uniqueN(tbl$Gene)
@@ -250,14 +255,14 @@ out_gt <- tbl %>%
   ) %>%
   tab_spanner(
     label = md("Statistical Test^a^"),
-    columns = c(`U Statistic`, `p-value`, FDR, Sig)
+    columns = c(`U Statistic`, `p-value`, FDR)
   ) %>%
   tab_spanner(
     label = md("Effect Size^b^"),
     columns = c(`Effect Size (r)`)
   ) %>%
   cols_label(
-    Gene = "Gene",
+    GeneLabel = "Gene",
     Variant = "Variant",
     Metric = "Metric",
     `N Cases` = "Cases",
@@ -265,9 +270,9 @@ out_gt <- tbl %>%
     `U Statistic` = "U",
     `p-value` = "p-value",
     FDR = "FDR",
-    `Effect Size (r)` = md("r^b^"),
-    Sig = md("Sig.^c^")
+    `Effect Size (r)` = md("r^b^")
   ) %>%
+  cols_hide(columns = c(Gene, Sig)) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = list(
@@ -286,7 +291,7 @@ out_gt <- tbl %>%
   ) %>%
   tab_style(
     style = cell_text(weight = "bold", size = px(9)),
-    locations = cells_body(columns = Gene)
+    locations = cells_body(columns = GeneLabel)
   ) %>%
   tab_style(
     style = list(
@@ -319,7 +324,7 @@ out_gt <- tbl %>%
     source_note = md("*^b^* Effect size: rank-biserial correlation (r). Interpretation: |r| < 0.1 negligible, 0.1\u20130.3 small, 0.3\u20130.5 medium, > 0.5 large.")
   ) %>%
   tab_source_note(
-    source_note = md("*^c^* Significance: ** p < 0.05 (FDR); * p < 0.05 (nominal, uncorrected).")
+    source_note = md("*^c^* Significance: <sup>**</sup> p < 0.05 (FDR); <sup>*</sup> p < 0.05 (nominal, uncorrected).")
   )
 
 out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
