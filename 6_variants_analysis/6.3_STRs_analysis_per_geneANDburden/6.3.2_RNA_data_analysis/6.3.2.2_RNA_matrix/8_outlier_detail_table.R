@@ -144,24 +144,33 @@ tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
 tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
 tbl[, Group := paste0(GSE, " | ", Comparison)]
 
+# Rename count columns
+setnames(tbl, c("n_cases", "n_controls"), c("Cases", "Controls"))
+
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
 
-# Rename count columns and drop auxiliary columns
-setnames(tbl, c("n_cases", "n_controls"), c("Cases", "Controls"))
-tbl[, c("GSE", "Comparison", "STRs_ID") := NULL]
+# Compute stats before dropping columns
+n_comparisons <- uniqueN(tbl$Comparison)
+n_genes <- uniqueN(tbl$Gene)
+n_strs <- nrow(tbl)
 
-cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
+# Drop auxiliary columns — keep only columns that go into the table
+keep_cols <- c("Group", "Gene", "Region", "Chrom", "Start", "Motif",
+               paste0("Allele_1_", c("Med", "Min", "Max")),
+               paste0("Allele_2_", c("Med", "Min", "Max")),
+               paste0("Depth_", c("Med", "Min", "Max")),
+               "Clusters", "Noise %", "N Outliers", "logFC", "FDR",
+               "Cases", "Controls")
+tbl <- tbl[, ..keep_cols]
+
+cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", n_strs, nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
 
 # ==========================================
 # 5. Build gt table
 # ==========================================
 cat("\nGerando tabela gt...\n")
-
-n_comparisons <- uniqueN(tbl$Comparison)
-n_genes <- uniqueN(tbl$Gene)
-n_strs <- nrow(tbl)
 
 out_gt <- tbl %>%
   gt(groupname_col = "Group") %>%
