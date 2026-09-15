@@ -218,6 +218,7 @@ res_combined[, Comparison := fifelse(
 
 # Build table
 tbl <- res_combined[, .(
+  Comparison = Comparison,
   Gene = gene_name,
   Variant = Variant,
   Metric = Metric,
