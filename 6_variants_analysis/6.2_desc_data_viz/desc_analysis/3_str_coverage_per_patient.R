@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 6.2.4_str_coverage_per_patient.R
+# 3_str_coverage_per_patient.R
 # ---------------------------------------------------------------------------
 # PURPOSE
 #   Computes, PER PATIENT, the genomic coverage of STRs called after STRling
@@ -24,7 +24,7 @@
 #   coverage_summary.tsv      (descriptive stats, global + per group)
 #
 # Usage:
-#   Rscript 6.2.4_str_coverage_per_patient.R \
+#   Rscript 3_str_coverage_per_patient.R \
 #     --dataset $REPO/samples/STRs_analysis_dataset.tsv \
 #     --genome  $REPO/6_variants_analysis/6.2_desc_data_viz/desc_analysis/genome.txt \
 #     --out-dir results/coverage
@@ -43,7 +43,7 @@ genome_file  <- get_opt(args, "--genome", NULL)
 out_dir      <- get_opt(args, "--out-dir", "results_coverage")
 
 if (is.null(dataset_file) || is.null(genome_file))
-  stop("Usage: Rscript 6.2.4_str_coverage_per_patient.R --dataset <tsv> --genome <genome.txt> [--out-dir <dir>] [--valid-genotype-only]")
+  stop("Usage: Rscript 3_str_coverage_per_patient.R --dataset <tsv> --genome <genome.txt> [--out-dir <dir>] [--valid-genotype-only]")
 for (f in c(dataset_file, genome_file)) if (!file.exists(f)) stop("missing file: ", f)
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -180,4 +180,4 @@ if (nrow(d_group)) for (i in seq_len(nrow(d_group))) {
 }
 cat("\n=== Outputs in:", out_dir, "===\n")
 cat(paste(sort(list.files(out_dir)), collapse = "\n  "), "\n")
-cat("\n=== END 6.2.4_str_coverage_per_patient.R ===\n")
+cat("\n=== END 3_str_coverage_per_patient.R ===\n")

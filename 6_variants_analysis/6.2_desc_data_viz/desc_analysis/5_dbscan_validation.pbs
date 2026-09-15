@@ -1,14 +1,14 @@
 #!/bin/bash
 #PBS -q workq
-#PBS -N outlier_report
-#PBS -o 6.2.6_outlier_report.out
-#PBS -e 6.2.6_outlier_report.err
+#PBS -N dbscan_validation
+#PBS -o 5_dbscan_validation.out
+#PBS -e 5_dbscan_validation.err
 #PBS -V
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=01:00:00
 
-# Etapa 7: Relatorio unificado de outliers DBSCAN (coorte global).
-# Avalia TODOS os registros (sem filtro de outliers).
+# Etapa 6: Validacao tecnica do DBSCAN (coorte global).
+# Avalia TODOS os loci (sem filtro de outliers).
 REPO="/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 MAMBA="/storage2/matheusbomfim/projects/micromamba"
 WORKDIR="$REPO/6_variants_analysis/6.2_desc_data_viz/desc_analysis"
@@ -27,8 +27,8 @@ mkdir -p results
 STR_CATALOG="$REPO/samples/STRs_analysis_dataset.tsv"
 [ -f "$STR_CATALOG" ] || { echo "ERRO: catalogo $STR_CATALOG ausente"; exit 1; }
 
-echo "=== Unified Outlier Report (Cohort Global) ==="
-"$R_BIN" 6.2.6_outlier_report.R \
+echo "=== DBSCAN Technical Validation (Cohort Global) ==="
+"$R_BIN" 5_dbscan_validation.R \
   --str-catalog "$STR_CATALOG" \
   --out-dir results
 echo "=== FIM ==="

@@ -230,7 +230,7 @@ Integrated description, visualization, and filtering of identified variants.
 ### Purpose
 Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 
-**Script**: `merge_datasets.r`
+**Script**: `1_merge_datasets.r`
 
 ### Required Files
 - path_annot: STRs_annotated_region.tsv (from gtf_annot)
@@ -243,7 +243,7 @@ Integrate genomic annotation, DBSCAN results, ancestry, and demographic data.
 ### Purpose
 Generate genome-wide STR distribution plots.
 
-**Script**: `genome_viz.ipynb` (Jupyter Notebook)
+**Script**: `1_genome_viz.ipynb` (Jupyter Notebook)
 
 ### Required Files
 - Localization of complete STR dataset: STRs_analysis_dataset.tsv
@@ -318,7 +318,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 
 Compare STR allele distributions and DBSCAN outlier burden across categorical ancestry populations via Kruskal-Wallis and Dunn post-hoc tests.
 
-**Script**: `6.5.1_ancestry_comparation_cat.r`
+**Script**: `1_ancestry_comparation_cat.r`
 
 **Required Input Files**
 - `STRs_analysis_dataset.tsv` (integrated STR dataset)
@@ -340,7 +340,7 @@ Compare STR allele distributions and DBSCAN outlier burden across categorical an
 
 Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
 
-**Script**: `6.5.2_ancestry_comparation_high_resolution.r`
+**Script**: `2_ancestry_comparation_high_resolution.r`
 
 **Required Input Files**
 - Same as 6.5.1
@@ -356,7 +356,7 @@ Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (pr
 
 Generate publication-ready tables and heatmaps from ancestry analysis results.
 
-**Script**: `6.5.3_ancestry_dataviz.ipynb`
+**Script**: `3_ancestry_dataviz.ipynb`
 
 **Required Input Files**
 - CSV outputs from 6.5.1 and 6.5.2

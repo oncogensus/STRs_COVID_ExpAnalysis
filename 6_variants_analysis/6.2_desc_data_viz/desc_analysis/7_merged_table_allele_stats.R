@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# merged_table_allele_stats.R
+# 7_merged_table_allele_stats.R
 # ---------------------------------------------------------------------------
 # Gera tabela unica transposta (wide) com estatisticas descritivas de
 # allele2_est por regiao genomica + overall, comparando Case vs Control.
@@ -13,8 +13,8 @@
 #   results/table_allele_stats_merged.csv
 #
 # Uso:
-#   Rscript merged_table_allele_stats.R
-#   ou como cell no 6.2.3_desc_analysis.ipynb
+#   Rscript 7_merged_table_allele_stats.R
+#   ou como cell no 2_desc_analysis.ipynb
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(readr)

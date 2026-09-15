@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 6.2.6_outlier_report.R
+# 6_outlier_report.R
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Relatorio unificado de outliers DBSCAN para a coorte global:

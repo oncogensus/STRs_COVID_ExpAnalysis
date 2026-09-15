@@ -1,10 +1,10 @@
 #!/usr/bin/env Rscript
-# 6.2.4_str_coverage_gt_global.R
+# 4_str_coverage_gt_global.R
 # ---------------------------------------------------------------------------
 # PURPOSE
 #   Produces a publication-ready GT table (high-impact journal style) with the
 #   GLOBAL summary of genomic STR coverage per patient (post-QC). Reads the
-#   coverage_summary.tsv written by 6.2.4_str_coverage_per_patient.R.
+#   coverage_summary.tsv written by 3_str_coverage_per_patient.R.
 #
 # INPUTS
 #   --summary   coverage_summary.tsv (GLOBAL row + per-group rows)
@@ -27,7 +27,7 @@ get_opt <- function(args, flag, default = NULL) {
 args <- commandArgs(trailingOnly = TRUE)
 summary_file <- get_opt(args, "--summary", NULL)
 if (is.null(summary_file) || !file.exists(summary_file))
-  stop("Usage: Rscript 6.2.4_str_coverage_gt_global.R --summary coverage_summary.tsv [--out-dir <dir>]")
+  stop("Usage: Rscript 4_str_coverage_gt_global.R --summary coverage_summary.tsv [--out-dir <dir>]")
 
 out_dir <- get_opt(args, "--out-dir", dirname(summary_file))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)

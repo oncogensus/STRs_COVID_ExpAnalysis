@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 6.2.5_dbscan_validation.R
+# 5_dbscan_validation.R
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Validacao tecnica do DBSCAN: painel dual com metricas por regiao genomica.
