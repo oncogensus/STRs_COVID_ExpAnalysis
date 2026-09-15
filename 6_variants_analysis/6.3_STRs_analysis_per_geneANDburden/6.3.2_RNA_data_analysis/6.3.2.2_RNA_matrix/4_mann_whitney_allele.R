@@ -125,22 +125,14 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
     add_significance("p.adj") %>%
     as.data.table()
 
-  # Add effect size (rank-biserial correlation)
-  effsize <- dt_eligible %>%
-    group_by(STRs_ID, gse) %>%
-    wilcox_effsize(target_metric ~ group) %>%
-    ungroup() %>%
-    as.data.table()
-
-  results <- merge(results,
-                   effsize[, .(STRs_ID, gse, effsize)],
-                   by = c("STRs_ID", "gse"), all.x = TRUE)
-
   # Add sample counts per group
   n_counts <- dt_eligible[, .(n_total = .N), by = .(STRs_ID, gse, group)]
   n_wide <- dcast(n_counts, STRs_ID + gse ~ group, value.var = "n_total", fill = 0)
   setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
   results <- merge(results, n_wide, by = c("STRs_ID", "gse"), all.x = TRUE)
+
+  # Compute effect size manually: rank-biserial r = 1 - (2*U) / (n1*n2)
+  results[, effsize := 1 - (2 * statistic) / (n_cases * n_controls)]
 
   results <- results[order(p.adj, STRs_ID, gse)]
 
