@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Gera visualizacoes para o cruzamento RNA-Seq x STRs POR INTERVENCAO:
-#     1) 2D Density heatmap: allele2_est vs depth (all obs) + DBSCAN outliers highlighted.
+#     1) 2D hexbin density: allele2_est vs depth (all obs) + DBSCAN outliers highlighted.
 #     2) Tabela de publicacao: por intervencao, contagens e proporcoes.
 #
 # ENTRADAS (por argumentos de linha de comando)
@@ -17,6 +17,13 @@
 #   intervention_density.png               (density + DBSCAN outliers)
 #   intervention_publication_table.tsv
 #   intervention_publication_table.html
+#
+# ESTILO
+#   Density plot em hexbin com paleta Spectral (RColorBrewer), inspirado
+#   na estetica classica do pacote {hexbin}:
+#     bin <- hexbin(x, y, xbins = 40)
+#     my_colors <- colorRampPalette(rev(brewer.pal(11, 'Spectral')))
+#     plot(bin, colramp = my_colors, legend = FALSE)
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(data.table)
@@ -24,6 +31,8 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(gt)
   library(scales)
+  library(hexbin)
+  library(RColorBrewer)
 })
 
 # ==========================================
@@ -96,17 +105,33 @@ cat(sprintf("  Outliers: %d observações (DBSCAN)\n", nrow(outlier_data)))
 cat(sprintf("  Intervenções: %s\n", paste(unique(density_data$intervention), collapse = ", ")))
 
 # ==========================================
-# 3. 2D Density heatmap: allele2_est vs depth + outliers DBSCAN
+# 3. 2D HEXBIN density: allele2_est vs depth + outliers DBSCAN
 # ==========================================
-cat("\nGerando density plot...\n")
+cat("\nGerando density plot (hexbin)...\n")
 
 n_gse <- uniqueN(density_data$gse)
 
+# ---- Paleta Spectral revertida, como no exemplo do {hexbin} -----------
+#      rev(brewer.pal(11, "Spectral")) => azul (baixo) -> vermelho (alto)
+hex_colors <- colorRampPalette(rev(brewer.pal(11, "Spectral")))(100)
+
+# ---- Numero de bins adaptativo: 40 para datasets grandes ---------------
+#      (o exemplo original usa xbins = 40; em facetas com muitos pontos
+#      um pouco menos de bins ajuda a manter o grafico legivel)
+hex_bins <- 40
+
 p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
-  # Density de TODAS as observações (fundo)
-  stat_density_2d(
-    aes(fill = after_stat(density), alpha = after_stat(density)),
-    geom = "polygon", contour = FALSE
+  # ---- Hexbin em vez de stat_density_2d ----
+  geom_hex(bins = hex_bins, colour = NA) +
+  # ---- Paleta Spectral revertida ----
+  scale_fill_gradientn(
+    colors = hex_colors,
+    name   = "Count",
+    guide  = guide_colorbar(
+      barwidth  = unit(12, "mm"),
+      barheight = unit(80, "mm"),
+      title.position = "top"
+    )
   ) +
   # Pontos de outliers DBSCAN (highlight)
   geom_point(
@@ -115,22 +140,22 @@ p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
     size = 1.5, alpha = 0.6
   ) +
   facet_wrap(~ gse + group, scales = "free", ncol = 2) +
-  scale_fill_viridis_c(name = "Density", option = "C") +
   scale_color_manual(name = "", values = c("DBSCAN Outlier" = "red")) +
-  scale_alpha(range = c(0.2, 0.9), guide = "none") +
   scale_x_continuous(expand = c(0.02, 0)) +
   scale_y_continuous(expand = c(0.02, 0)) +
   labs(
-    title = "2D Density: Allele size vs Coverage",
-    subtitle = "All observations (density) + DBSCAN outliers (red points)",
-    x = "Allele 2 length (repeat units)",
-    y = "Coverage (depth)",
-    caption = "Red points = DBSCAN global outliers"
+    title    = "2D Density: Allele size vs Coverage",
+    subtitle = "All observations (hexbin) + DBSCAN outliers (red points)",
+    x        = "Allele 2 length (repeat units)",
+    y        = "Coverage (depth)",
+    caption  = "Red points = DBSCAN global outliers"
   ) +
   theme_minimal(base_size = 12) +
   theme(
     panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
     panel.grid.minor = element_blank(),
+    # Grid removido dentro das facetas para nao competir com os hexbinos
+    panel.grid.major = element_line(color = "grey92", linewidth = 0.25),
     strip.background = element_rect(fill = "grey92", color = NA),
     strip.text = element_text(size = 11, face = "bold"),
     axis.title = element_text(size = 11, face = "bold"),
@@ -140,6 +165,8 @@ p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
     plot.subtitle = element_text(size = 11, color = "grey40",
                                  margin = margin(b = 10)),
     legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text  = element_text(size = 9),
     panel.spacing = unit(1.2, "lines"),
     panel.background = element_rect(fill = "white", color = NA),
     plot.background = element_rect(fill = "white", color = NA)
@@ -173,8 +200,6 @@ outlier_by_intv <- intv_out[!is.na(group), .(
 ), by = intervention]
 
 # --- 4.2 Outliers with no overlap (sample-level) ---
-# Obter overlap_maior_alealo_grupos de intv_sum por gene
-# Mapear gene -> overlap por intervention
 overlap_map <- intv_sum[, .(intervention, gene, overlap_maior_alealo_grupos)]
 intv_out_merged <- merge(intv_out, overlap_map, by = c("intervention", "gene"),
                          all.x = TRUE, allow.cartesian = TRUE)

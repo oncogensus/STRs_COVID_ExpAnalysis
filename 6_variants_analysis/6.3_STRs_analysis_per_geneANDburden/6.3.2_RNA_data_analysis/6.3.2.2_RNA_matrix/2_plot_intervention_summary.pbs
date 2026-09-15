@@ -15,7 +15,7 @@ WORKDIR="$REPO/6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA
 
 export MAMBA_ROOT_PREFIX="$MAMBA"
 eval "$(/storage2/matheusbomfim/projects/micromamba/bin/micromamba shell hook --shell bash)"
-micromamba activate r_enrich_env
+micromamba activate r_density_env
 
 R_BIN="$(command -v Rscript)"
 [ -x "$R_BIN" ] || { echo "ERRO: Rscript ausente no env r_enrich_env"; exit 1; }
