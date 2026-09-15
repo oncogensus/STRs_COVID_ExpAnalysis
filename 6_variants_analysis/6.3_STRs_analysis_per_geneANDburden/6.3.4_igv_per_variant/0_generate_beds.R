@@ -58,6 +58,9 @@ variants$start0 <- variants$start1 - 1
 variants$end    <- variants$start0 + nchar(variants$motif) * variants$copy
 variants$gene[is.na(variants$gene) | variants$gene == ""] <- "UNKNOWN"
 
+variants <- variants[!duplicated(variants$STRs_ID), ]
+cat("[0_generate_beds] STRs_ID unicos:", nrow(variants), "\n")
+
 norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)
 norm$sample_id <- trimws(norm$sample_id)
