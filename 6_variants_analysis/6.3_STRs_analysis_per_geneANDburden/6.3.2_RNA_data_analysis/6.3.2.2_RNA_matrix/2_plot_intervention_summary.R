@@ -226,7 +226,13 @@ out_no_overlap <- intv_out_merged[
   n_out_no_overlap_control = sum(group == "control")
 ), by = intervention]
 
-# --- 4.3 STR density per gene per intervention ---
+# --- 4.3 Outliers WITH overlap (sample-level, same level as n_outliers) ---
+out_overlap <- intv_out_merged[
+  overlap_maior_alealo_grupos == "sim" & !is.na(group), .(
+  n_overlap_outliers = .N
+), by = intervention]
+
+# --- 4.4 STR density per gene per intervention ---
 strs_per_gene_intv <- intv_strs[, .(n_strs = uniqueN(STRs_ID)), by = .(intervention, gene_name)]
 str_density_intv <- strs_per_gene_intv[, .(
   str_density_per_gene = round(sum(n_strs) / uniqueN(gene_name), 2)
@@ -235,10 +241,7 @@ str_density_intv <- strs_per_gene_intv[, .(
 # --- 4.4 Summary counts from intv_sum ---
 summary_intv <- intv_sum[, .(
   n_genes = uniqueN(gene),
-  n_strs_total = sum(n_strs_identified),
-  n_overlap_sim = sum(overlap_maior_alealo_grupos == "sim", na.rm = TRUE),
-  n_overlap_nao = sum(overlap_maior_alealo_grupos == "nao", na.rm = TRUE),
-  n_sem_dados = sum(overlap_maior_alealo_grupos == "sem_dados", na.rm = TRUE)
+  n_strs_total = sum(n_strs_identified)
 ), by = intervention]
 
 # --- 4.5 Case/control counts from intv_strs ---
@@ -261,12 +264,14 @@ pub_table <- merge(summary_intv, str_density_intv, by = "intervention", all.x = 
 pub_table <- merge(pub_table, group_counts_intv, by = "intervention", all.x = TRUE)
 pub_table <- merge(pub_table, allele_medians_intv, by = "intervention", all.x = TRUE)
 pub_table <- merge(pub_table, outlier_by_intv, by = "intervention", all.x = TRUE)
+pub_table <- merge(pub_table, out_overlap, by = "intervention", all.x = TRUE)
 pub_table <- merge(pub_table, out_no_overlap, by = "intervention", all.x = TRUE)
 pub_table <- merge(pub_table, gse_info, by = "intervention", all.x = TRUE)
 
 # Fill NA with 0
 for (col in c("n_outliers", "n_out_case", "n_out_control",
-              "n_out_no_overlap", "n_out_no_overlap_case", "n_out_no_overlap_control")) {
+              "n_overlap_outliers", "n_out_no_overlap",
+              "n_out_no_overlap_case", "n_out_no_overlap_control")) {
   pub_table[is.na(get(col)), (col) := 0]
 }
 
@@ -282,7 +287,7 @@ pub_table[, n_control_str := fmt_pct(n_control, n_case + n_control)]
 pub_table[, n_outliers_str := fmt_pct(n_outliers, n_strs_total)]
 pub_table[, n_out_case_str := fmt_pct(n_out_case, n_strs_total)]
 pub_table[, n_out_control_str := fmt_pct(n_out_control, n_strs_total)]
-pub_table[, n_overlap_str := fmt_pct(n_overlap_sim, n_outliers)]
+pub_table[, n_overlap_str := fmt_pct(n_overlap_outliers, n_outliers)]
 pub_table[, n_out_no_overlap_str := fmt_pct(n_out_no_overlap, n_outliers)]
 
 # Order by n_outliers descending
