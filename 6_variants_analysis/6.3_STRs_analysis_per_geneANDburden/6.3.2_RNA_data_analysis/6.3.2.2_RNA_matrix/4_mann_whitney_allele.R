@@ -228,7 +228,7 @@ tbl <- res_combined[, .(
   `p-value` = fmt_pval(p),
   FDR = fmt_pval(p.adj),
   `Effect Size (r)` = round(effsize, 3),
-  Significant = fifelse(p.adj < 0.05, "Yes", "")
+  Sig = fifelse(p.adj < 0.05, "**", fifelse(p < 0.05, "*", ""))
 )]
 tbl <- tbl[order(Comparison, Gene, Metric)]
 
@@ -250,11 +250,11 @@ out_gt <- tbl %>%
   ) %>%
   tab_spanner(
     label = md("Statistical Test^a^"),
-    columns = c(`U Statistic`, `p-value`, FDR)
+    columns = c(`U Statistic`, `p-value`, FDR, Sig)
   ) %>%
   tab_spanner(
     label = md("Effect Size^b^"),
-    columns = c(`Effect Size (r)`, Significant)
+    columns = c(`Effect Size (r)`)
   ) %>%
   cols_label(
     Gene = "Gene",
@@ -266,7 +266,7 @@ out_gt <- tbl %>%
     `p-value` = "p-value",
     FDR = "FDR",
     `Effect Size (r)` = md("r^b^"),
-    Significant = "Sig."
+    Sig = md("Sig.^c^")
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
@@ -295,10 +295,6 @@ out_gt <- tbl %>%
     ),
     locations = cells_row_groups()
   ) %>%
-  tab_style(
-    style = cell_fill(color = "#e6f3ff"),
-    locations = cells_body(rows = Significant == "Yes")
-  ) %>%
   tab_options(
     table.font.names = "Arial",
     table.font.size = px(9),
@@ -323,7 +319,7 @@ out_gt <- tbl %>%
     source_note = md("*^b^* Effect size: rank-biserial correlation (r). Interpretation: |r| < 0.1 negligible, 0.1\u20130.3 small, 0.3\u20130.5 medium, > 0.5 large.")
   ) %>%
   tab_source_note(
-    source_note = md("*Highlighted rows: FDR-adjusted p-value < 0.05.*")
+    source_note = md("*^c^* Significance: ** p < 0.05 (FDR); * p < 0.05 (nominal, uncorrected).")
   )
 
 out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
