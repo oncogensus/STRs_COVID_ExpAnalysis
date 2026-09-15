@@ -106,7 +106,6 @@ tbl <- dt[, .(
   Region = first(region),
   Chrom = first(chrom),
   Start = first(start),
-  End = first(end),
   Motif = first(repeat_unit),
   Allele_1_Med = round(median(allele1_est), 1),
   Allele_1_Min = min(allele1_est),
@@ -132,8 +131,8 @@ tbl[, Group := paste0(GSE, " | ", Comparison)]
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
 
-# Drop GSE and Comparison (now encoded in Group)
-tbl[, c("GSE", "Comparison") := NULL]
+# Drop GSE, Comparison, STRs_ID (now encoded in Group)
+tbl[, c("GSE", "Comparison", "STRs_ID") := NULL]
 
 cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", nrow(tbl), nrow(dt)))
 cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
@@ -156,7 +155,7 @@ out_gt <- tbl %>%
   ) %>%
   tab_spanner(
     label = "Genomic Location",
-    columns = c(Gene, STRs_ID, Region, Chrom, Start, End, Motif)
+    columns = c(Gene, Region, Chrom, Start, Motif)
   ) %>%
   tab_spanner(
     label = "Allele 1 (median/min/max)",
@@ -180,11 +179,9 @@ out_gt <- tbl %>%
   ) %>%
   cols_label(
     Gene = "Gene",
-    STRs_ID = "STRs ID",
     Region = "Region",
     Chrom = "Chr",
     Start = "Start",
-    End = "End",
     Motif = "Motif",
     Allele_1_Med = "Med",
     Allele_1_Min = "Min",
@@ -220,10 +217,6 @@ out_gt <- tbl %>%
   tab_style(
     style = cell_text(weight = "bold", size = px(9)),
     locations = cells_body(columns = Gene)
-  ) %>%
-  tab_style(
-    style = cell_text(style = "italic", size = px(9)),
-    locations = cells_body(columns = STRs_ID)
   ) %>%
   tab_style(
     style = list(
