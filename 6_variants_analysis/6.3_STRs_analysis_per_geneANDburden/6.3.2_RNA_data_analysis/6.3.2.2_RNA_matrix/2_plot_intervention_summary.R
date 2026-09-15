@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Gera visualizacoes para o cruzamento RNA-Seq x STRs POR INTERVENCAO:
-#     1) 2D Density heatmap: allele2_est vs depth por GSE e group.
+#     1) 2D Density heatmap: allele2_est vs depth (all obs) + DBSCAN outliers highlighted.
 #     2) Tabela de publicacao: por intervencao, contagens e proporcoes.
 #
 # ENTRADAS (por argumentos de linha de comando)
@@ -14,7 +14,7 @@
 #   --out-dir           Diretório de saída
 #
 # SAIDAS
-#   intervention_density.png
+#   intervention_density.png               (density + DBSCAN outliers)
 #   intervention_publication_table.tsv
 #   intervention_publication_table.html
 # ---------------------------------------------------------------------------
@@ -76,35 +76,56 @@ cat(sprintf("  intervention_summary.tsv: %d linhas\n", nrow(intv_sum)))
 # ==========================================
 cat("\nPreparando dados para density plot...\n")
 
-plot_data <- intv_out[!is.na(group) & group != ""]
-plot_data[, group := factor(group, levels = c("case", "control"))]
+# Density background: todas as observações de intv_strs
+density_data <- intv_strs[!is.na(group) & group != ""]
+density_data[, group := factor(group, levels = c("case", "control"))]
 
-cat(sprintf("  Intervenções: %s\n", paste(unique(plot_data$intervention), collapse = ", ")))
-cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
+# Se intv_strs não tem depth, usar intv_out para density também
+if (!"depth" %in% names(density_data)) {
+  cat("  intv_strs sem coluna 'depth', usando intv_out para density...\n")
+  density_data <- intv_out[!is.na(group) & group != ""]
+  density_data[, group := factor(group, levels = c("case", "control"))]
+}
+
+# Outlier highlight: apenas outliers DBSCAN
+outlier_data <- intv_out[!is.na(group) & group != ""]
+outlier_data[, group := factor(group, levels = c("case", "control"))]
+
+cat(sprintf("  Density: %d observações (todas)\n", nrow(density_data)))
+cat(sprintf("  Outliers: %d observações (DBSCAN)\n", nrow(outlier_data)))
+cat(sprintf("  Intervenções: %s\n", paste(unique(density_data$intervention), collapse = ", ")))
 
 # ==========================================
-# 3. 2D Density heatmap: allele2_est vs depth
+# 3. 2D Density heatmap: allele2_est vs depth + outliers DBSCAN
 # ==========================================
 cat("\nGerando density plot...\n")
 
-n_gse <- uniqueN(plot_data$gse)
+n_gse <- uniqueN(density_data$gse)
 
-p_density <- ggplot(plot_data, aes(x = allele2_est, y = depth)) +
+p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
+  # Density de TODAS as observações (fundo)
   stat_density_2d(
     aes(fill = after_stat(density), alpha = after_stat(density)),
     geom = "polygon", contour = FALSE
   ) +
+  # Pontos de outliers DBSCAN (highlight)
+  geom_point(
+    data = outlier_data,
+    aes(color = "DBSCAN Outlier"),
+    size = 1.5, alpha = 0.6
+  ) +
   facet_wrap(~ gse + group, scales = "free", ncol = 2) +
   scale_fill_viridis_c(name = "Density", option = "C") +
+  scale_color_manual(name = "", values = c("DBSCAN Outlier" = "red")) +
   scale_alpha(range = c(0.2, 0.9), guide = "none") +
   scale_x_continuous(expand = c(0.02, 0)) +
   scale_y_continuous(expand = c(0.02, 0)) +
   labs(
     title = "2D Density: Allele size vs Coverage",
-    subtitle = "DBSCAN global outliers, faceted by GSE and group",
+    subtitle = "All observations (density) + DBSCAN outliers (red points)",
     x = "Allele 2 length (repeat units)",
     y = "Coverage (depth)",
-    caption = "DBSCAN global outliers only"
+    caption = "Red points = DBSCAN global outliers"
   ) +
   theme_minimal(base_size = 12) +
   theme(
