@@ -122,7 +122,9 @@ tbl <- dt[, .(
   `Outlier Samples` = fmt_samples(paste(unique(outlier_samples), collapse = ";")),
   logFC = first(round(logFC, 2)),
   FDR = fmt_fdr(first(FDR))
-), by = .(STRs_ID, GSE, Comparison)]
+), by = .(STRs_ID, gse, Comparison)]
+
+setnames(tbl, "gse", "GSE")
 
 # Sort by GSE, Comparison, Gene
 tbl <- tbl[order(GSE, Comparison, Gene)]
