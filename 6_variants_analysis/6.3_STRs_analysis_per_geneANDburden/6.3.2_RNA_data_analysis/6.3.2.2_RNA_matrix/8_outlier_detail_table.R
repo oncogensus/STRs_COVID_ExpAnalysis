@@ -71,9 +71,9 @@ key <- paste0(dt$gse, ":", dt$intervention)
 dt[, Comparison := fifelse(key %in% names(intervention_labels),
                            intervention_labels[key], intervention)]
 
-# Count outlier samples per group per variant (each row = 1 sample observation)
-n_per_group <- dt[, .N, by = .(STRs_ID, gse, Comparison, group)]
-n_wide <- dcast(n_per_group, STRs_ID + gse + Comparison ~ group, value.var = "N", fill = 0)
+# Count outlier samples per group per comparison (each row = 1 sample observation)
+n_per_group <- dt[, .N, by = .(gse, Comparison, group)]
+n_wide <- dcast(n_per_group, gse + Comparison ~ group, value.var = "N", fill = 0)
 if ("case" %in% names(n_wide) && "control" %in% names(n_wide)) {
   setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
 }
@@ -133,11 +133,11 @@ tbl <- dt[, .(
 setnames(tbl, "gse", "GSE")
 
 # Create combined group column for gt (avoids duplicate column error)
-# Lookup sample counts per STR_ID (avoids merge duplicate column issue)
-n_wide_key <- paste0(n_wide$STRs_ID, "||", n_wide$gse, "||", n_wide$Comparison)
+# Lookup sample counts per comparison (avoids merge duplicate column issue)
+n_wide_key <- paste0(n_wide$gse, "||", n_wide$Comparison)
 n_cases_vec <- setNames(n_wide$n_cases, n_wide_key)
 n_controls_vec <- setNames(n_wide$n_controls, n_wide_key)
-tbl_key <- paste0(tbl$STRs_ID, "||", tbl$GSE, "||", tbl$Comparison)
+tbl_key <- paste0(tbl$GSE, "||", tbl$Comparison)
 tbl[, n_cases := as.integer(n_cases_vec[tbl_key])]
 tbl[, n_controls := as.integer(n_controls_vec[tbl_key])]
 tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
