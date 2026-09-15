@@ -200,12 +200,12 @@ out_gt <- tbl %>%
     style = cell_text(style = "italic", size = px(9)),
     locations = cells_body(columns = STRs_ID)
   ) %>%
-  opt_row_grouping(
-    columns = "Comparison",
-    row_group_style = list(
+  tab_style(
+    style = list(
       cell_fill(color = "grey95"),
       cell_text(weight = "bold", size = px(11))
-    )
+    ),
+    locations = cells_row_groups()
   ) %>%
   tab_options(
     table.font.names = "Arial",
