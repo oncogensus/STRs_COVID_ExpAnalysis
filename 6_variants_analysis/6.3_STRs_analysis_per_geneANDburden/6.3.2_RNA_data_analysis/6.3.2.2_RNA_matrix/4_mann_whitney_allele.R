@@ -273,6 +273,8 @@ out_gt <- tbl %>%
     `Effect Size (r)` = md("r^b^")
   ) %>%
   cols_hide(columns = c(Gene, Sig)) %>%
+  fmt_markdown(columns = GeneLabel) %>%
+  cols_move(columns = GeneLabel, after = everything()) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = list(
@@ -290,7 +292,7 @@ out_gt <- tbl %>%
     locations = cells_body()
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold", size = px(9)),
+    style = cell_text(size = px(9)),
     locations = cells_body(columns = GeneLabel)
   ) %>%
   tab_style(
