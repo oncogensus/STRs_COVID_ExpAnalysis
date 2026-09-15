@@ -16,7 +16,13 @@ Cross-referencing differentially expressed genes (DEGs) from public RNA-seq data
     ├── 2_plot_intervention_summary.R  Raincloud + publication table (per intervention)
     ├── 2_plot_intervention_summary.pbs
     ├── 3_plot_raincloud_per_locus.R   Raincloud per locus (outlier DBSCAN)
-    └── 3_submit_raincloud.pbs
+    ├── 3_submit_raincloud.pbs
+    ├── 4_mann_whitney_allele.R        Mann-Whitney U test (case vs control)
+    ├── 4_mann_whitney_allele.pbs
+    ├── 5_no_overlap_analysis.R        No-overlap analysis per intervention
+    ├── 5_no_overlap_analysis.pbs
+    ├── 8_outlier_detail_table.R       Publication-ready outlier detail table
+    └── 8_outlier_detail_table.pbs
 ```
 
 ---
@@ -98,6 +104,53 @@ Raincloud per locus (STR) for outlier DBSCAN samples only. Generates per-GSE and
 
 **Run**: `qsub 3_submit_raincloud.pbs`
 
+### Step 4: `4_mann_whitney_allele.R`
+
+Mann-Whitney U test: case vs. control for outlier STRs per intervention. Tests both allele2_est and mean_allele with BH-FDR correction.
+
+**Inputs**:
+- `--str-catalog` — `intervention_outliers.tsv`
+- `--intervention` — GSE (e.g., `GSE157103`) or `ALL`
+- `--out-dir` — output directory
+
+**Outputs** (in `--out-dir`):
+| File | Description |
+|---|---|
+| `{intervention}_allele2_mw.csv` | Mann-Whitney results for allele2_est |
+| `{intervention}_mean_allele_mw.csv` | Mann-Whitney results for mean_allele |
+
+**Run**: `qsub 4_mann_whitney_allele.pbs`
+
+### Step 5: `5_no_overlap_analysis.R`
+
+Identifies STR variants with NO allele overlap between case and control groups per intervention.
+
+**Inputs**:
+- `--intervention-outliers` — `intervention_outliers.tsv`
+- `--out-dir` — output directory
+
+**Outputs** (in `--out-dir`):
+| File | Description |
+|---|---|
+| `{intervention}_no_overlap.csv` | Loci with no allele overlap |
+
+**Run**: `qsub 5_no_overlap_analysis.pbs`
+
+### Step 8: `8_outlier_detail_table.R`
+
+Publication-ready gt HTML table with detailed outlier locus information: genomic location, allele sizes, DBSCAN metrics, and DEG statistics.
+
+**Inputs**:
+- `--intervention-outliers` — `intervention_outliers.tsv`
+- `--out-dir` — output directory
+
+**Outputs** (in `--out-dir`):
+| File | Description |
+|---|---|
+| `outlier_detail_table.html` | `gt` publication-ready table with all outlier details |
+
+**Run**: `qsub 8_outlier_detail_table.pbs`
+
 ---
 
 ## Execution Order
@@ -109,4 +162,10 @@ qsub 1_cross_intervention_STRs.pbs
 qsub 2_plot_intervention_summary.pbs
 # wait for completion
 qsub 3_submit_raincloud.pbs
+# wait for completion
+qsub 4_mann_whitney_allele.pbs
+# wait for completion
+qsub 5_no_overlap_analysis.pbs
+# wait for completion
+qsub 8_outlier_detail_table.pbs
 ```
