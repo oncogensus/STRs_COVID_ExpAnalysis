@@ -78,6 +78,12 @@ cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(intv_out)))
 intv_sum <- fread(path_intv_summary, header = TRUE, sep = "\t")
 cat(sprintf("  intervention_summary.tsv: %d linhas\n", nrow(intv_sum)))
 
+# Ensure intv_sum has gse column for label mapping
+if (!"gse" %in% names(intv_sum)) {
+  gse_map <- unique(intv_strs[, .(intervention, gse)])
+  intv_sum <- merge(intv_sum, gse_map, by = "intervention", all.x = TRUE)
+}
+
 # ==========================================
 # 2. Prepare data for density plot
 # ==========================================
@@ -93,17 +99,19 @@ cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_da
 # 2.1 Publication-quality intervention labels
 # ==========================================
 intervention_labels <- c(
-  "COVID_vs_CONTROL"    = "Severe COVID-19 vs. HCC",
-  "COVID_ICU_vs_NonICU" = "ICU vs. Non-Critical",
-  "HFD45_ajustado_ICU"  = "ICU-Adjusted HFD45",
-  "ICUVENT_vs_CONTROL"  = "IMV vs. Controls"
+  "GSE183533:COVID_vs_CONTROL"    = "Fatal COVID-19 vs. Controls",
+  "GSE188847:COVID_vs_CONTROL"    = "Non-Survivors vs. Controls",
+  "GSE157103:COVID_ICU_vs_NonICU" = "ICU vs. Non-Critical",
+  "GSE157103:HFD45_ajustado_ICU"  = "ICU-Adjusted HFD45",
+  "GSE188847:ICUVENT_vs_CONTROL"  = "IMV vs. Controls"
 )
 
 # Apply labels to all relevant data.tables
 apply_labels <- function(dt) {
-  if (!is.null(dt) && "intervention" %in% names(dt)) {
-    dt[, intervention := fifelse(intervention %in% names(intervention_labels),
-                                 intervention_labels[intervention], intervention)]
+  if (!is.null(dt) && "intervention" %in% names(dt) && "gse" %in% names(dt)) {
+    key <- paste0(dt$gse, ":", dt$intervention)
+    dt[, intervention := fifelse(key %in% names(intervention_labels),
+                                 intervention_labels[key], intervention)]
   }
   invisible(dt)
 }
