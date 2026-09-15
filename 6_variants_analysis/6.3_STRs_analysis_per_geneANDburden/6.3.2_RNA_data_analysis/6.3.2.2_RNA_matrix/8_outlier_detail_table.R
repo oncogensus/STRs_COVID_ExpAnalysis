@@ -134,11 +134,16 @@ tbl <- dt[, .(
 setnames(tbl, "gse", "GSE")
 
 # Create combined group column for gt (avoids duplicate column error)
-# Merge sample counts
-setnames(n_wide, "gse", "GSE")
-tbl <- merge(tbl, n_wide, by = c("GSE", "Comparison"), all.x = TRUE)
-tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
-tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
+# Lookup sample counts directly (avoids merge duplicate column issue)
+n_wide_key <- paste0(n_wide$gse, "||", n_wide$Comparison)
+names(n_wide_key) <- NULL
+n_cases_vec <- setNames(n_wide$n_cases, n_wide_key)
+n_controls_vec <- setNames(n_wide$n_controls, n_wide_key)
+tbl_key <- paste0(tbl$GSE, "||", tbl$Comparison)
+tbl[, n_cases := n_cases_vec[tbl_key]]
+tbl[, n_controls := n_controls_vec[tbl_key]]
+tbl[, n_cases := fifelse(is.na(n_cases), 0L, as.integer(n_cases))]
+tbl[, n_controls := fifelse(is.na(n_controls), 0L, as.integer(n_controls))]
 tbl[, Group := paste0(GSE, " | ", Comparison, " | n = ", n_cases, " / ", n_controls)]
 
 # Sort by GSE, Comparison, Gene
