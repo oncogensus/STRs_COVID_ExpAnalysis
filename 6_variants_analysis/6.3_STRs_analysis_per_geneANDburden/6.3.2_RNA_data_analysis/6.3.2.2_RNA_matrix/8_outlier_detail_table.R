@@ -78,10 +78,11 @@ cat("\nPreparando dados da tabela...\n")
 
 # Format FDR for display
 fmt_fdr <- function(x) {
-  fifelse(x < 0.001,
-          formatC(x, format = "e", digits = 1),
-          sprintf("%.3f", x))
+  ifelse(x < 0.001, formatC(x, format = "e", digits = 1),
+         ifelse(x < 0.05, sprintf("%.3f", x),
+                sprintf("%.2f", x)))
 }
+fmt_noise <- function(x) sprintf("%.1f%%", x * 100)
 
 # Format noise ratio as percentage
 fmt_noise <- function(x) {
@@ -119,7 +120,6 @@ tbl <- dt[, .(
   Clusters = first(n_clusters),
   `Noise %` = fmt_noise(first(noise_ratio)),
   `N Outliers` = first(n_outliers),
-  `Outlier Samples` = fmt_samples(paste(unique(outlier_samples), collapse = ";")),
   logFC = first(round(logFC, 2)),
   FDR = fmt_fdr(first(FDR))
 ), by = .(STRs_ID, gse, Comparison)]
@@ -172,7 +172,7 @@ out_gt <- tbl %>%
   ) %>%
   tab_spanner(
     label = "DBSCAN Metrics",
-    columns = c(Clusters, `Noise %`, `N Outliers`, `Outlier Samples`)
+    columns = c(Clusters, `Noise %`, `N Outliers`)
   ) %>%
   tab_spanner(
     label = "Differential Expression",
@@ -198,7 +198,6 @@ out_gt <- tbl %>%
     Clusters = "Clusters",
     `Noise %` = "Noise",
     `N Outliers` = "N",
-    `Outlier Samples` = "Samples",
     logFC = "logFC",
     FDR = "FDR"
   ) %>%
