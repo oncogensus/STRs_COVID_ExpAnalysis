@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env Rscript
+#!/usr/bin/env Rscript
 # 0_generate_beds.R
 # Gera BEDs + mapeamento BAM para IGV.js (6.3.4).
 # Outputs sao escritos no dir de execucao.

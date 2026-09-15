@@ -18,6 +18,4 @@ R_BIN="$(command -v Rscript)"
 
 cd "$WORKDIR" || { echo "ERRO: WORKDIR $WORKDIR ausente"; exit 1; }
 
-git stash; git pull; git stash pop || true
-
 "$R_BIN" 0_generate_beds.R
