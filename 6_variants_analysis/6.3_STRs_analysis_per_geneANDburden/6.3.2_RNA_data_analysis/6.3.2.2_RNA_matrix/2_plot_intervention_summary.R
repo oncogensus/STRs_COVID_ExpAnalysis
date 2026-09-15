@@ -90,6 +90,30 @@ cat(sprintf("  Intervenções: %s\n", paste(unique(plot_data$intervention), coll
 cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
 
 # ==========================================
+# 2.1 Publication-quality intervention labels
+# ==========================================
+intervention_labels <- c(
+  "COVID_vs_CONTROL"    = "Severe COVID-19 vs. HCC",
+  "COVID_ICU_vs_NonICU" = "ICU vs. Non-Critical",
+  "HFD45_ajustado_ICU"  = "ICU-Adjusted HFD45",
+  "ICUVENT_vs_CONTROL"  = "IMV vs. Controls"
+)
+
+# Apply labels to all relevant data.tables
+apply_labels <- function(dt) {
+  if (!is.null(dt) && "intervention" %in% names(dt)) {
+    dt[, intervention := fifelse(intervention %in% names(intervention_labels),
+                                 intervention_labels[intervention], intervention)]
+  }
+  invisible(dt)
+}
+
+apply_labels(plot_data)
+apply_labels(intv_out)
+apply_labels(intv_strs)
+apply_labels(intv_sum)
+
+# ==========================================
 # 3. 2D HEXBIN density: allele2_est vs depth
 #    - Fundo (todas as STRs em DEGs): cinza neutro
 #    - Overlay (outliers DBSCAN):      vermelho
@@ -258,8 +282,8 @@ pub_table[, n_control_str := fmt_pct(n_control, n_case + n_control)]
 pub_table[, n_outliers_str := fmt_pct(n_outliers, n_strs_total)]
 pub_table[, n_out_case_str := fmt_pct(n_out_case, n_strs_total)]
 pub_table[, n_out_control_str := fmt_pct(n_out_control, n_strs_total)]
-pub_table[, n_overlap_str := fmt_pct(n_overlap_sim, n_strs_total)]
-pub_table[, n_out_no_overlap_str := fmt_pct(n_out_no_overlap, n_strs_total)]
+pub_table[, n_overlap_str := fmt_pct(n_overlap_sim, n_outliers)]
+pub_table[, n_out_no_overlap_str := fmt_pct(n_out_no_overlap, n_outliers)]
 
 # Order by n_outliers descending
 pub_table <- pub_table[order(-n_outliers)]
@@ -282,10 +306,10 @@ cat(sprintf("Tabela salva em: %s (%d intervenções)\n", out_tsv, nrow(pub_tsv))
 pub_gt <- pub_tsv %>%
   gt() %>%
   tab_header(
-    title = md("**Table X.** RNA-Seq STR analysis per intervention"),
+    title = md("**RNA-Seq STR Analysis per Comparison**"),
     subtitle = "Summary of DEG STRs, DBSCAN outliers, and allele overlap by group"
   ) %>%
-  tab_stubhead(label = "Intervention") %>%
+  tab_stubhead(label = "Comparison") %>%
   tab_spanner(
     label = "Study Information",
     columns = c(intervention, gse, n_genes, n_strs_total, str_density_per_gene)
@@ -304,7 +328,7 @@ pub_gt <- pub_tsv %>%
                 n_overlap_str, n_out_no_overlap_str)
   ) %>%
   cols_label(
-    intervention = "Intervention",
+    intervention = "Comparison",
     gse = "GSE",
     n_genes = "Genes",
     n_strs_total = "STRs",
@@ -317,7 +341,7 @@ pub_gt <- pub_tsv %>%
     n_out_case_str = "Case",
     n_out_control_str = "Control",
     n_overlap_str = "Overlap",
-    n_out_no_overlap_str = "Sem overlap"
+    n_out_no_overlap_str = "No Overlap"
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
@@ -353,13 +377,16 @@ pub_gt <- pub_tsv %>%
     row_group.padding = px(6)
   ) %>%
   tab_source_note(
-    source_note = "Values: absolute count (percentage%). Dens. = STRs per DEG gene."
+    source_note = md("*^a^* Values are presented as *n* (%). STR density reflects the mean number of STR loci per DEG.")
   ) %>%
   tab_source_note(
-    source_note = "Overlap = same allele range between case/control. Sem overlap = outlier observations without overlap."
+    source_note = md("*^b^* Allele overlap indicates loci where the allele size range in severe COVID-19 cases overlaps with that in the comparison group.")
   ) %>%
   tab_source_note(
-    source_note = "Source: cross_intervention_STRs.py output"
+    source_note = md("*^c^* No Overlap denotes outlier STR loci with no allele range overlap between groups, suggesting group-specific expansion or contraction.")
+  ) %>%
+  tab_source_note(
+    source_note = md("*^d^* DBSCAN outlier detection was performed on per-sample allele estimates (see Methods).")
   )
 
 out_gt_html <- file.path(out_dir, "intervention_publication_table.html")
