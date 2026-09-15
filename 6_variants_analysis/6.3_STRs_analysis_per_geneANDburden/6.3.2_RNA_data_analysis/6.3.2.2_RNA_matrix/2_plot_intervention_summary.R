@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # PROPOSITO
 #   Gera visualizacoes para o cruzamento RNA-Seq x STRs POR INTERVENCAO:
-#     1) 2D hexbin density: allele2_est vs depth (all obs) + DBSCAN outliers highlighted.
+#     1) 2D hexbin density: allele2_est vs depth por GSE e group.
 #     2) Tabela de publicacao: por intervencao, contagens e proporcoes.
 #
 # ENTRADAS (por argumentos de linha de comando)
@@ -14,16 +14,15 @@
 #   --out-dir           Diretório de saída
 #
 # SAIDAS
-#   intervention_density.png               (density + DBSCAN outliers)
+#   intervention_density.png
 #   intervention_publication_table.tsv
 #   intervention_publication_table.html
 #
 # ESTILO
-#   Density plot em hexbin com paleta Spectral (RColorBrewer), inspirado
-#   na estetica classica do pacote {hexbin}:
+#   Density plot em hexbin com cor unica (destaque nos outliers, sem
+#   colorbar/contagem), inspirado na estetica classica do pacote {hexbin}:
 #     bin <- hexbin(x, y, xbins = 40)
-#     my_colors <- colorRampPalette(rev(brewer.pal(11, 'Spectral')))
-#     plot(bin, colramp = my_colors, legend = FALSE)
+#     plot(bin, col = "#4C72B0", legend = FALSE)
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(data.table)
@@ -32,7 +31,6 @@ suppressPackageStartupMessages({
   library(gt)
   library(scales)
   library(hexbin)
-  library(RColorBrewer)
 })
 
 # ==========================================
@@ -85,76 +83,71 @@ cat(sprintf("  intervention_summary.tsv: %d linhas\n", nrow(intv_sum)))
 # ==========================================
 cat("\nPreparando dados para density plot...\n")
 
-# Density background: todas as observações de intv_strs
-density_data <- intv_strs[!is.na(group) & group != ""]
-density_data[, group := factor(group, levels = c("case", "control"))]
+plot_data <- intv_out[!is.na(group) & group != ""]
+plot_data[, group := factor(group, levels = c("case", "control"))]
 
-# Se intv_strs não tem depth, usar intv_out para density também
-if (!"depth" %in% names(density_data)) {
-  cat("  intv_strs sem coluna 'depth', usando intv_out para density...\n")
-  density_data <- intv_out[!is.na(group) & group != ""]
-  density_data[, group := factor(group, levels = c("case", "control"))]
-}
-
-# Outlier highlight: apenas outliers DBSCAN
-outlier_data <- intv_out[!is.na(group) & group != ""]
-outlier_data[, group := factor(group, levels = c("case", "control"))]
-
-cat(sprintf("  Density: %d observações (todas)\n", nrow(density_data)))
-cat(sprintf("  Outliers: %d observações (DBSCAN)\n", nrow(outlier_data)))
-cat(sprintf("  Intervenções: %s\n", paste(unique(density_data$intervention), collapse = ", ")))
+cat(sprintf("  Intervenções: %s\n", paste(unique(plot_data$intervention), collapse = ", ")))
+cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
 
 # ==========================================
-# 3. 2D HEXBIN density: allele2_est vs depth + outliers DBSCAN
+# 3. 2D HEXBIN density: allele2_est vs depth
+#    - Fundo (todas as STRs em DEGs): cinza neutro
+#    - Overlay (outliers DBSCAN):      vermelho
 # ==========================================
 cat("\nGerando density plot (hexbin)...\n")
 
-n_gse <- uniqueN(density_data$gse)
+# --- 3.1 Preparar dados de fundo (todos os STRs em DEGs) ---
+bg_data <- intv_strs[!is.na(group) & group != ""]
+bg_data[, group := factor(group, levels = c("case", "control"))]
 
-# ---- Paleta Spectral revertida, como no exemplo do {hexbin} -----------
-#      rev(brewer.pal(11, "Spectral")) => azul (baixo) -> vermelho (alto)
-hex_colors <- colorRampPalette(rev(brewer.pal(11, "Spectral")))(100)
+# --- 3.2 Preparar dados de outliers (o que sera destacado) ---
+out_data <- intv_out[!is.na(group) & group != ""]
+out_data[, group := factor(group, levels = c("case", "control"))]
 
-# ---- Numero de bins adaptativo: 40 para datasets grandes ---------------
-#      (o exemplo original usa xbins = 40; em facetas com muitos pontos
-#      um pouco menos de bins ajuda a manter o grafico legivel)
+cat(sprintf("  Fundo   : %d observações\n", nrow(bg_data)))
+cat(sprintf("  Outliers: %d observações\n", nrow(out_data)))
+
+n_gse <- uniqueN(out_data$gse)
+
 hex_bins <- 40
 
-p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
-  # ---- Hexbin em vez de stat_density_2d ----
-  geom_hex(bins = hex_bins, colour = NA) +
-  # ---- Paleta Spectral revertida ----
-  scale_fill_gradientn(
-    colors = hex_colors,
-    name   = "Count",
-    guide  = guide_colorbar(
-      barwidth  = unit(12, "mm"),
-      barheight = unit(80, "mm"),
-      title.position = "top"
-    )
+# Cores: fundo neutro + outliers em vermelho
+bg_color  <- "#B0B0B0"   # cinza medio
+out_color <- "#E41A1C"   # vermelho (mesmo tom do raincloud "case")
+
+p_density <- ggplot() +
+  # ---- Camada 1: fundo (todos os STRs em DEGs) ----
+  geom_hex(
+    data   = bg_data,
+    aes(x = allele2_est, y = depth),
+    bins   = hex_bins,
+    fill   = bg_color,
+    colour = NA,
+    alpha  = 0.6
   ) +
-  # Pontos de outliers DBSCAN (highlight)
-  geom_point(
-    data = outlier_data,
-    aes(color = "DBSCAN Outlier"),
-    size = 1.5, alpha = 0.6
+  # ---- Camada 2: outliers em vermelho (por cima) ----
+  geom_hex(
+    data   = out_data,
+    aes(x = allele2_est, y = depth),
+    bins   = hex_bins,
+    fill   = out_color,
+    colour = NA,
+    alpha  = 0.85
   ) +
   facet_wrap(~ gse + group, scales = "free", ncol = 2) +
-  scale_color_manual(name = "", values = c("DBSCAN Outlier" = "red")) +
   scale_x_continuous(expand = c(0.02, 0)) +
   scale_y_continuous(expand = c(0.02, 0)) +
   labs(
     title    = "2D Density: Allele size vs Coverage",
-    subtitle = "All observations (hexbin) + DBSCAN outliers (red points)",
+    subtitle = "All DEG STRs (grey) with DBSCAN outliers (red), faceted by GSE and group",
     x        = "Allele 2 length (repeat units)",
     y        = "Coverage (depth)",
-    caption  = "Red points = DBSCAN global outliers"
+    caption  = "Red = DBSCAN global outliers"
   ) +
   theme_minimal(base_size = 12) +
   theme(
     panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
     panel.grid.minor = element_blank(),
-    # Grid removido dentro das facetas para nao competir com os hexbinos
     panel.grid.major = element_line(color = "grey92", linewidth = 0.25),
     strip.background = element_rect(fill = "grey92", color = NA),
     strip.text = element_text(size = 11, face = "bold"),
@@ -164,9 +157,7 @@ p_density <- ggplot(density_data, aes(x = allele2_est, y = depth)) +
                               margin = margin(b = 15)),
     plot.subtitle = element_text(size = 11, color = "grey40",
                                  margin = margin(b = 10)),
-    legend.position = "right",
-    legend.title = element_text(size = 10, face = "bold"),
-    legend.text  = element_text(size = 9),
+    legend.position = "none",
     panel.spacing = unit(1.2, "lines"),
     panel.background = element_rect(fill = "white", color = NA),
     plot.background = element_rect(fill = "white", color = NA)
