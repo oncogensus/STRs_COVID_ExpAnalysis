@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# igv_variant.sh — IGV.js para um gene/variante STR.
-# Recebe GENE como argumento; le str_samples_bams.tsv para mappings.
-# Uso: bash igv_variant.sh ROBO2 [PORT]
+# igv_variant.sh — IGV.js para um STR/variante.
+# Recebe STRS_ID como argumento; le str_samples_bams.tsv para mappings.
+# Uso: bash igv_variant.sh chr1:76143392:GT:16 [PORT]
 set -u
 
-GENE="${1:?Uso: $0 GENE [PORT]}"
+STRS_ID="${1:?Uso: $0 STRS_ID [PORT]}"
 PORT="${2:-0}"
 FLANK=1000
 
@@ -15,25 +15,28 @@ ANN="str_samples_with_variant.bed"
 [ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 0_generate_beds.R)."; exit 1; }
 [ -f "$ANN" ] || echo "WARN: $ANN ausente; anotacao pode faltar." >&2
 
-row="$(awk -F'\t' -v g="$GENE" '$1==g' "$TSV")"
-[ -z "$row" ] && { echo "ERRO: $GENE nao encontrado no TSV."; exit 1; }
+SAFE=$(echo "$STRS_ID" | tr ':' '_')
+
+row="$(awk -F'\t' -v g="$STRS_ID" '$2==g' "$TSV")"
+[ -z "$row" ] && { echo "ERRO: $STRS_ID nao encontrado no TSV."; exit 1; }
+gene="$(echo "$row" | cut -f1)"
 chr="$(echo "$row" | cut -f3)"; start0="$(echo "$row" | cut -f4)"; end="$(echo "$row" | cut -f5)"
 vbam="$(echo "$row" | cut -f7 | sed 's|//*|/|g')"
 cbam="$(echo "$row" | cut -f9 | sed 's|//*|/|g')"
 s1=$((start0 + 1))
 
 if [ "$PORT" -eq 0 ]; then
-  hash=$(echo -n "$GENE" | md5sum | head -c 4)
+  hash=$(echo -n "$STRS_ID" | md5sum | head -c 4)
   PORT=$((8200 + (16#${hash} % 9900 + 100)))
 fi
 
 command -v samtools >/dev/null 2>&1 || { echo "ERRO: samtools ausente."; exit 1; }
 command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
 
-OUT="/tmp/igvjs_${GENE}"; mkdir -p "$OUT"
+OUT="/tmp/igvjs_${SAFE}"; mkdir -p "$OUT"
 
-awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/$GENE.bed"
-if [ -s "$OUT/$GENE.bed" ]; then BED_URL="$OUT/$GENE.bed"; else BED_URL="$(pwd)/$ANN"; fi
+awk -v c="$chr" -v s="$start0" -v e="$end" '($1==c && $2==s && $3==e)' "$ANN" > "$OUT/${SAFE}.bed"
+if [ -s "$OUT/${SAFE}.bed" ]; then BED_URL="$OUT/${SAFE}.bed"; else BED_URL="$(pwd)/$ANN"; fi
 BED_URL="$(echo "$BED_URL" | sed 's|//*|/|g')"
 
 bam_chr() {
@@ -48,7 +51,7 @@ bam_chr() {
 norm_chr() {
   local bam="$1" cur="$2" want="$3"
   if [ "$cur" = "$want" ]; then
-    samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    samtools index "$bam" 2>>"/tmp/igvjs_${SAFE}_samtools.log"
     return
   fi
   samtools view -h "$bam" \
@@ -56,9 +59,9 @@ norm_chr() {
          if ($1 ~ /^@SQ/) sub("SN:"cur"\t","SN:"want"\t",$0);
          else if ($1 !~ /^@/ && $3==cur) $3=want;
          print }' \
-    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igvjs_${GENE}_samtools.log" \
+    | samtools view -b - > "${bam}.tmp" 2>>"/tmp/igvjs_${SAFE}_samtools.log" \
     && mv "${bam}.tmp" "$bam"
-  samtools index "$bam" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+  samtools index "$bam" 2>>"/tmp/igvjs_${SAFE}_samtools.log"
 }
 
 extract_bam() {
@@ -67,9 +70,9 @@ extract_bam() {
   local cur; cur="$(bam_chr "$full" "$chr")"
   local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
   local fend=$(( end + FLANK ))
-  local outb="$OUT/$GENE.$label.bam"
+  local outb="$OUT/${SAFE}.${label}.bam"
   echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}" >&2
-  if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"; then
+  if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igvjs_${SAFE}_samtools.log"; then
     if [ -s "$outb" ]; then
       norm_chr "$outb" "$cur" "$chr"
       echo "$outb $outb.bai"; return
@@ -80,7 +83,7 @@ extract_bam() {
     | awk -v c="$cur" -v a="$fstart" -v b="$fend" 'BEGIN{FS=OFS="\t"} {
          if ($1 ~ /^@/) { print; next }
          if ($3==c && $4>=a && $4<=b) print }' \
-    | samtools view -b - > "$outb" 2>>"/tmp/igvjs_${GENE}_samtools.log"
+    | samtools view -b - > "$outb" 2>>"/tmp/igvjs_${SAFE}_samtools.log"
   if [ -s "$outb" ]; then
     norm_chr "$outb" "$cur" "$chr"
     echo "$outb $outb.bai"
@@ -92,7 +95,7 @@ read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
 read -r cb_out cb_idx <<< "$(extract_bam "$cbam" control)"
 
 tt="$(mktemp)"
-echo "{\"type\":\"annotation\",\"name\":\"variante $GENE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
+echo "{\"type\":\"annotation\",\"name\":\"variante $SAFE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
 add_extracted() {
   local b="$1" idx="$2" name="$3"
   if [ -n "$b" ] && [ -f "$b" ] && [ -n "$idx" ] && [ -f "$idx" ]; then
@@ -130,7 +133,7 @@ fetch('tracks.json')
 </html>
 HTML
 
-python - "$PORT" <<'PY' >"/tmp/igvjs_${GENE}.log" 2>&1 &
+python - "$PORT" <<'PY' >"/tmp/igvjs_${SAFE}.log" 2>&1 &
 import sys, http.server, socketserver, os
 port = int(sys.argv[1])
 os.chdir('/')
@@ -157,13 +160,13 @@ fi
 
 echo
 echo "============================================================"
-echo "Variante $GENE"
+echo "Variante $STRS_ID ($gene)"
 echo "Regiao: ${chr}:${s1}-${end} (flank +/-${FLANK})"
 echo "BAM variante extraido: $vb_out"
 echo "BAM controle extraido: $cb_out"
-echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_$GENE/index.html"
+echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_${SAFE}/index.html"
 echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Log IGV: /tmp/igvjs_$GENE.log   samtools: /tmp/igvjs_${GENE}_samtools.log"
+echo "Log IGV: /tmp/igvjs_${SAFE}.log   samtools: /tmp/igvjs_${SAFE}_samtools.log"
 echo "============================================================"
 
 wait "$PID"

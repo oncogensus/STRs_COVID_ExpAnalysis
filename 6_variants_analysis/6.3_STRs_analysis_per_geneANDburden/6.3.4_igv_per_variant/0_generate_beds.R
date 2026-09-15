@@ -1,10 +1,10 @@
 ﻿#!/usr/bin/env Rscript
 # 0_generate_beds.R
 # Gera BEDs + mapeamento BAM para IGV.js (6.3.4).
-# Outputs sao escritos no dir de execucao (data/).
+# Outputs sao escritos no dir de execucao.
 #
-# Para cada STR com outlier em suggestive_strs_outliers.tsv:
-#   - amostra COM variante  = outlier_samples
+# Para cada STR com outlier em intervention_outliers.tsv:
+#   - amostra COM variante  = outlier_samples_dbscan_global
 #   - amostra SEM variante  = outro sample_id do MESMO STRs_ID em
 #       STRs_normalized_residuals.tsv, nao-outlier, com BAM indexado em
 #       bam_dir, de menor |allele2_residuals| (mais proximo do esperado).
@@ -12,7 +12,7 @@
 REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
 outlier_file <- file.path(REPO_ROOT,
-  "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.1_RNA_matrix/per_study/results/rna_outlier_genes.tsv")
+  "6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/results/intervention_outliers.tsv")
 norm_file <- file.path(REPO_ROOT,
   "5_global_dbscan/norm_test/STRs_normalized_residuals.tsv")
 bam_dir <- "/storage/users/tulio/Projeto_Luy_COVID/results/recal/"
@@ -33,15 +33,20 @@ split_samples <- function(s) {
   unlist(strsplit(s, "[;,[:space:]]+"))
 }
 
+sanitize_strs_id <- function(s) {
+  gsub(":", "_", s)
+}
+
 db <- read.delim(outlier_file, header = TRUE, stringsAsFactors = FALSE)
 db$STRs_ID <- trimws(db$STRs_ID)
-db <- db[nzchar(trimws(db$outlier_samples)), ]
+db <- db[nzchar(trimws(db$outlier_samples_dbscan_global)), ]
 
 cat("[0_generate_beds] STRs com outlier:", nrow(db), "\n")
 
 variants <- data.frame(
-  STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples, split_samples))),
-  variant  = unlist(lapply(db$outlier_samples, split_samples)),
+  STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples_dbscan_global, split_samples))),
+  variant  = unlist(lapply(db$outlier_samples_dbscan_global, split_samples)),
+  gene     = rep(db$gene_name, lengths(lapply(db$outlier_samples_dbscan_global, split_samples))),
   stringsAsFactors = FALSE)
 
 id_parts <- strsplit(variants$STRs_ID, ":", fixed = TRUE)
@@ -51,18 +56,12 @@ variants$motif  <- vapply(id_parts, function(x) x[3], character(1))
 variants$copy   <- as.integer(vapply(id_parts, function(x) x[4], character(1)))
 variants$start0 <- variants$start1 - 1
 variants$end    <- variants$start0 + nchar(variants$motif) * variants$copy
-variants$gene   <- NA_character_
+variants$gene[is.na(variants$gene) | variants$gene == ""] <- "UNKNOWN"
 
 norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)
 norm$sample_id <- trimws(norm$sample_id)
 norm$resid     <- suppressWarnings(as.numeric(norm$allele2_residuals))
-
-gene_map <- norm[!is.na(norm$gene_name) & nzchar(norm$gene_name),
-                 c("STRs_ID", "gene_name")]
-gene_map <- gene_map[!duplicated(gene_map$STRs_ID), ]
-variants$gene <- gene_map$gene_name[match(variants$STRs_ID, gene_map$STRs_ID)]
-variants$gene[is.na(variants$gene)] <- "UNKNOWN"
 
 find_bam <- function(bam_dir, sid) {
   cands <- unique(c(sid, paste0(sid, ".bam"), sub("\\.bam$", "", sid)))
