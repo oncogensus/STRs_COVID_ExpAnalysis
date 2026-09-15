@@ -71,10 +71,10 @@ key <- paste0(dt$gse, ":", dt$intervention)
 dt[, Comparison := fifelse(key %in% names(intervention_labels),
                            intervention_labels[key], intervention)]
 
-# Count unique outlier samples per group per comparison
+# Count unique outlier samples per group per STR_ID per comparison
 dt[, sample_id := sub(";$", "", outlier_samples)]
-n_per_group <- unique(dt[, .(gse, Comparison, group, sample_id)])[, .N, by = .(gse, Comparison, group)]
-n_wide <- dcast(n_per_group, gse + Comparison ~ group, value.var = "N", fill = 0)
+n_per_group <- unique(dt[, .(STRs_ID, gse, Comparison, group, sample_id)])[, .N, by = .(STRs_ID, gse, Comparison, group)]
+n_wide <- dcast(n_per_group, STRs_ID + gse + Comparison ~ group, value.var = "N", fill = 0)
 if ("case" %in% names(n_wide) && "control" %in% names(n_wide)) {
   setnames(n_wide, c("case", "control"), c("n_cases", "n_controls"))
 }
@@ -134,16 +134,15 @@ tbl <- dt[, .(
 setnames(tbl, "gse", "GSE")
 
 # Create combined group column for gt (avoids duplicate column error)
-# Lookup sample counts directly (avoids merge duplicate column issue)
-n_wide_key <- paste0(n_wide$gse, "||", n_wide$Comparison)
-names(n_wide_key) <- NULL
+# Lookup sample counts per STR_ID (avoids merge duplicate column issue)
+n_wide_key <- paste0(n_wide$STRs_ID, "||", n_wide$gse, "||", n_wide$Comparison)
 n_cases_vec <- setNames(n_wide$n_cases, n_wide_key)
 n_controls_vec <- setNames(n_wide$n_controls, n_wide_key)
-tbl_key <- paste0(tbl$GSE, "||", tbl$Comparison)
-tbl[, n_cases := n_cases_vec[tbl_key]]
-tbl[, n_controls := n_controls_vec[tbl_key]]
-tbl[, n_cases := fifelse(is.na(n_cases), 0L, as.integer(n_cases))]
-tbl[, n_controls := fifelse(is.na(n_controls), 0L, as.integer(n_controls))]
+tbl_key <- paste0(tbl$STRs_ID, "||", tbl$GSE, "||", tbl$Comparison)
+tbl[, n_cases := as.integer(n_cases_vec[tbl_key])]
+tbl[, n_controls := as.integer(n_controls_vec[tbl_key])]
+tbl[, n_cases := fifelse(is.na(n_cases), 0L, n_cases)]
+tbl[, n_controls := fifelse(is.na(n_controls), 0L, n_controls)]
 tbl[, Group := paste0(GSE, " | ", Comparison, " | Cases: ", n_cases, " / Controls: ", n_controls)]
 
 # Sort by GSE, Comparison, Gene
