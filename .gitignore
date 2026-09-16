@@ -14,9 +14,6 @@ samples/*
 *.tsv
 *.gds
 *.pbs
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/**/*.pbs
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/*.pbs
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/*.R
 *.gtf
 *.html
 *.bed
