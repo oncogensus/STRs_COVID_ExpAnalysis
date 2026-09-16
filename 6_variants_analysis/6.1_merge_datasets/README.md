@@ -10,8 +10,7 @@ Consolidar as saídas dos estágios anteriores (anotação GTF, DBSCAN global, E
 
 ```
 6.1_merge_datasets/
-├── 1_merge_datasets.r      # Script de integração
-└── merge_data_job.log      # Log de execução
+└── 1_merge_datasets.r      # Script de integração
 ```
 
 ## Inputs

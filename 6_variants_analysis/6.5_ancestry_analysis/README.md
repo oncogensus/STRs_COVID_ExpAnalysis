@@ -6,8 +6,8 @@ Análise de ancestralidade: correlação entre proporções de ancestralidade (E
 
 ```
 6.5_ancestry_analysis/
-├── 1_ancestry_comparation_cat.r         # Comparação categórica (Kruskal-Wallis + Dunn)
-├── 2_ancestry_comparation_high_resolution.r  # Correlação alta resolução (Spearman)
+├── 1_ancestry_comparison_cat.r         # Comparação categórica (Kruskal-Wallis + Dunn)
+├── 2_ancestry_comparison_high_resolution.r  # Correlação alta resolução (Spearman)
 └── 3_ancestry_dataviz.ipynb             # Visualização publication-ready
 ```
 
@@ -28,7 +28,7 @@ samples/STRs_analysis_dataset.tsv (dataset unificado, etapa 6.1)
 
 ---
 
-## 1. Comparação Categórica (`1_ancestry_comparation_cat.r`)
+## 1. Comparação Categórica (`1_ancestry_comparison_cat.r`)
 
 Compara distribuições de alleles e burden de outliers DBSCAN entre populações categóricas via Kruskal-Wallis e Dunn post-hoc.
 
@@ -58,12 +58,12 @@ Compara distribuições de alleles e burden de outliers DBSCAN entre populaçõe
 **Execução**:
 ```bash
 cd 6.5_ancestry_analysis
-Rscript 1_ancestry_comparation_cat.r
+Rscript 1_ancestry_comparison_cat.r
 ```
 
 ---
 
-## 2. Correlação Alta Resolução (`2_ancestry_comparation_high_resolution.r`)
+## 2. Correlação Alta Resolução (`2_ancestry_comparison_high_resolution.r`)
 
 Correlaciona proporções contínuas de ancestralidade (EthSEQ) com métricas de outliers DBSCAN (proporção e força) por região genômica usando Spearman correlation.
 
@@ -79,7 +79,7 @@ Correlaciona proporções contínuas de ancestralidade (EthSEQ) com métricas de
 
 **Execução**:
 ```bash
-Rscript 2_ancestry_comparation_high_resolution.r
+Rscript 2_ancestry_comparison_high_resolution.r
 ```
 
 ---

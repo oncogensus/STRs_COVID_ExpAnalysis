@@ -51,7 +51,7 @@ This analysis uses COVID-19 sequencing data from "Rare genetic variants and seve
 The analysis pipeline is organized as follows:
 
 ```text
-strs_paper/
+STRs_COVID_ExpAnalysis/
 ├── 1_strs_call/
 ├── 2_data_split/
 ├── 3_gtf_annot/
@@ -64,7 +64,6 @@ strs_paper/
     │   ├── .gitignore
     │   ├── 6.3.1_pre_processing/
     │   ├── 6.3.2_RNA_data_analysis/
-    │   │   ├── 6.3.2.1_descriptive_analysis/
     │   │   └── 6.3.2.2_RNA_matrix/
     │   └── 6.3.4_igv_per_variant/
     └── 6.5_ancestry_analysis/
@@ -257,25 +256,6 @@ This section covers the core analytical pipelines for identifying STRs associate
 
 Cross-references RNA-seq DEGs from multiple GEO datasets with the cohort STR catalog, enriching matches with global DBSCAN outlier metrics.
 
-##### 6.3.2.1: Descriptive Analysis (`6.3.2.1_descriptive_analysis/compare_gwas_rna.R`)
-
-Descriptive analysis of RNA-seq outliers: STRs/genes with DBSCAN global outliers, patient-level allele distributions comparing case vs. control groups (no statistical tests).
-
-**Scripts**:
-- `compare_gwas_rna.R` / `.pbs` — run the analysis
-
-**Required Inputs**:
-- `6.3.2.2_RNA_matrix/results/intervention_strs.tsv`
-- `samples/STRs_analysis_dataset.tsv`
-
-**Outputs** (`results/`):
-- `rna_outlier_sets.tsv` — STRs with outliers and metadata
-- `rna_genes_summary.tsv` — genes with outlier counts and GSE provenance
-- `patient_str.tsv` — long-form STR × patient table
-- `per_str_case_control.tsv` — descriptive stats per STR: case/control counts, allele means/medians, overlap status
-
-**Environment**: micromamba - `r_enrich_env`
-
 ##### 6.3.2.2: Per-intervention DEG x STR (`6.3.2.2_RNA_matrix/`)
 
 Scans all GSE subdirectories for intervention-specific DEG tables, overlaps gene names with the STR catalog, and produces output tables per intervention.
@@ -318,7 +298,7 @@ Generates BED files and IGV.js scripts for visual inspection of STR variants. Fo
 
 Compare STR allele distributions and DBSCAN outlier burden across categorical ancestry populations via Kruskal-Wallis and Dunn post-hoc tests.
 
-**Script**: `1_ancestry_comparation_cat.r`
+**Script**: `1_ancestry_comparison_cat.r`
 
 **Required Input Files**
 - `STRs_analysis_dataset.tsv` (integrated STR dataset)
@@ -340,7 +320,7 @@ Compare STR allele distributions and DBSCAN outlier burden across categorical an
 
 Correlate continuous EthSEQ ancestry proportions with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
 
-**Script**: `2_ancestry_comparation_high_resolution.r`
+**Script**: `2_ancestry_comparison_high_resolution.r`
 
 **Required Input Files**
 - Same as 6.5.1
@@ -427,7 +407,7 @@ micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
 <summary>Click to expand full output tree</summary>
 
 ```text
-strs_paper/
+STRs_COVID_ExpAnalysis/
 ├── 1_strs_call/
 ├── 2_data_split/
 ├── 3_gtf_annot/                    # Intermediate outputs from stages 1-3

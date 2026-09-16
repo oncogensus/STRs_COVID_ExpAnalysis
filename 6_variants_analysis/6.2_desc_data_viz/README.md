@@ -15,9 +15,7 @@ Análise descritiva e visualização genômica dos STRs da coorte.
     ├── 3_str_coverage_per_patient.R   # Cobertura STR por paciente
     ├── 4_str_coverage_gt_global.R     # Tabela GT da cobertura global
     ├── 5_dbscan_validation.R          # Validação técnica do DBSCAN
-    ├── 5_dbscan_validation.pbs
     ├── 6_outlier_report.R             # Relatório unificado de outliers
-    ├── 6_outlier_report.pbs
     ├── 7_merged_table_allele_stats.R  # Tabela de estatísticas de allele
     ├── genome.txt                # Tamanhos de cromossomo (chr1-22, X, Y)
     └── desc_analysis_strs.log    # Log de execução

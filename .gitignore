@@ -1,7 +1,6 @@
-# Ignore sample data
-samples/*
-
-# Ignore large genomic files
+# ===========================
+# Genomic / Large Files
+# ===========================
 *.bam
 *.bam.bai
 *.vcf
@@ -10,48 +9,47 @@ samples/*
 *.fasta
 *.str
 *.fai
-*.pdf
-*.tsv
-*.gds
-*.pbs
 *.gtf
+*.gtf.gz
+*.gds
+*.tsv.gz
+*.json.gz
+
+# ===========================
+# Generated Outputs
+# ===========================
+*.tsv
 *.html
 *.bed
 *.json
-*.tsv.gz
+*.pdf
 *.log
-
-# Ignore results generated
-**/results/
-
-# Keep results but ignore large output files
-results/*.bam
-results/*.vcf.gz
-
-# Ancestry results
-ancestry/EthSEQ_Results_3D/
-
-# Results from desc_analysis
-desc_analysis/results/
-
-# Large reference files
-strs_call/hg38.fa
-strs_call/hg38.fa.*
-gtf_annot/*.gtf
-gtf_annot/Homo_sapiens*.gtf
-
-# ignore results
-data/data/
-*.gtf.gz
-*.tsv.gz
-*.json.gz
-*.bam
-*.fasta
-*.fa
-*.fai
-*.gds
 *.err
 *.out
-*.log
+*.pbs
+*.pyc
 
+# ===========================
+# Python
+# ===========================
+__pycache__/
+
+# ===========================
+# Directories
+# ===========================
+samples/*
+**/results/
+data/data/
+
+# ===========================
+# Reference Files
+# ===========================
+1_strs_call/hg38.fa
+1_strs_call/hg38.fa.*
+3_gtf_annot/*.gtf
+3_gtf_annot/Homo_sapiens*.gtf
+
+# ===========================
+# Legacy / Stale
+# ===========================
 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden_bk
