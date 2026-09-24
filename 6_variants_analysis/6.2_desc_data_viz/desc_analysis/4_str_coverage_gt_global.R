@@ -96,7 +96,7 @@ gt_tbl <- tab %>%
     Range = "Range"
   ) %>%
   tab_header(
-    title = "Genomic coverage of STR loci",
+    title = md("**Genomic coverage of STR loci**"),
     subtitle = paste0("Global summary across ", fmt_int(g$n_patients),
                       " patients (post-STRling QC)")
   ) %>%
@@ -114,15 +114,21 @@ gt_tbl <- tab %>%
   ) %>%
   tab_options(
     table.width = pct(100),
+    table.font.size = px(13),
     table.border.top.style = "solid", table.border.top.width = px(2),
     table.border.bottom.style = "solid", table.border.bottom.width = px(2),
     heading.border.bottom.style = "solid", heading.border.bottom.width = px(1),
+    column_labels.font.weight = "bold",
     column_labels.border.top.style = "solid", column_labels.border.top.width = px(2),
     column_labels.border.bottom.style = "solid", column_labels.border.bottom.width = px(1),
     table_body.border.bottom.style = "solid", table_body.border.bottom.width = px(1),
-    data_row.padding = px(4),
+    data_row.padding = px(5),
     heading.title.font.size = px(16),
     heading.subtitle.font.size = px(12)
+  ) %>%
+  tab_footnote(
+    footnote = "Per-patient values summarizing STR loci that passed quality control in STRling (see Methods).",
+    locations = cells_column_spanners(spanners = "Per patient")
   )
 
 gtsave(gt_tbl, file.path(out_dir, "table_coverage_global.html"))
