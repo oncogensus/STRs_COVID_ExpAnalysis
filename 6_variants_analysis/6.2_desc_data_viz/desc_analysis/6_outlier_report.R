@@ -170,15 +170,20 @@ pub_gt <- df_friendly %>%
     use_seps = TRUE
   ) %>%
   tab_options(
-    table.width = px(750),
+    table.width = pct(100),
+    table.font.size = px(13),
     column_labels.font.weight = "bold",
     row_group.font.weight = "bold",
     row_group.background.color = "#F9F9F9",
-    table.font.size = px(14),
-    table.border.top.color = "black",
-    table.border.bottom.color = "black",
+    table.border.top.style = "solid", table.border.top.width = px(2), table.border.top.color = "black",
+    table.border.bottom.style = "solid", table.border.bottom.width = px(2), table.border.bottom.color = "black",
     heading.align = "center",
-    data_row.padding = px(6)
+    heading.title.font.size = px(16),
+    heading.subtitle.font.size = px(12),
+    column_labels.border.top.style = "solid",
+    column_labels.border.bottom.style = "solid",
+    table_body.border.bottom.style = "solid",
+    data_row.padding = px(5)
   ) %>%
   cols_align(align = "left",   columns = c(metric)) %>%
   cols_align(align = "center", columns = c(raw_value, percentage_str)) %>%
