@@ -359,23 +359,26 @@ pub_gt <- pub_tsv %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
     style = list(
-      cell_text(weight = "bold", size = px(11)),
+      cell_text(weight = "bold", size = px(12)),
       cell_borders(sides = "bottom", weight = px(1.5), color = "grey60")
     ),
     locations = cells_column_labels()
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold", size = px(10)),
+    style = cell_text(weight = "bold", size = px(11)),
     locations = cells_column_spanners()
   ) %>%
   tab_style(
-    style = cell_text(size = px(10)),
+    style = cell_text(size = px(11)),
     locations = cells_body()
   ) %>%
   tab_options(
     table.font.names = "Arial",
-    table.font.size = px(10),
-    heading.align = "left",
+    table.font.size = px(13),
+    table.width = pct(100),
+    heading.align = "center",
+    heading.title.font.size = px(16),
+    heading.subtitle.font.size = px(12),
     column_labels.border.top.width = px(2),
     column_labels.border.top.color = "black",
     column_labels.border.bottom.width = px(1),
