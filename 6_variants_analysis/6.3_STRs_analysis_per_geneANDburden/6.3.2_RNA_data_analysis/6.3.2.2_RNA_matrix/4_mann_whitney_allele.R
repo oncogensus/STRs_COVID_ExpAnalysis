@@ -241,8 +241,7 @@ cat(sprintf("  Tabela: %d testes em %d loci x %d comparacoes\n", nrow(tbl), n_lo
 out_gt <- tbl %>%
   gt(groupname_col = "Comparison") %>%
   tab_header(
-    title = md("**Mann-Whitney U Test: Case vs Control**"),
-    subtitle = sprintf("%d loci tested across %d comparisons", n_loci, n_comps)
+    title = md("**Comparison of Major-allele Size Distributions Between Subgroups in Severe COVID-19**")
   ) %>%
   tab_spanner(
     label = "Sample Size",
@@ -304,7 +303,7 @@ out_gt <- tbl %>%
     data_row.padding = px(5)
   ) %>%
   tab_source_note(
-    source_note = md("*^a^* Mann-Whitney U test with Benjamini\u2013Hochberg FDR correction. Groups: case vs control per variant per study.")
+    source_note = md("*^a^* Mann-Whitney U test with Benjamini\u2013Hochberg FDR correction.")
   ) %>%
   tab_source_note(
     source_note = md("*^b^* Effect size: rank-biserial correlation (r). Interpretation: |r| < 0.1 negligible, 0.1\u20130.3 small, 0.3\u20130.5 medium, > 0.5 large.")
