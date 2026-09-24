@@ -181,9 +181,9 @@ if (nrow(res_mean) > 0) {
 cat("\n--- Publication-Ready Table ---\n")
 
 intervention_labels <- c(
-  "GSE183533" = "Fatal COVID-19 vs. Controls",
-  "GSE188847" = "Non-Survivors vs. Controls",
-  "GSE157103" = "ICU vs. Non-Critical"
+  "GSE183533" = "Fatal COVID-19 vs. Controls (GSE183533)",
+  "GSE188847" = "Non-Survivors vs. Controls (GSE188847)",
+  "GSE157103" = "ICU vs. Non-Critical (GSE157103)"
 )
 
 fmt_pval <- function(x) {
@@ -220,6 +220,7 @@ res_combined[, Comparison := fifelse(
 tbl <- res_combined[, .(
   Comparison = Comparison,
   Gene = gene_name,
+  Sig = fifelse(p.adj < 0.05, "**", fifelse(p < 0.05, "*", "")),
   Variant = Variant,
   Metric = Metric,
   `N Cases` = n_cases,
@@ -227,17 +228,9 @@ tbl <- res_combined[, .(
   `U Statistic` = round(statistic, 2),
   `p-value` = fmt_pval(p),
   FDR = fmt_pval(p.adj),
-  `Effect Size (r)` = round(effsize, 3),
-  Sig = fifelse(p.adj < 0.05, "**", fifelse(p < 0.05, "*", ""))
-)]
-tbl[, GeneLabel := fifelse(
-  Sig == "**", paste0(Gene, "**"),
-  fifelse(Sig == "*", paste0(Gene, "*"), Gene)
+  `Effect Size (r)` = round(effsize, 3)
 )]
 tbl <- tbl[order(Comparison, Gene, Metric)]
-
-# Reorder columns: GeneLabel first
-setcolorder(tbl, c("Comparison", "GeneLabel", setdiff(names(tbl), c("Comparison", "GeneLabel"))))
 
 n_loci <- uniqueN(tbl$Gene)
 n_comps <- uniqueN(tbl$Comparison)
@@ -264,7 +257,8 @@ out_gt <- tbl %>%
     columns = c(`Effect Size (r)`)
   ) %>%
   cols_label(
-    GeneLabel = "Gene",
+    Gene = "Gene",
+    Sig = "",
     Variant = "Variant",
     Metric = "Metric",
     `N Cases` = "Cases",
@@ -274,50 +268,44 @@ out_gt <- tbl %>%
     FDR = "FDR",
     `Effect Size (r)` = md("r^b^")
   ) %>%
-  cols_hide(columns = c(Gene, Sig)) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
-    style = list(
-      cell_text(weight = "bold", size = px(10)),
-      cell_borders(sides = "bottom", weight = px(1.5), color = "grey60")
-    ),
+    style = cell_text(weight = "bold"),
     locations = cells_column_labels()
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold", size = px(10)),
+    style = cell_text(weight = "bold"),
     locations = cells_column_spanners()
   ) %>%
   tab_style(
-    style = cell_text(size = px(9)),
-    locations = cells_body()
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Gene)
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold", size = px(9)),
-    locations = cells_body(columns = GeneLabel)
+    style = cell_text(weight = "bold", size = px(20)),
+    locations = cells_body(columns = Sig, rows = Sig != "")
   ) %>%
   tab_style(
     style = list(
       cell_fill(color = "grey95"),
-      cell_text(weight = "bold", size = px(11))
+      cell_text(weight = "bold")
     ),
     locations = cells_row_groups()
   ) %>%
   tab_options(
-    table.font.names = "Arial",
-    table.font.size = px(9),
-    heading.align = "left",
-    column_labels.border.top.width = px(2),
-    column_labels.border.top.color = "black",
-    column_labels.border.bottom.width = px(1),
-    column_labels.border.bottom.color = "black",
-    table_body.border.bottom.width = px(1.5),
-    table_body.border.bottom.color = "black",
-    table_body.hlines.color = "grey92",
-    table_body.hlines.width = px(0.5),
-    table.border.left.width = px(0),
-    table.border.right.width = px(0),
-    data_row.padding = px(3),
-    row_group.padding = px(6)
+    table.font.size = px(13),
+    table.width = pct(100),
+    heading.align = "center",
+    heading.title.font.size = px(16),
+    heading.subtitle.font.size = px(12),
+    column_labels.font.weight = "bold",
+    column_labels.border.top.style = "solid",
+    column_labels.border.bottom.style = "solid",
+    table.border.top.style = "solid",
+    table.border.bottom.style = "solid",
+    table_body.border.bottom.style = "solid",
+    row_group.padding = px(6),
+    data_row.padding = px(5)
   ) %>%
   tab_source_note(
     source_note = md("*^a^* Mann-Whitney U test with Benjamini\u2013Hochberg FDR correction. Groups: case vs control per variant per study.")
