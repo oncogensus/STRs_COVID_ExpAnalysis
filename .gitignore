@@ -61,4 +61,4 @@ data/data/
 # ===========================
 # UCSC STR table (versioned HTML inputs/outputs)
 # ===========================
-!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/tabela_UCSC/*.html
+!6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/UCSC_tracks_table/*.html
