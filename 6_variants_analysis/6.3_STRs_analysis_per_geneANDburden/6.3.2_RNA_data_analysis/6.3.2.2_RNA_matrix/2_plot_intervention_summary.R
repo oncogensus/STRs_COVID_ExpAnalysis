@@ -100,7 +100,7 @@ cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_da
 # ==========================================
 intervention_labels <- c(
   "GSE183533:COVID_vs_CONTROL"    = "Fatal COVID-19 vs. Controls",
-  "GSE188847:COVID_vs_CONTROL"    = "Non-Survivors vs. Controls",
+  "GSE188847:COVID_vs_CONTROL"    = "Fatal COVID-19 vs. Controls",
   "GSE157103:COVID_ICU_vs_NonICU" = "ICU vs. Non-Critical",
   "GSE157103:HFD45_ajustado_ICU"  = "ICU-Adjusted HFD45",
   "GSE188847:ICUVENT_vs_CONTROL"  = "IMV vs. Controls"
