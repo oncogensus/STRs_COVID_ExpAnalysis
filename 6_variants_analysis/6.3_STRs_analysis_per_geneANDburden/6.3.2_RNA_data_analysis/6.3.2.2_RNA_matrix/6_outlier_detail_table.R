@@ -131,12 +131,6 @@ tbl <- dt[, .(
   Chrom = first(chrom),
   Start = first(start),
   Motif = first(repeat_unit),
-  Allele_1_Med = round(median(allele1_est), 1),
-  Allele_1_Min = min(allele1_est),
-  Allele_1_Max = max(allele1_est),
-  Allele_2_Med = round(median(allele2_est), 1),
-  Allele_2_Min = min(allele2_est),
-  Allele_2_Max = max(allele2_est),
   Depth_Med = round(median(depth), 1),
   Depth_Min = min(depth),
   Depth_Max = max(depth),
@@ -146,6 +140,22 @@ tbl <- dt[, .(
   logFC = first(round(logFC, 2)),
   FDR = fmt_fdr(first(FDR))
 ), by = .(STRs_ID, gse, Comparison)]
+
+# Allele 2 sizes separately per group (case / control)
+aux_case <- dt[group == "case", .(
+  Allele_2_Case_Med = round(median(allele2_est), 1),
+  Allele_2_Case_Min = min(allele2_est),
+  Allele_2_Case_Max = max(allele2_est)
+), by = .(STRs_ID, gse, Comparison)]
+
+aux_control <- dt[group == "control", .(
+  Allele_2_Control_Med = round(median(allele2_est), 1),
+  Allele_2_Control_Min = min(allele2_est),
+  Allele_2_Control_Max = max(allele2_est)
+), by = .(STRs_ID, gse, Comparison)]
+
+tbl <- merge(tbl, aux_case, by = c("STRs_ID", "gse", "Comparison"), all.x = TRUE)
+tbl <- merge(tbl, aux_control, by = c("STRs_ID", "gse", "Comparison"), all.x = TRUE)
 
 setnames(tbl, "gse", "GSE")
 
@@ -174,8 +184,8 @@ n_strs <- nrow(tbl)
 
 # Drop auxiliary columns — keep only columns that go into the table
 keep_cols <- c("Group", "Gene", "Region", "Chrom", "Start", "Motif",
-               paste0("Allele_1_", c("Med", "Min", "Max")),
-               paste0("Allele_2_", c("Med", "Min", "Max")),
+               paste0("Allele_2_Case_", c("Med", "Min", "Max")),
+               paste0("Allele_2_Control_", c("Med", "Min", "Max")),
                paste0("Depth_", c("Med", "Min", "Max")),
                "Clusters", "Noise %", "N Outliers", "logFC", "FDR",
                "Cases", "Controls")
@@ -201,12 +211,12 @@ out_gt <- tbl %>%
     columns = c(Gene, Region, Chrom, Start, Motif)
   ) %>%
   tab_spanner(
-    label = md("Allele 1 (median/min/max)^a^"),
-    columns = c(Allele_1_Med, Allele_1_Min, Allele_1_Max)
+    label = md("Allele 2 - Case"),
+    columns = c(Allele_2_Case_Med, Allele_2_Case_Min, Allele_2_Case_Max)
   ) %>%
   tab_spanner(
-    label = md("Allele 2 (median/min/max)^a^"),
-    columns = c(Allele_2_Med, Allele_2_Min, Allele_2_Max)
+    label = md("Allele 2 - Control"),
+    columns = c(Allele_2_Control_Med, Allele_2_Control_Min, Allele_2_Control_Max)
   ) %>%
   tab_spanner(
     label = md("Depth (median/min/max)^a^"),
@@ -230,12 +240,12 @@ out_gt <- tbl %>%
     Chrom = "Chr",
     Start = "Start",
     Motif = "Motif",
-    Allele_1_Med = md("Med^a^"),
-    Allele_1_Min = md("Min^a^"),
-    Allele_1_Max = md("Max^a^"),
-    Allele_2_Med = md("Med^a^"),
-    Allele_2_Min = md("Min^a^"),
-    Allele_2_Max = md("Max^a^"),
+    Allele_2_Case_Med = md("Med^a^"),
+    Allele_2_Case_Min = md("Min^a^"),
+    Allele_2_Case_Max = md("Max^a^"),
+    Allele_2_Control_Med = md("Med^a^"),
+    Allele_2_Control_Min = md("Min^a^"),
+    Allele_2_Control_Max = md("Max^a^"),
     Depth_Med = md("Med^a^"),
     Depth_Min = md("Min^a^"),
     Depth_Max = md("Max^a^"),
@@ -249,50 +259,37 @@ out_gt <- tbl %>%
   ) %>%
   sub_missing(columns = everything(), missing_text = "-") %>%
   tab_style(
-    style = list(
-      cell_text(weight = "bold", size = px(10)),
-      cell_borders(sides = "bottom", weight = px(1.5), color = "grey60")
-    ),
+    style = cell_text(weight = "bold"),
     locations = cells_column_labels()
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold", size = px(10)),
+    style = cell_text(weight = "bold"),
     locations = cells_column_spanners()
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(9)),
-    locations = cells_body()
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold", size = px(9)),
-    locations = cells_body(columns = Gene)
   ) %>%
   tab_style(
     style = list(
       cell_fill(color = "grey95"),
-      cell_text(weight = "bold", size = px(11))
+      cell_text(weight = "bold")
     ),
     locations = cells_row_groups()
   ) %>%
   tab_options(
-    table.font.names = "Arial",
-    table.font.size = px(9),
-    heading.align = "left",
-    column_labels.border.top.width = px(2),
-    column_labels.border.top.color = "black",
-    column_labels.border.bottom.width = px(1),
-    column_labels.border.bottom.color = "black",
-    table_body.border.bottom.width = px(1.5),
-    table_body.border.bottom.color = "black",
-    table_body.hlines.color = "grey92",
-    table_body.hlines.width = px(0.5),
-    table.border.left.width = px(0),
-    table.border.right.width = px(0),
-    data_row.padding = px(3),
-    row_group.padding = px(6)
+    table.font.size = px(13),
+    table.width = pct(100),
+    heading.align = "center",
+    heading.title.font.size = px(16),
+    heading.subtitle.font.size = px(12),
+    column_labels.font.weight = "bold",
+    column_labels.border.top.style = "solid",
+    column_labels.border.bottom.style = "solid",
+    table.border.top.style = "solid",
+    table.border.bottom.style = "solid",
+    table_body.border.bottom.style = "solid",
+    row_group.padding = px(6),
+    data_row.padding = px(5)
   ) %>%
   tab_source_note(
-    source_note = md("*(a)* Allele sizes in repeat units. Depth = sequencing coverage at locus. Values represent median (min\u2013max) per locus across outlier samples.")
+    source_note = md("*(a)* Allele 2 sizes in repeat units per group (case/control). Depth = sequencing coverage at locus. Values represent median (min\u2013max) per locus across outlier samples.")
   ) %>%
   tab_source_note(
     source_note = md("*(b)* DBSCAN clustering metrics. Noise = fraction of unclustered observations (cluster 0). Outlier loci = STRs with \u22651 genotypic cluster detected.")
