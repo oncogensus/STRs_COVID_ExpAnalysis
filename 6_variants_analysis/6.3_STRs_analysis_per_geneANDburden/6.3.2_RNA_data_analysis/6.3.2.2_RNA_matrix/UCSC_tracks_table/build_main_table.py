@@ -391,7 +391,7 @@ def build_gt(df):
 # ─────────────────────────────────────────────────────────────────────────────
 # MODULE: save_outputs
 # ─────────────────────────────────────────────────────────────────────────────
-def save_outputs(df, gt_obj, out_dir, stem="tabela_principal_com_variantes"):
+def save_outputs(df, gt_obj, out_dir, stem="main_table_with_variants"):
     out_dir = Path(out_dir)
     html_path = out_dir / f"{stem}.html"
     csv_path  = out_dir / f"{stem}.csv"
@@ -427,6 +427,6 @@ if __name__ == "__main__":
 
     SCRIPT_DIR = Path(__file__).resolve().parent
     variant_map = parse_outlier(Path(args.outlier_html))
-    df = build_dataframe(BASE / "tabela_principal_estruturada.csv", variant_map)
+    df = build_dataframe(BASE / "main_table_structured.csv", variant_map)
     gt = build_gt(df)
     save_outputs(df, gt, SCRIPT_DIR)
