@@ -53,3 +53,7 @@ data/data/
 # Legacy / Stale
 # ===========================
 6_variants_analysis/6.4_STRs_analysis_per_geneANDburden_bk
+
+# PBS/Torque job output logs (e<pid>, o<pid>)
+*.e[0-9]*
+*.o[0-9]*
