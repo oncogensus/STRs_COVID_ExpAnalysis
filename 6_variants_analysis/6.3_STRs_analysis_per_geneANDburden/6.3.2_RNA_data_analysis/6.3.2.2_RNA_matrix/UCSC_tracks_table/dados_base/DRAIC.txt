@@ -1,6 +1,6 @@
 DRAIC
 
-- Valores de JARVIS, min - max abaixo:
+- JARVIS values, min - max below:
 hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
  	Position: chr15:69,521,633-69,521,664
 Total Bases in view: 32

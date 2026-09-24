@@ -1,6 +1,6 @@
 CAMK4
 
-- MIN E MAX JASPAR:
+- MIN AND MAX JASPAR:
 hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
  	Position: chr15:69,521,631-69,521,666
 Total Bases in view: 36

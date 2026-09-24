@@ -1,6 +1,6 @@
 GNG7
 
-- Min e max do jaspar abaixo:
+- Min and max of JASPAR below:
 hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
  	Position: chr19:2,567,325-2,567,359
 Total Bases in view: 35

@@ -1,11 +1,11 @@
 ﻿Locus / Gene,Coordinates & STR Structure,Exp. Het. & RM Div.,cCRE ID & Class,DNase / ATAC Max (Min),H3K4me3 / H3K27ac / CTCF Max (Min),JARVIS & DepletionRank,Remarks
-MYOZ2,"chr4:119,134,251–119,134,306 · (TAGA)14 (1.00)",0.890 / Simple_repeat (0.0%),—,0.016 (0.010) / 0.554 (0.412),0.509 (0.349) / 1.149 (0.451) / 0.635 (0.454),—,"Intergenico; sem cCRE, JARVIS ou DepletionRank anotados"
-ROBO2,"chr3:76,185,196–76,185,262 · (AT)10 (1.00) + (AC)4 (1.00)",0.889 / 0.702 · Simple_repeat (20.9%),—,"Pulmão: 0.012 (0.010) / 0.387 (0.378)
-Cérebro: 0.004 (0.003) / 0.590 (0.292)","Pulmão: 0.231 (0.129) / 0.286 (0.244) / 0.307 (0.270)
-Cérebro: 0.301 (0.270) / 0.242 (0.220) / 0.568 (0.489)",—,Expresso em pulmão e cérebro; dois STRs adjacentes fundidos em uma única anotação RM; Del=3.0%
+MYOZ2,"chr4:119,134,251–119,134,306 · (TAGA)14 (1.00)",0.890 / Simple_repeat (0.0%),—,0.016 (0.010) / 0.554 (0.412),0.509 (0.349) / 1.149 (0.451) / 0.635 (0.454),—,"Intergenic; no cCRE, JARVIS, or DepletionRank annotations"
+ROBO2,"chr3:76,185,196–76,185,262 · (AT)10 (1.00) + (AC)4 (1.00)",0.889 / 0.702 · Simple_repeat (20.9%),—,"Lung: 0.012 (0.010) / 0.387 (0.378)
+Brain: 0.004 (0.003) / 0.590 (0.292)","Lung: 0.231 (0.129) / 0.286 (0.244) / 0.307 (0.270)
+Brain: 0.301 (0.270) / 0.242 (0.220) / 0.568 (0.489)",—,Expressed in lung and brain; two adjacent STRs merged into a single RM annotation; Del=3.0%
 CAMK4 / DRAIC,"chr15:69,521,636–69,521,663 · (TG)14 (1.00)",0.766 / Simple_repeat (0.0%),—,"CAMK4: 0.043 (0.041) / 0.926 (0.818)
 DRAIC: 0.052 (0.050) / 1.465 (1.187)","CAMK4: 0.155 (0.133) / 0.511 (0.317) / 0.635 (0.632)
 DRAIC: 0.444 (0.317) / 0.242 (0.195) / 0.290 (0.252)","CAMK4: 0.988 (1.4766e-07)
-DRAIC: 0.988 (1.511e-07)",Mesma coordenada de STR compartilhada entre os dois genes; intergenico
-GNG7,"chr19:2,567,332–2,567,351 · (TG)10 (1.00)",0.834 / Simple_repeat (0.0%),EH38E3282576 · Distal enhancer (dCRE),0.070 (0.063) / 1.390 (1.266),0.647 (0.561) / 4.202 (3.601) / 0.510 (0.425),0.557 (8.93417e-07),"Intrônico; AluJb (SINE) adjacente (chr19:2,567,350–2,567,625; Div=13.8%); RM Del=4.2%"
-ST6GALNAC3,"chr1:76,143,393–76,143,424 · (GT)16 (1.00)",0.744 / Simple_repeat (0.0%),EH38E1359912 · Distal enhancer (dCRE),0.035 (0.035) / 0.676 (0.555),0.162 (0.148) / 0.336 (0.310) / 0.823 (0.539),0.931 ± 0.015 (DepletionRank),Intrônico; cCRE sobrepõe diretamente o STR
+DRAIC: 0.988 (1.511e-07)",Same STR coordinate shared between the two genes; intergenic
+GNG7,"chr19:2,567,332–2,567,351 · (TG)10 (1.00)",0.834 / Simple_repeat (0.0%),EH38E3282576 · Distal enhancer (dCRE),0.070 (0.063) / 1.390 (1.266),0.647 (0.561) / 4.202 (3.601) / 0.510 (0.425),0.557 (8.93417e-07),"Intronic; AluJb (SINE) adjacent (chr19:2,567,350–2,567,625; Div=13.8%); RM Del=4.2%"
+ST6GALNAC3,"chr1:76,143,393–76,143,424 · (GT)16 (1.00)",0.744 / Simple_repeat (0.0%),EH38E1359912 · Distal enhancer (dCRE),0.035 (0.035) / 0.676 (0.555),0.162 (0.148) / 0.336 (0.310) / 0.823 (0.539),0.931 ± 0.015 (DepletionRank),Intronic; the cCRE directly overlaps the STR

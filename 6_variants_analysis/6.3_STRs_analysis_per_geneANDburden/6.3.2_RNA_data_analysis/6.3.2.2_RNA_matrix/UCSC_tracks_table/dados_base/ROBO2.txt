@@ -1,6 +1,6 @@
 ROBO2
 
-Atenção que tem expressão no pulmão e cérebro, salvei imagem com ambos e só pulmão
+Note that it is expressed in the lung and brain; I saved images of both [tissues] and lung only.
 
 - hg38 Human: TRExplorer V2 Tandem Repeat Catalog (ATx10)
  	

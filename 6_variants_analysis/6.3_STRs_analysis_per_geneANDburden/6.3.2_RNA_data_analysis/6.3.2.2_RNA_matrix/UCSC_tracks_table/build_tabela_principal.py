@@ -308,12 +308,10 @@ def build_dataframe(csv_path, variant_map):
 # MODULE: build_gt
 # ─────────────────────────────────────────────────────────────────────────────
 def build_gt(df):
-    n_genes = df["Gene"].nunique()
     return (
         GT(df, id="tabela_ucsc")
         .tab_header(
             title=html("<strong>Epigenetic and genomic landscape of STRs outliers in genes related to COVID-19</strong>"),
-            subtitle=html(f"{n_genes} STR outlier genes with UCSC, TRExplorer, and ENCODE annotations"),
         )
         .tab_spanner(
             label=html("<strong>Genomic Location</strong>"),
@@ -379,7 +377,6 @@ def build_gt(df):
             table_width="100%",
             heading_align="center",
             heading_title_font_size="16px",
-            heading_subtitle_font_size="12px",
             column_labels_font_weight="bold",
             column_labels_border_top_style="solid",
             column_labels_border_bottom_style="solid",
