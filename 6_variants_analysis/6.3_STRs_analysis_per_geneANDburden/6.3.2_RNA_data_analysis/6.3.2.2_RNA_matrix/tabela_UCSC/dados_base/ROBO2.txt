@@ -1,0 +1,70 @@
+ROBO2
+
+Atenção que tem expressão no pulmão e cérebro, salvei imagem com ambos e só pulmão
+
+- hg38 Human: TRExplorer V2 Tandem Repeat Catalog (ATx10)
+ 	
+Item: ATx10
+Score: 1000
+Position: chr3:76185196-76185215
+Band: 3p12.3
+Genomic Size: 20
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	3-76185195-76185215-AT
+Full repeat motif in reference orientation	AT
+Canonical form of the repeat motif	AT
+Length of repeat unit in bp	2
+Number of repeat copies in reference	10
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	20
+Data source catalog	TRExplorerV1:Illumina174kPolymorphicTRs
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intergenic
+Gene name	
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.889
+
+- 	
+Item: ACx4
+Score: 1000
+Position: chr3:76185216-76185224
+Band: 3p12.3
+Genomic Size: 9
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	3-76185215-76185224-AC
+Full repeat motif in reference orientation	AC
+Canonical form of the repeat motif	AC
+Length of repeat unit in bp	2
+Number of repeat copies in reference	4
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	9
+Data source catalog	TRExplorerV1:PerfectRepeatsInReference
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intergenic
+Gene name	
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.702
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (AT)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 29
+Divergence: 20.9%
+Deletions: 3.0%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 69
+Left in repeat: 0
+Position: chr3:76185196-76185262
+Band: 3p12.3
+Genomic Size: 67
+Strand: +
+View DNA for this feature (hg38/Human)
+Related tracks

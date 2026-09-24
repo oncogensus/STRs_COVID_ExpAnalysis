@@ -1,0 +1,237 @@
+<div id="tabela_ucsc" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>
+#tabela_ucsc table {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+#tabela_ucsc thead, tbody, tfoot, tr, td, th { border-style: none; }
+ tr { background-color: transparent; }
+#tabela_ucsc p { margin: 0; padding: 0; }
+ #tabela_ucsc .gt_table { display: table; border-collapse: collapse; line-height: normal; margin-left: auto; margin-right: auto; color: #333333; font-size: 13px; font-weight: normal; font-style: normal; background-color: #FFFFFF; width: 100%; border-top-style: solid; border-top-width: 2px; border-top-color: #A8A8A8; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #A8A8A8; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; }
+ #tabela_ucsc .gt_caption { padding-top: 4px; padding-bottom: 4px; }
+ #tabela_ucsc .gt_title { color: #333333; font-size: 16px; font-weight: initial; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; border-bottom-color: #FFFFFF; border-bottom-width: 0; }
+ #tabela_ucsc .gt_subtitle { color: #333333; font-size: 12px; font-weight: initial; padding-top: 3px; padding-bottom: 5px; padding-left: 5px; padding-right: 5px; border-top-color: #FFFFFF; border-top-width: 0; }
+ #tabela_ucsc .gt_heading { background-color: #FFFFFF; text-align: center; border-bottom-color: #FFFFFF; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; }
+ #tabela_ucsc .gt_bottom_border { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #tabela_ucsc .gt_col_headings { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; }
+ #tabela_ucsc .gt_col_heading { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: bold; text-transform: inherit; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: bottom; padding-top: 5px; padding-bottom: 5px; padding-left: 5px; padding-right: 5px; overflow-x: hidden; }
+ #tabela_ucsc .gt_column_spanner_outer { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: bold; text-transform: inherit; padding-top: 0; padding-bottom: 0; padding-left: 4px; padding-right: 4px; }
+ #tabela_ucsc .gt_column_spanner_outer:first-child { padding-left: 0; }
+ #tabela_ucsc .gt_column_spanner_outer:last-child { padding-right: 0; }
+ #tabela_ucsc .gt_column_spanner { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; vertical-align: bottom; padding-top: 5px; padding-bottom: 5px; overflow-x: hidden; display: inline-block; width: 100%; }
+ #tabela_ucsc .gt_spanner_row { border-bottom-style: hidden; }
+ #tabela_ucsc .gt_group_heading { padding-top: 6px; padding-bottom: 6px; padding-left: 5px; padding-right: 5px; color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; text-align: left; }
+ #tabela_ucsc .gt_empty_group_heading { padding: 0.5px; color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; vertical-align: middle; }
+ #tabela_ucsc .gt_from_md> :first-child { margin-top: 0; }
+ #tabela_ucsc .gt_from_md> :last-child { margin-bottom: 0; }
+ #tabela_ucsc .gt_row { padding-top: 5px; padding-bottom: 5px; padding-left: 5px; padding-right: 5px; margin: 10px; border-top-style: solid; border-top-width: 1px; border-top-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; overflow-x: hidden; }
+ #tabela_ucsc .gt_stub { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-right-style: solid; border-right-width: 2px; border-right-color: #D3D3D3; padding-left: 5px; padding-right: 5px; }
+ #tabela_ucsc .gt_indent_1 { text-indent: 5px; }
+ #tabela_ucsc .gt_indent_2 { text-indent: calc(5px * 2); }
+ #tabela_ucsc .gt_indent_3 { text-indent: calc(5px * 3); }
+ #tabela_ucsc .gt_indent_4 { text-indent: calc(5px * 4); }
+ #tabela_ucsc .gt_indent_5 { text-indent: calc(5px * 5); }
+ #tabela_ucsc .gt_stub_row_group { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-right-style: solid; border-right-width: 2px; border-right-color: #D3D3D3; padding-left: 5px; padding-right: 5px; vertical-align: top; }
+ #tabela_ucsc .gt_row_group_first td { border-top-width: 2px; }
+ #tabela_ucsc .gt_row_group_first th { border-top-width: 2px; }
+ #tabela_ucsc .gt_striped { color: #333333; background-color: #F4F4F4; }
+ #tabela_ucsc .gt_table_body { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #tabela_ucsc .gt_summary_row { color: #333333; background-color: #FFFFFF; text-transform: inherit; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; }
+ #tabela_ucsc .gt_first_summary_row { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; }
+ #tabela_ucsc .gt_last_summary_row_top { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #tabela_ucsc .gt_grand_summary_row { color: #333333; background-color: #FFFFFF; text-transform: inherit; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; }
+ #tabela_ucsc .gt_first_grand_summary_row_bottom { border-top-style: double; border-top-width: 6px; border-top-color: #D3D3D3; }
+ #tabela_ucsc .gt_last_grand_summary_row_top { border-bottom-style: double; border-bottom-width: 6px; border-bottom-color: #D3D3D3; }
+ #tabela_ucsc .gt_sourcenotes { color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #tabela_ucsc .gt_sourcenote { font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; text-align: left; }
+ #tabela_ucsc .gt_left { text-align: left; }
+ #tabela_ucsc .gt_center { text-align: center; }
+ #tabela_ucsc .gt_right { text-align: right; font-variant-numeric: tabular-nums; }
+ #tabela_ucsc .gt_font_normal { font-weight: normal; }
+ #tabela_ucsc .gt_font_bold { font-weight: bold; }
+ #tabela_ucsc .gt_font_italic { font-style: italic; }
+ #tabela_ucsc .gt_super { font-size: 65%; }
+ #tabela_ucsc .gt_footnotes { color: font-color(#FFFFFF); background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #tabela_ucsc .gt_footnote { margin: 0px; font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; }
+ #tabela_ucsc .gt_sourcenotes { color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #tabela_ucsc .gt_sourcenote { font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; text-align: left; }
+ #tabela_ucsc .gt_footnote_marks { font-size: 75%; vertical-align: 0.4em; position: initial; }
+ #tabela_ucsc .gt_asterisk { font-size: 100%; vertical-align: 0; }
+ 
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+
+  <tr class="gt_heading">
+    <td colspan="19" class="gt_heading gt_title gt_font_normal"><strong>Epigenetic and genomic landscape of STRs outliers in genes related to COVID-19</strong></td>
+  </tr>
+  <tr class="gt_heading">
+    <td colspan="19" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">6 STR outlier genes with UCSC, TRExplorer, and ENCODE annotations</td>
+  </tr>
+<tr class="gt_col_headings gt_spanner_row">
+  <th class="gt_center gt_columns_top_border gt_column_spanner_outer" rowspan="1" colspan="5" scope="colgroup" id="tabela_ucsc-&lt;strong&gt;Genomic-Location&lt;/strong&gt;">
+    <span class="gt_column_spanner"><strong>Genomic Location</strong></span>
+  </th>
+  <th class="gt_center gt_columns_top_border gt_column_spanner_outer" rowspan="1" colspan="3" scope="colgroup" id="tabela_ucsc-&lt;strong&gt;TRExplorer&lt;/strong&gt;">
+    <span class="gt_column_spanner"><strong>TRExplorer</strong></span>
+  </th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-RepeatMasker">RepeatMasker<sup>b</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-cCRE">cCRE Identity<sup>c</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-GeneHancer_ID">GeneHancer ID<sup>g</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-GeneHancer_Score">Score (Value)<sup>g</sup></th>
+  <th class="gt_center gt_columns_top_border gt_column_spanner_outer" rowspan="1" colspan="5" scope="colgroup" id="tabela_ucsc-&lt;strong&gt;ENCODE&lt;sup&gt;d&lt;/sup&gt;&lt;/strong&gt;">
+    <span class="gt_column_spanner"><strong>ENCODE<sup>d</sup></strong></span>
+  </th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-JARVIS">JARVIS<sup>e</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="2" colspan="1" scope="col" id="tabela_ucsc-DepletionRank">DepletionRank<sup>f</sup></th>
+</tr>
+<tr class="gt_col_headings">
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Gene">Gene</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Region">Region</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Chr">Chr</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Start">Start</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Motif">Motif</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Motif_Ext">Motif + Ext.<sup>a</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-Purity">Purity<sup>a</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-ExpHet">Exp. Het<sup>a</sup></th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-DNase">DNase Max</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-ATAC">ATAC Max</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-H3K4me3">H3K4me3</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-H3K27ac">H3K27ac</th>
+  <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="tabela_ucsc-CTCF">CTCF</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+  <tr>
+    <td class="gt_row gt_left">MYOZ2</td>
+    <td class="gt_row gt_left">Promoter</td>
+    <td class="gt_row gt_right">4</td>
+    <td class="gt_row gt_right">119134256</td>
+    <td class="gt_row gt_left">AGAT</td>
+    <td class="gt_row gt_left">(TAGA)14</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.890</td>
+    <td class="gt_row gt_left">Simple repeat (0.0%)</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">0.010 - 0.016</td>
+    <td class="gt_row gt_left">0.412 - 0.554</td>
+    <td class="gt_row gt_left">0.349 - 0.509</td>
+    <td class="gt_row gt_left">0.451 - 1.149</td>
+    <td class="gt_row gt_left">0.454 - 0.635</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+  </tr>
+  <tr>
+    <td class="gt_row gt_left">ROBO2</td>
+    <td class="gt_row gt_left">Intron</td>
+    <td class="gt_row gt_right">3</td>
+    <td class="gt_row gt_right">76185195</td>
+    <td class="gt_row gt_left">AT</td>
+    <td class="gt_row gt_left">(AT)10 / (AC)4</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.889 / 0.702</td>
+    <td class="gt_row gt_left">Simple repeat (20.9%)</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">(Lung) 0.010 - 0.012 / (Brain) 0.003 - 0.004</td>
+    <td class="gt_row gt_left">(Lung) 0.378 - 0.387 / (Brain) 0.292 - 0.590</td>
+    <td class="gt_row gt_left">(Lung) 0.129 - 0.231 / (Brain) 0.270 - 0.301</td>
+    <td class="gt_row gt_left">(Lung) 0.244 - 0.286 / (Brain) 0.220 - 0.242</td>
+    <td class="gt_row gt_left">(Lung) 0.270 - 0.307 / (Brain) 0.489 - 0.568</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+  </tr>
+  <tr>
+    <td class="gt_row gt_left">CAMK4</td>
+    <td class="gt_row gt_left">3′ UTR</td>
+    <td class="gt_row gt_right">5</td>
+    <td class="gt_row gt_right">111486500</td>
+    <td class="gt_row gt_left">AC</td>
+    <td class="gt_row gt_left">(TG)14</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.766</td>
+    <td class="gt_row gt_left">Simple repeat (0.0%)</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">0.041 - 0.043</td>
+    <td class="gt_row gt_left">0.818 - 0.926</td>
+    <td class="gt_row gt_left">0.133 - 0.155</td>
+    <td class="gt_row gt_left">0.317 - 0.511</td>
+    <td class="gt_row gt_left">0.632 - 0.635</td>
+    <td class="gt_row gt_left">1.4766e-07 - 0.988</td>
+    <td class="gt_row gt_left">—</td>
+  </tr>
+  <tr>
+    <td class="gt_row gt_left">DRAIC</td>
+    <td class="gt_row gt_left">lncRNA</td>
+    <td class="gt_row gt_right">15</td>
+    <td class="gt_row gt_right">69521635</td>
+    <td class="gt_row gt_left">GT</td>
+    <td class="gt_row gt_left">(TG)14</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.766</td>
+    <td class="gt_row gt_left">Simple repeat (0.0%)</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">0.050 - 0.052</td>
+    <td class="gt_row gt_left">1.187 - 1.465</td>
+    <td class="gt_row gt_left">0.317 - 0.444</td>
+    <td class="gt_row gt_left">0.195 - 0.242</td>
+    <td class="gt_row gt_left">0.252 - 0.290</td>
+    <td class="gt_row gt_left">1.511e-07 - 0.988</td>
+    <td class="gt_row gt_left">—</td>
+  </tr>
+  <tr>
+    <td class="gt_row gt_left">GNG7</td>
+    <td class="gt_row gt_left">Intron</td>
+    <td class="gt_row gt_right">19</td>
+    <td class="gt_row gt_right">2567331</td>
+    <td class="gt_row gt_left">GT</td>
+    <td class="gt_row gt_left">(TG)10</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.834</td>
+    <td class="gt_row gt_left">Simple repeat (0.0%)</td>
+    <td class="gt_row gt_left">EH38E3282576 · Distal enhancer (dCRE)</td>
+    <td class="gt_row gt_left">GH19J002518 / GH19J002522 / GH19J002539</td>
+    <td class="gt_row gt_left">4 (5.640) / 5 (9.320) / 2 (2.360)</td>
+    <td class="gt_row gt_left">0.063 - 0.070</td>
+    <td class="gt_row gt_left">1.266 - 1.390</td>
+    <td class="gt_row gt_left">0.561 - 0.647</td>
+    <td class="gt_row gt_left">3.601 - 4.202</td>
+    <td class="gt_row gt_left">0.425 - 0.510</td>
+    <td class="gt_row gt_left">8.93417e-07 - 0.557</td>
+    <td class="gt_row gt_left">—</td>
+  </tr>
+  <tr>
+    <td class="gt_row gt_left">ST6GALNAC3</td>
+    <td class="gt_row gt_left">Intron</td>
+    <td class="gt_row gt_right">1</td>
+    <td class="gt_row gt_right">76143392</td>
+    <td class="gt_row gt_left">GT</td>
+    <td class="gt_row gt_left">(GT)16</td>
+    <td class="gt_row gt_right">(1.00)</td>
+    <td class="gt_row gt_right">0.744</td>
+    <td class="gt_row gt_left">Simple repeat (0.0%)</td>
+    <td class="gt_row gt_left">EH38E1359912 · Distal enhancer (dCRE)</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">0.035 - 0.035</td>
+    <td class="gt_row gt_left">0.555 - 0.676</td>
+    <td class="gt_row gt_left">0.148 - 0.162</td>
+    <td class="gt_row gt_left">0.310 - 0.336</td>
+    <td class="gt_row gt_left">0.539 - 0.823</td>
+    <td class="gt_row gt_left">—</td>
+    <td class="gt_row gt_left">0.931 ± 0.015</td>
+  </tr>
+</tbody>
+<tfoot><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>a</sup> TRExplorer: motif + extension length (repeat copies), repeat purity index (fractional sequence perfection; 1.00 = 100% pure), and expected heterozygosity derived from the TRExplorer Illumina 174k polymorphic dataset.</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>b</sup> RepeatMasker: repeat class and divergence from the RepeatMasker annotation.</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>c</sup> cCRE Identity: candidate cis-Regulatory Element class from ENCODE4 (dCRE = distal enhancer).</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>d</sup> ENCODE signal values are tissue-specific, reflecting the tissue in which differential expression was identified in RNA-seq analysis.</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>e</sup> JARVIS: Junk Region Variation Impact Score, reported as Maximum – Minimum impact values across tracks overlapping the variant.</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>f</sup> DepletionRank: UK Biobank / deCODE Genetics depletion rank score (Mean ± SD across evaluated bases).</span></td></tr><tr class="gt_sourcenotes"><td class="gt_sourcenote" colspan="19"><span class="gt_from_md"><sup>g</sup> GeneHancer: regulatory element–gene interactions (Double Elite) from GeneCards. ID = GeneHancer identifier; Score = interaction confidence; Value = interaction strength metric.</span></td></tr></tfoot>
+</table>
+
+</div>

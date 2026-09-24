@@ -1,0 +1,67 @@
+ST6GALNAC3
+
+- hg38 Human: UK Biobank / deCODE Genetics Depletion Rank Score (ukbDepletion)
+ 	Position: chr1:76,143,388-76,143,426
+Total Bases in view: 39
+Statistics on: 2 items covering 39 bases (100.00% coverage)
+Average item spans 19.50 bases. Minimum span 1 maximum span 38
+Average value 0.931044 min 0.920368 max 0.941719 standard deviation 0.0150974
+
+- hg38 Human: TRExplorer V2 Tandem Repeat Catalog (GTx16)
+ 	
+Item: GTx16
+Score: 1000
+Position: chr1:76143393-76143424
+Band: 1p31.1
+Genomic Size: 32
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	1-76143392-76143424-GT
+Full repeat motif in reference orientation	GT
+Canonical form of the repeat motif	AC
+Length of repeat unit in bp	2
+Number of repeat copies in reference	16
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	32
+Data source catalog	TRExplorerV1:Illumina174kPolymorphicTRs
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intron
+Gene name	ST6GALNAC3
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.744
+
+- hg38 Human: ENCODE4 Registry of candidate Cis-Regulatory Elements (cCREs) (EH38E1359912)
+ 	
+cCRE details on SCREEN: EH38E1359912
+Item: EH38E1359912
+Score: 0
+Position: chr1:76143236-76143446
+Band: 1p31.1
+Genomic Size: 211
+View DNA for this feature (hg38/Human)
+
+cCRE class	Distal enhancer
+DNase Max Z-score	2.99
+H3K4me3 Max Z-score	1.60
+H3K27ac Max Z-score	1.88
+CTCF Max Z-score	1.44
+
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (GT)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 37
+Divergence: 0.0%
+Deletions: 0.0%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 32
+Left in repeat: 0
+Position: chr1:76143393-76143424
+Band: 1p31.1
+Genomic Size: 32
+Strand: +

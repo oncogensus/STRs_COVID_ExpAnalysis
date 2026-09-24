@@ -1,0 +1,79 @@
+DRAIC
+
+- Valores de JARVIS, min - max abaixo:
+hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
+ 	Position: chr15:69,521,633-69,521,664
+Total Bases in view: 32
+Statistics on: 32 items covering 32 bases (100.00% coverage)
+Average item spans 1.00 bases.
+Average value 0.278842 min 1.511e-07 max 0.988406 standard deviation 0.379699
+Related tracks
+
+hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
+ 	Position: chr15:69,521,633-69,521,664
+Total Bases in view: 32
+Statistics on: 32 items covering 32 bases (100.00% coverage)
+Average item spans 1.00 bases.
+Average value 0.278842 min 1.511e-07 max 0.988406 standard deviation 0.379699
+Related tracks
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (TG)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 33
+Divergence: 0.0%
+Deletions: 0.0%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 28
+Left in repeat: 0
+Position: chr15:69521636-69521663
+Band: 15q23
+Genomic Size: 28
+Strand: +
+
+- hg38 Human: TRExplorer V2 Tandem Repeat Catalog (TGx14)
+ 	
+Item: TGx14
+Score: 1000
+Position: chr15:69521636-69521663
+Band: 15q23
+Genomic Size: 28
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	15-69521635-69521663-TG
+Full repeat motif in reference orientation	TG
+Canonical form of the repeat motif	AC
+Length of repeat unit in bp	2
+Number of repeat copies in reference	14
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	28
+Data source catalog	TRExplorerV1:PerfectRepeatsInReference
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intergenic
+Gene name	
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.766
+
+- 
+hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (TG)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 33
+Divergence: 0.0%
+Deletions: 0.0%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 28
+Left in repeat: 0
+Position: chr15:69521636-69521663
+Band: 15q23
+Genomic Size: 28
+Strand: +

@@ -1,0 +1,97 @@
+GNG7
+
+- Min e max do jaspar abaixo:
+hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
+ 	Position: chr19:2,567,325-2,567,359
+Total Bases in view: 35
+Statistics on: 35 items covering 35 bases (100.00% coverage)
+Average item spans 1.00 bases.
+Average value 0.0395972 min 8.93417e-07 max 0.557241 standard deviation 0.110049
+Related tracks
+
+hg38 Human: JARVIS: score to prioritize non-coding regions for disease relevance (jarvis)
+ 	Position: chr19:2,567,325-2,567,359
+Total Bases in view: 35
+Statistics on: 35 items covering 35 bases (100.00% coverage)
+Average item spans 1.00 bases.
+Average value 0.0395972 min 8.93417e-07 max 0.557241 standard deviation 0.110049
+Related tracks
+
+- hg38 Human: TRExplorer V2 Tandem Repeat Catalog (TGx10)
+ 	
+Item: TGx10
+Score: 1000
+Position: chr19:2567332-2567351
+Band: 19p13.3
+Genomic Size: 20
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	19-2567331-2567351-TG
+Full repeat motif in reference orientation	TG
+Canonical form of the repeat motif	AC
+Length of repeat unit in bp	2
+Number of repeat copies in reference	10
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	20
+Data source catalog	TRExplorerV1:Illumina174kPolymorphicTRs
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intron
+Gene name	GNG7
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.834
+
+
+- hg38 Human: ENCODE4 Registry of candidate Cis-Regulatory Elements (cCREs) (EH38E3282576)
+ 	
+cCRE details on SCREEN: EH38E3282576
+Item: EH38E3282576
+Score: 0
+Position: chr19:2567121-2567371
+Band: 19p13.3
+Genomic Size: 251
+View DNA for this feature (hg38/Human)
+
+cCRE class	Distal enhancer
+DNase Max Z-score	3.03
+H3K4me3 Max Z-score	1.85
+H3K27ac Max Z-score	3.39
+CTCF Max Z-score	1.26
+
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: AluJb (link requires registration)
+Family: Alu
+Class: SINE
+SW Score: 1804
+Divergence: 13.8%
+Deletions: 3.2%
+Insertions: 0.7%
+Begin in repeat: 1
+End in repeat: 283
+Left in repeat: 29
+Position: chr19:2567350-2567625
+Band: 19p13.3
+Genomic Size: 276
+Strand: -
+
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (TG)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 17
+Divergence: 0.0%
+Deletions: 4.2%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 18
+Left in repeat: 0
+Position: chr19:2567332-2567349
+Band: 19p13.3
+Genomic Size: 18
+Strand: +

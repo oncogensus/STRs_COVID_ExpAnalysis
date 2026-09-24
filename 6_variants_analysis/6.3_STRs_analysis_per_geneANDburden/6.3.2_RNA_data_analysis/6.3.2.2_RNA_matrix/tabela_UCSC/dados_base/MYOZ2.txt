@@ -1,0 +1,44 @@
+MYOZ2
+
+- hg38 Human: TRExplorer V2 Tandem Repeat Catalog (TAGAx14)
+ 	
+Item: TAGAx14
+Score: 1000
+Position: chr4:119134251-119134306
+Band: 4q26
+Genomic Size: 56
+View DNA for this feature (hg38/Human)
+
+Unique locus identifier	4-119134250-119134306-TAGA
+Full repeat motif in reference orientation	TAGA
+Canonical form of the repeat motif	AGAT
+Length of repeat unit in bp	4
+Number of repeat copies in reference	14
+Repeat purity (0-1)	1.000
+Size of repeat region in bp	56
+Data source catalog	TRExplorerV1:Illumina174kPolymorphicTRs
+Known disease-associated locus name, if any	
+Known disease-associated motif, if any	
+Gene region annotation (exon, intron, promoter, intergenic)	intergenic
+Gene name	
+Expected heterozygosity
+1 - sum(p_i^2) pooled across TenK10K and HPRC256 cohorts	0.89
+
+
+- hg38 Repeat
+ 	
+RepeatMasker Information
+Name: (TAGA)n (link requires registration)
+Family: Simple_repeat
+Class: Simple_repeat
+SW Score: 63
+Divergence: 0.0%
+Deletions: 0.0%
+Insertions: 0.0%
+Begin in repeat: 1
+End in repeat: 56
+Left in repeat: 0
+Position: chr4:119134251-119134306
+Band: 4q26
+Genomic Size: 56
+Strand: +
