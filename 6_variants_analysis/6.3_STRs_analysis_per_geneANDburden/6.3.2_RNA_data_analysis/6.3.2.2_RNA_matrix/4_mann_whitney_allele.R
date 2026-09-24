@@ -278,10 +278,6 @@ out_gt <- tbl %>%
     locations = cells_column_spanners()
   ) %>%
   tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = Gene)
-  ) %>%
-  tab_style(
     style = cell_text(weight = "bold", size = px(20)),
     locations = cells_body(columns = Sig, rows = Sig != "")
   ) %>%
