@@ -96,9 +96,7 @@ gt_tbl <- tab %>%
     Range = "Range"
   ) %>%
   tab_header(
-    title = md("**Genomic coverage of STR loci**"),
-    subtitle = paste0("Global summary across ", fmt_int(g$n_patients),
-                      " patients (post-STRling QC)")
+    title = md("**Genomic coverage of STR loci**")
   ) %>%
   tab_spanner(
     label = "Per patient",
