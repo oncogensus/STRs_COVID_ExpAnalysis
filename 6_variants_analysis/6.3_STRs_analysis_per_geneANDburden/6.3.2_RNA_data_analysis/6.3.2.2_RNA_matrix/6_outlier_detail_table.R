@@ -62,7 +62,7 @@ if (length(db_cols) > 0) {
 # ==========================================
 intervention_labels <- c(
   "GSE183533:COVID_vs_CONTROL"    = "Fatal COVID-19 vs. Controls",
-  "GSE188847:COVID_vs_CONTROL"    = "Non-Survivors vs. Controls",
+  "GSE188847:COVID_vs_CONTROL"    = "Fatal COVID-19 vs. Controls",
   "GSE157103:COVID_ICU_vs_NonICU" = "ICU vs. Non-Critical",
   "GSE157103:HFD45_ajustado_ICU"  = "ICU-Adjusted HFD45",
   "GSE188847:ICUVENT_vs_CONTROL"  = "IMV vs. Controls"
@@ -101,7 +101,7 @@ region_labels <- c(
   "exon"             = "Exon",
   "non_coding_exons" = "Non-coding exon",
   "intergenic"       = "Intergenic",
-  "others"           = "Other"
+  "others"           = "Non-Coding elements"
 )
 dt[, region := fifelse(region %in% names(region_labels),
                        region_labels[region], region)]
@@ -200,9 +200,7 @@ cat("\nGerando tabela gt...\n")
 out_gt <- tbl %>%
   gt(groupname_col = "Group") %>%
   tab_header(
-    title = md("**DBSCAN Outlier Loci in RNA-Seq DEGs**"),
-    subtitle = sprintf("%d outlier STR loci across %d comparisons and %d genes",
-                       n_strs, n_comparisons, n_genes)
+    title = md("**DBSCAN Outliers Loci in RNA-Seq DEGs**"),
   ) %>%
   tab_spanner(
     label = "Genomic Location",
