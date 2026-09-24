@@ -124,8 +124,6 @@ if (!is.null(path_others_csv) && file.exists(path_others_csv)) {
 
 # Aggregate by STR_ID: one row per unique STR per GSE × Comparison
 tbl <- dt[, .(
-  GSE = first(gse),
-  Comparison = first(Comparison),
   Gene = first(gene_name),
   Region = first(region),
   Chrom = first(chrom),
