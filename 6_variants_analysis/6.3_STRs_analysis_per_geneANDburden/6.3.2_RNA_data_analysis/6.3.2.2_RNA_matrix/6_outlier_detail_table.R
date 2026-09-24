@@ -217,7 +217,7 @@ out_gt <- tbl %>%
     columns = c(Allele_2_Control_Med, Allele_2_Control_Min, Allele_2_Control_Max)
   ) %>%
   tab_spanner(
-    label = md("Depth (median/min/max)^a^"),
+    label = md("Depth^a^"),
     columns = c(Depth_Med, Depth_Min, Depth_Max)
   ) %>%
   tab_spanner(
