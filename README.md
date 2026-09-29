@@ -173,13 +173,8 @@ Additional environments used along the pipeline (`r_viz`, `r_enrich_env`, `dbsca
 5. Global DBSCAN Analysis (`5_global_dbscan`)
 6. Variant Analysis (`6_variants_analysis`)
    - 6.1 Dataset Integration (`6.1_merge_datasets/`)
-   - 6.2 Descriptive Analysis & Genome Visualization (`6.2_desc_data_viz/`)
+   - 6.2 Descriptive Analysis & Visualization (`6.2_desc_data_viz/`)
    - 6.3 Per-STR Analysis (`6.3_STRs_analysis_per_geneANDburden/`)
-     - 6.3.1 Pre-processing (`6.3.1_pre_processing/`)
-     - 6.3.2 RNA-seq Analysis (`6.3.2_RNA_data_analysis/`)
-       - 6.3.2.1 Descriptive Analysis (`compare_gwas_rna.R`)
-       - 6.3.2.2 Per-intervention DEG x STR (`6.3.2.2_RNA_matrix/`)
-     - 6.3.4 IGV per variant (`6.3.4_igv_per_variant/`)
    - 6.5 Ancestry Analysis (`6.5_ancestry_analysis/`)
 
 ## Output Structure
