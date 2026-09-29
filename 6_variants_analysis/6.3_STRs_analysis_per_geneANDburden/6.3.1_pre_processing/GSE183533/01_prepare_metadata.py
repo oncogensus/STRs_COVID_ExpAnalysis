@@ -4,7 +4,7 @@ import gzip
 import os
 import re
 
-# CONFIGURAÇÃO
+# CONFIGURATION
 
 GSE = "GSE183533"
 
@@ -20,28 +20,28 @@ URL = (
 # DOWNLOAD
 
 print("=" * 75)
-print("METADADOS OFICIAIS - GSE183533")
+print("OFFICIAL METADATA - GSE183533")
 print("=" * 75)
 
 arquivo_gz = f"{OUTDIR}/GSE183533_series_matrix.txt.gz"
 
-print("\nBaixando arquivo do GEO...")
+print("\nDownloading file from GEO...")
 
 r = requests.get(URL, timeout=120)
 
 if r.status_code != 200:
     raise RuntimeError(
-        f"Erro ao baixar arquivo: HTTP {r.status_code}"
+        f"Error downloading file: HTTP {r.status_code}"
     )
 
 with open(arquivo_gz, "wb") as f:
     f.write(r.content)
 
-print("Download concluído.")
+print("Download finished.")
 
-# LER SERIES MATRIX
+# READ SERIES MATRIX
 
-print("\nLendo metadados...")
+print("\nReading metadata...")
 
 metadata = {}
 
@@ -71,9 +71,9 @@ with gzip.open(
         metadata[campo] = valores
 
 
-# VERIFICAR CAMPOS
+# CHECK FIELDS
 
-print("\nCampos encontrados:")
+print("\nFields found:")
 
 for campo in metadata.keys():
     print(" -", campo)
@@ -84,20 +84,20 @@ gsm = metadata.get("!Sample_geo_accession", [])
 
 if len(gsm) == 0:
     raise RuntimeError(
-        "Nenhum GSM encontrado no Series Matrix."
+        "No GSM found in the Series Matrix."
     )
 
 print(
-    f"\nNúmero de amostras no GEO: {len(gsm)}"
+    f"\nNumber of samples in GEO: {len(gsm)}"
 )
 
-# CRIAR DATAFRAME
+# CREATE DATAFRAME
 
 df = pd.DataFrame({
     "GSM": gsm
 })
 
-# ADICIONAR TODOS OS METADADOS
+# ADD ALL METADATA
 
 for campo, valores in metadata.items():
 
@@ -109,14 +109,14 @@ for campo, valores in metadata.items():
         ""
     )
 
-    # garantir mesmo tamanho
+    # ensure same length
     if len(valores) == len(df):
 
         df[nome] = valores
 
-# IDENTIFICAR GROUP
+# IDENTIFY GROUP
 
-print("\nIdentificando grupos...")
+print("\nIdentifying groups...")
 
 df["group"] = "UNKNOWN"
 
@@ -139,7 +139,7 @@ for i in range(len(df)):
 
         df.loc[i, "group"] = "CONTROL"
 
-# IDENTIFICAR SEXO
+# IDENTIFY SEX
 
 df["sex"] = "UNKNOWN"
 
@@ -164,7 +164,7 @@ for i in range(len(df)):
 
         df.loc[i, "sex"] = "Female"
 
-# SALVAR COMPLETO
+# SAVE FULL
 
 arquivo_completo = (
     f"{OUTDIR}/GSE183533_metadata_completo.tsv"
@@ -176,7 +176,7 @@ df.to_csv(
     index=False
 )
 
-# RESUMO
+# SUMMARY
 
 colunas_resumo = [
     "GSM",
@@ -201,24 +201,24 @@ resumo.to_csv(
     index=False
 )
 
-# RESULTADOS
+# RESULTS
 
 print("\n" + "=" * 75)
-print("RESULTADO")
+print("RESULT")
 print("=" * 75)
 
 print(
-    f"\nAmostras encontradas: {len(df)}"
+    f"\nSamples found: {len(df)}"
 )
 
-print("\nGrupos:")
+print("\nGroups:")
 
 print(
     df["group"]
     .value_counts(dropna=False)
 )
 
-print("\nSexo:")
+print("\nSex:")
 
 print(
     df["sex"]
@@ -226,13 +226,13 @@ print(
 )
 
 print(
-    f"\nArquivo completo:"
+    f"\nFull file:"
     f"\n{arquivo_completo}"
 )
 
 print(
-    f"\nArquivo resumido:"
+    f"\nSummary file:"
     f"\n{arquivo_resumo}"
 )
 
-print("\nConcluído.")
+print("\nDone.")

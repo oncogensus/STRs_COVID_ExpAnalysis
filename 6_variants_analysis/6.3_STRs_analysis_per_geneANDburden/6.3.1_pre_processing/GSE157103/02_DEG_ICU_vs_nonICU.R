@@ -1,19 +1,19 @@
 #!/usr/bin/env Rscript
 
 ############################################################
-# EXPRESSÃO DIFERENCIAL - GSE157103
+# DIFFERENTIAL EXPRESSION - GSE157103
 #
-# Comparações:
+# Comparisons:
 #   1. COVID:    ICU vs NonICU
 #   2. NONCOVID: ICU vs NonICU
 #
-# Entrada:
+# Input:
 #   Expected Counts (RSEM)
 #
-# Método:
+# Method:
 #   limma + voom
 #
-# Critérios de DEG:
+# DEG criteria:
 #   FDR < 0.05
 #   |log2FC| > 1
 ############################################################
@@ -24,13 +24,13 @@ suppressPackageStartupMessages({
 })
 
 ############################################################
-# CONFIGURAÇÕES
+# SETTINGS
 ############################################################
 
 dir.create("DEG_orientador", showWarnings = FALSE)
 
 ############################################################
-# FUNÇÃO PRINCIPAL
+# MAIN FUNCTION
 ############################################################
 
 fazer_DEG <- function(
@@ -40,21 +40,21 @@ fazer_DEG <- function(
 ) {
 
     cat("\n====================================================\n")
-    cat("ANÁLISE:", nome, "\n")
+    cat("ANALYSIS:", nome, "\n")
     cat("====================================================\n")
 
     ########################################################
-    # DIRETÓRIO
+    # DIRECTORY
     ########################################################
 
     outdir <- file.path("DEG_orientador", nome)
     dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
     ########################################################
-    # LER MATRIZ
+    # READ MATRIX
     ########################################################
 
-    cat("\nLendo matriz...\n")
+    cat("\nReading matrix...\n")
 
     con <- gzfile(matriz_file, "rt")
     expr <- read.delim(
@@ -66,10 +66,10 @@ fazer_DEG <- function(
     close(con)
 
     ########################################################
-    # LER METADATA
+    # READ METADATA
     ########################################################
 
-    cat("Lendo metadata...\n")
+    cat("Reading metadata...\n")
 
     meta <- read.delim(
         metadata_file,
@@ -79,12 +79,12 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # CONFERIR AMOSTRAS
+    # CHECK SAMPLES
     ########################################################
 
     if (!all(colnames(expr) == meta$GSM)) {
 
-        cat("\nATENÇÃO: ordem das amostras diferente!\n")
+        cat("\nWARNING: sample order differs!\n")
 
         meta <- meta[
             match(colnames(expr), meta$GSM),
@@ -95,14 +95,14 @@ fazer_DEG <- function(
     }
 
     if (!all(colnames(expr) == meta$GSM)) {
-        stop("As amostras da matriz e metadata não correspondem.")
+        stop("Matrix and metadata samples do not match.")
     }
 
-    cat("\nAmostras:", ncol(expr), "\n")
+    cat("\nSamples:", ncol(expr), "\n")
     cat("Genes:", nrow(expr), "\n")
 
     ########################################################
-    # GRUPOS
+    # GROUPS
     ########################################################
 
     meta$ICU_status <- factor(
@@ -110,11 +110,11 @@ fazer_DEG <- function(
         levels = c("NonICU", "ICU")
     )
 
-    cat("\nDistribuição dos grupos:\n")
+    cat("\nGroup distribution:\n")
     print(table(meta$ICU_status))
 
     ########################################################
-    # SALVAR CÓPIA DA MATRIZ E METADATA
+    # SAVE A COPY OF THE MATRIX AND METADATA
     ########################################################
 
     write.table(
@@ -139,17 +139,17 @@ fazer_DEG <- function(
     # DGEList
     ########################################################
 
-    cat("\nCriando objeto DGEList...\n")
+    cat("\nCreating DGEList object...\n")
 
     y <- DGEList(
         counts = expr
     )
 
     ########################################################
-    # FILTRAGEM
+    # FILTERING
     ########################################################
 
-    cat("Genes antes da filtragem:", nrow(y), "\n")
+    cat("Genes before filtering:", nrow(y), "\n")
 
     keep <- filterByExpr(
         y,
@@ -158,10 +158,10 @@ fazer_DEG <- function(
 
     y <- y[keep, , keep.lib.sizes = FALSE]
 
-    cat("Genes após filtragem:", nrow(y), "\n")
+    cat("Genes after filtering:", nrow(y), "\n")
 
     ########################################################
-    # NORMALIZAÇÃO
+    # NORMALIZATION
     ########################################################
 
     y <- calcNormFactors(y)
@@ -184,7 +184,7 @@ fazer_DEG <- function(
     # VOOM
     ########################################################
 
-    cat("\nExecutando voom...\n")
+    cat("\nRunning voom...\n")
 
     v <- voom(
         y,
@@ -204,10 +204,10 @@ fazer_DEG <- function(
     fit <- eBayes(fit)
 
     ########################################################
-    # RESULTADOS
+    # RESULTS
     ########################################################
 
-    # O coeficiente é ICU_statusICU
+    # The coefficient is ICU_statusICU
     res <- topTable(
         fit,
         coef = "ICU_statusICU",
@@ -216,7 +216,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # ADICIONAR NOME DO GENE
+    # ADD GENE NAME
     ########################################################
 
     res$gene <- rownames(res)
@@ -235,7 +235,7 @@ fazer_DEG <- function(
     ]
 
     ########################################################
-    # CLASSIFICAÇÃO
+    # CLASSIFICATION
     ########################################################
 
     res$significance <- "Not significant"
@@ -251,7 +251,7 @@ fazer_DEG <- function(
     ] <- "Down"
 
     ########################################################
-    # SALVAR RESULTADO COMPLETO
+    # SAVE COMPLETE RESULT
     ########################################################
 
     write.table(
@@ -270,7 +270,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # DEGS SIGNIFICATIVOS
+    # SIGNIFICANT DEGS
     ########################################################
 
     degs <- res[
@@ -296,7 +296,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # RESUMO
+    # SUMMARY
     ########################################################
 
     n_up <- sum(
@@ -310,13 +310,13 @@ fazer_DEG <- function(
     )
 
     cat("\n----------------------------------------------------\n")
-    cat("RESULTADO\n")
+    cat("RESULT\n")
     cat("----------------------------------------------------\n")
 
-    cat("Genes testados:", nrow(res), "\n")
-    cat("DEGs totais:", nrow(degs), "\n")
-    cat("Up em ICU:", n_up, "\n")
-    cat("Down em ICU:", n_down, "\n")
+    cat("Genes tested:", nrow(res), "\n")
+    cat("Total DEGs:", nrow(degs), "\n")
+    cat("Up in ICU:", n_up, "\n")
+    cat("Down in ICU:", n_down, "\n")
 
     ########################################################
     # PCA
@@ -414,7 +414,7 @@ fazer_DEG <- function(
         row.names = FALSE
     )
 
-    cat("\nArquivos salvos em:", outdir, "\n")
+    cat("\nFiles saved in:", outdir, "\n")
 
     invisible(res)
 }
@@ -454,7 +454,7 @@ res_NONCOVID <- fazer_DEG(
 ############################################################
 
 cat("\n\n====================================================\n")
-cat("ANÁLISES FINALIZADAS\n")
+cat("ANALYSES COMPLETE\n")
 cat("====================================================\n")
 
 cat("\nCOVID:\n")
@@ -463,5 +463,5 @@ cat("  50 ICU vs 50 NonICU\n")
 cat("\nNONCOVID:\n")
 cat("  16 ICU vs 10 NonICU\n")
 
-cat("\nResultados em:\n")
+cat("\nResults in:\n")
 cat("  DEG_orientador/\n")

@@ -1,26 +1,26 @@
 ############################################################
-# GSE188847 - EXPRESSÃO DIFERENCIAL COM edgeR
+# GSE188847 - DIFFERENTIAL EXPRESSION WITH edgeR
 ############################################################
 
 library(edgeR)
 
 cat("\n")
 cat("============================================================\n")
-cat("GSE188847 - ANÁLISE DE EXPRESSÃO DIFERENCIAL\n")
+cat("GSE188847 - DIFFERENTIAL EXPRESSION ANALYSIS\n")
 cat("============================================================\n\n")
 
 ############################################################
-# 1. ARQUIVOS
+# 1. FILES
 ############################################################
 
 matrix_file <- "GSE188847_gene_counts.tsv"
 metadata_file <- "GSE188847_gene_metadata.tsv"
 
 ############################################################
-# 2. LER MATRIZ
+# 2. READ MATRIX
 ############################################################
 
-cat("Lendo matriz...\n")
+cat("Reading matrix...\n")
 
 counts <- read.delim(
     matrix_file,
@@ -31,7 +31,7 @@ counts <- read.delim(
 )
 
 ############################################################
-# 3. SEPARAR IDs E MATRIZ DE CONTAGENS
+# 3. SPLIT IDS AND COUNTS MATRIX
 ############################################################
 
 gene_id <- counts$gene_id
@@ -59,21 +59,21 @@ metadata <- read.delim(
 rownames(metadata) <- metadata$sample
 
 ############################################################
-# Conferir correspondência
+# Check the correspondence
 ############################################################
 
 if (!all(colnames(count_matrix) == rownames(metadata))) {
 
-    cat("\nERRO: ordem das amostras não corresponde!\n")
+    cat("\nERROR: sample order does not match!\n")
 
     print(colnames(count_matrix))
     print(rownames(metadata))
 
-    stop("Corrija a correspondência entre matriz e metadata.")
+    stop("Fix the correspondence between matrix and metadata.")
 }
 
 ############################################################
-# 5. GRUPOS
+# 5. GROUPS
 ############################################################
 
 metadata$group <- factor(
@@ -86,7 +86,7 @@ metadata$group <- factor(
 )
 
 cat("\n")
-cat("Amostras por grupo:\n")
+cat("Samples per group:\n")
 print(table(metadata$group))
 
 ############################################################
@@ -99,11 +99,11 @@ y <- DGEList(
 )
 
 ############################################################
-# 7. FILTRAGEM
+# 7. FILTERING
 ############################################################
 
 cat("\n")
-cat("Genes antes da filtragem:", nrow(y), "\n")
+cat("Genes before filtering:", nrow(y), "\n")
 
 keep <- filterByExpr(
     y,
@@ -113,13 +113,13 @@ keep <- filterByExpr(
 y <- y[keep, , keep.lib.sizes = FALSE]
 
 cat(
-    "Genes após filtragem:",
+    "Genes after filtering:",
     nrow(y),
     "\n"
 )
 
 ############################################################
-# 8. NORMALIZAÇÃO
+# 8. NORMALIZATION
 ############################################################
 
 y <- calcNormFactors(
@@ -128,7 +128,7 @@ y <- calcNormFactors(
 )
 
 ############################################################
-# 9. FUNÇÃO PARA REALIZAR DEG
+# 9. FUNCTION TO PERFORM DEG
 ############################################################
 
 fazer_DEG <- function(
@@ -141,11 +141,11 @@ fazer_DEG <- function(
 
     cat("\n")
     cat("============================================================\n")
-    cat("COMPARAÇÃO:", group1, "vs", group2, "\n")
+    cat("COMPARISON:", group1, "vs", group2, "\n")
     cat("============================================================\n")
 
     ########################################################
-    # Selecionar grupos
+    # Select groups
     ########################################################
 
     keep_samples <- metadata$group %in% c(
@@ -160,7 +160,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Definir referência
+    # Define reference
     ########################################################
 
     group <- factor(
@@ -182,7 +182,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Estimar dispersão
+    # Estimate dispersion
     ########################################################
 
     y_sub <- estimateDisp(
@@ -200,7 +200,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # TESTE
+    # TEST
     ########################################################
 
     qlf <- glmQLFTest(
@@ -209,7 +209,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # RESULTADOS
+    # RESULTS
     ########################################################
 
     res <- topTags(
@@ -218,7 +218,7 @@ fazer_DEG <- function(
     )$table
 
     ########################################################
-    # Adicionar informações dos genes
+    # Add gene information
     ########################################################
 
     res$gene_id <- rownames(res)
@@ -231,7 +231,7 @@ fazer_DEG <- function(
     ]
 
     ########################################################
-    # Direção
+    # Direction
     ########################################################
 
     res$Significant <- ifelse(
@@ -260,7 +260,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Reorganizar
+    # Reorder
     ########################################################
 
     res <- res[
@@ -279,7 +279,7 @@ fazer_DEG <- function(
     ]
 
     ########################################################
-    # Criar diretório
+    # Create directory
     ########################################################
 
     dir.create(
@@ -288,7 +288,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Salvar resultado COMPLETO
+    # Save COMPLETE result
     ########################################################
 
     write.table(
@@ -304,7 +304,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Resultado NÃO AJUSTADO
+    # NON-ADJUSTED result
     ########################################################
 
     res_p <- res[
@@ -325,7 +325,7 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # Resultado FDR
+    # FDR result
     ########################################################
 
     res_fdr <- res[
@@ -388,19 +388,19 @@ fazer_DEG <- function(
     )
 
     ########################################################
-    # RESUMO
+    # SUMMARY
     ########################################################
 
-    cat("\nGenes testados:", nrow(res), "\n")
+    cat("\nGenes tested:", nrow(res), "\n")
 
     cat(
-        "DEG por P < 0.05 e |logFC| > 1:",
+        "DEGs with P < 0.05 and |logFC| > 1:",
         nrow(res_p),
         "\n"
     )
 
     cat(
-        "DEG por FDR < 0.05 e |logFC| > 1:",
+        "DEGs with FDR < 0.05 and |logFC| > 1:",
         nrow(res_fdr),
         "\n"
     )
@@ -430,7 +430,7 @@ fazer_DEG <- function(
 }
 
 ############################################################
-# 10. COMPARAÇÕES
+# 10. COMPARISONS
 ############################################################
 
 res_COVID_CONTROL <- fazer_DEG(
@@ -463,10 +463,10 @@ res_ICUVENT_COVID <- fazer_DEG(
 
 cat("\n")
 cat("============================================================\n")
-cat("ANÁLISE CONCLUÍDA\n")
+cat("ANALYSIS COMPLETE\n")
 cat("============================================================\n")
 
-cat("\nArquivos salvos em:\n")
+cat("\nFiles saved in:\n")
 cat("DEG_results/\n\n")
 
 system(

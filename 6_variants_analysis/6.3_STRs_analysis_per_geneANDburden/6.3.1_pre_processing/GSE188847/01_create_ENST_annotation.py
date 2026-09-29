@@ -39,5 +39,5 @@ with gzip.open(gtf, "rt") as f, open(out, "w") as o:
                 o.write(tid + "\t" + gid + "\t" + gname + "\n")
                 seen.add(tid)
 
-print("Concluído.")
-print("Transcritos anotados:", len(seen))
+print("Done.")
+print("Annotated transcripts:", len(seen))

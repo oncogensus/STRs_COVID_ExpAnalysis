@@ -10,7 +10,7 @@ OUT = "GSE188847_gene_counts.tsv"
 META = "GSE188847_gene_metadata.tsv"
 
 # ==========================================================
-# 1. LER ANOTAÇÃO
+# 1. READ ANNOTATION
 # ==========================================================
 
 annotation = {}
@@ -42,15 +42,15 @@ with open(ANNOT, "r") as f:
             gene_names[gene_id] = gene_name
 
 print("=" * 70)
-print("ANOTAÇÃO")
+print("ANNOTATION")
 print("=" * 70)
 
-print("Transcritos anotados:", len(annotation))
+print("Annotated transcripts:", len(annotation))
 print("Genes:", len(gene_names))
 
 
 # ==========================================================
-# 2. SELECIONAR AMOSTRAS CLÍNICAS
+# 2. SELECT CLINICAL SAMPLES
 # ==========================================================
 
 files = []
@@ -79,7 +79,7 @@ for filename in sorted(os.listdir(SALMON_DIR)):
     files.append((filename, group))
 
 
-# Ordenar pelo nome da amostra
+# Sort by sample name
 def sample_number(item):
 
     filename = item[0]
@@ -103,14 +103,14 @@ files = sorted(files, key=sample_number)
 
 
 print("\n" + "=" * 70)
-print("AMOSTRAS")
+print("SAMPLES")
 print("=" * 70)
 
 print("Total:", len(files))
 
 
 # ==========================================================
-# 3. MATRIZ
+# 3. MATRIX
 # ==========================================================
 
 matrix = defaultdict(lambda: defaultdict(float))
@@ -154,7 +154,7 @@ for i, (filename, group) in enumerate(files, 1):
 
             transcript = parts[idx_name]
 
-            # Remover versão do ENST
+            # Remove the ENST version
             transcript = transcript.split(".")[0]
 
             if transcript not in annotation:
@@ -174,16 +174,16 @@ for i, (filename, group) in enumerate(files, 1):
 
 
 # ==========================================================
-# 4. SALVAR MATRIZ
+# 4. SAVE MATRIX
 # ==========================================================
 
 print("\n" + "=" * 70)
-print("SALVANDO MATRIZ")
+print("SAVING MATRIX")
 print("=" * 70)
 
 with open(OUT, "w") as o:
 
-    # Cabeçalho
+    # Header
     header = ["gene_id", "gene_name"] + sample_names
 
     o.write("\t".join(header) + "\n")
@@ -234,19 +234,19 @@ with open(META, "w") as o:
 
 
 # ==========================================================
-# 6. RESUMO
+# 6. SUMMARY
 # ==========================================================
 
 print("\n" + "=" * 70)
-print("CONCLUÍDO")
+print("DONE")
 print("=" * 70)
 
-print("Matriz:", OUT)
+print("Matrix:", OUT)
 print("Metadata:", META)
 print("Genes:", len(matrix))
-print("Amostras:", len(sample_names))
+print("Samples:", len(sample_names))
 
-print("\nGrupos:")
+print("\nGroups:")
 
 counts = {}
 

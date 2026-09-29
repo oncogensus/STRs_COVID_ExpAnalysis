@@ -5,10 +5,10 @@ library(limma)
 
 cat("\n")
 cat("============================================================\n")
-cat("GSE183533 - EXPRESSÃO DIFERENCIAL COM edgeR\n")
+cat("GSE183533 - DIFFERENTIAL EXPRESSION WITH edgeR\n")
 cat("============================================================\n\n")
 
-# 1. ARQUIVOS
+# 1. FILES
 
 counts_file <- "GSE183533_gene_counts.tsv"
 metadata_file <- "GSE183533_metadata.tsv"
@@ -19,9 +19,9 @@ if (!dir.exists(output_dir)) {
     dir.create(output_dir)
 }
 
-# 2. LER MATRIZ
+# 2. READ MATRIX
 
-cat("Lendo matriz...\n")
+cat("Reading matrix...\n")
 
 counts <- read.delim(
     counts_file,
@@ -31,22 +31,22 @@ counts <- read.delim(
     stringsAsFactors = FALSE
 )
 
-# primeira coluna = gene_id
+# first column = gene_id
 gene_ids <- counts$gene_id
 
 counts_matrix <- counts[, -1]
 
 rownames(counts_matrix) <- gene_ids
 
-# converter para matriz numérica
+# convert to numeric matrix
 counts_matrix <- as.matrix(counts_matrix)
 
 storage.mode(counts_matrix) <- "numeric"
 
 cat("Genes:", nrow(counts_matrix), "\n")
-cat("Amostras:", ncol(counts_matrix), "\n\n")
+cat("Samples:", ncol(counts_matrix), "\n\n")
 
-# 3. LER METADATA
+# 3. READ METADATA
 
 metadata <- read.delim(
     metadata_file,
@@ -55,14 +55,14 @@ metadata <- read.delim(
     stringsAsFactors = FALSE
 )
 
-# garantir mesma ordem
+# ensure the same order
 metadata <- metadata[
     match(colnames(counts_matrix), metadata$sample),
 ]
 
-# verificar
+# check
 if (!all(metadata$sample == colnames(counts_matrix))) {
-    stop("ERRO: amostras da matriz e metadata não estão alinhadas.")
+    stop("ERROR: matrix and metadata samples are not aligned.")
 }
 
 metadata$group <- factor(
@@ -70,7 +70,7 @@ metadata$group <- factor(
     levels = c("CONTROL", "COVID")
 )
 
-cat("Amostras por grupo:\n\n")
+cat("Samples per group:\n\n")
 print(table(metadata$group))
 
 # 4. DGEList
@@ -80,9 +80,9 @@ y <- DGEList(
     group = metadata$group
 )
 
-cat("\nGenes antes da filtragem:", nrow(y), "\n")
+cat("\nGenes before filtering:", nrow(y), "\n")
 
-# 5. FILTRAGEM
+# 5. FILTERING
 
 keep <- filterByExpr(
     y,
@@ -91,13 +91,13 @@ keep <- filterByExpr(
 
 y <- y[keep, , keep.lib.sizes = FALSE]
 
-cat("Genes após filtragem:", nrow(y), "\n")
+cat("Genes after filtering:", nrow(y), "\n")
 
-# 6. NORMALIZAÇÃO TMM
+# 6. TMM NORMALIZATION
 
 y <- calcNormFactors(y, method = "TMM")
 
-cat("\nFatores de normalização TMM:\n")
+cat("\nTMM normalization factors:\n")
 print(y$samples[, c("group", "lib.size", "norm.factors")])
 
 # 7. DESIGN
@@ -112,11 +112,11 @@ colnames(design) <- make.names(colnames(design))
 cat("\nDesign:\n")
 print(design)
 
-# 8. ESTIMATIVA DISPERSÃO
+# 8. DISPERSION ESTIMATION
 
 y <- estimateDisp(y, design)
 
-# 9. MODELO GLM
+# 9. GLM MODEL
 
 fit <- glmQLFit(
     y,
@@ -124,7 +124,7 @@ fit <- glmQLFit(
     robust = TRUE
 )
 
-# 10. CONTRASTE COVID VS CONTROL
+# 10. COVID VS CONTROL CONTRAST
 
 contrast <- makeContrasts(
     groupCOVID,
@@ -136,7 +136,7 @@ qlf <- glmQLFTest(
     contrast = contrast
 )
 
-# 11. RESULTADOS
+# 11. RESULTS
 
 results <- topTags(
     qlf,
@@ -145,7 +145,7 @@ results <- topTags(
 
 results$gene_id <- rownames(results)
 
-# reorganizar
+# reorder
 results <- results[
     ,
     c(
@@ -158,7 +158,7 @@ results <- results[
     )
 ]
 
-# 12. CLASSIFICAÇÃO
+# 12. CLASSIFICATION
 
 results$Significant <- ifelse(
     results$FDR < 0.05 &
@@ -179,13 +179,13 @@ results$Direction[
         results$logFC < -1
 ] <- "Down_COVID"
 
-# 13. ORDENAR POR FDR
+# 13. ORDER BY FDR
 
 results <- results[
     order(results$FDR),
 ]
 
-# 14. SEPARAR RESULTADOS
+# 14. SPLIT RESULTS
 
 deg_fdr <- subset(
     results,
@@ -205,17 +205,17 @@ deg_down <- subset(
         logFC < -1
 )
 
-# 15. RESUMO
+# 15. SUMMARY
 
 cat("\n")
 cat("============================================================\n")
-cat("COMPARAÇÃO: COVID vs CONTROL\n")
+cat("COMPARISON: COVID vs CONTROL\n")
 cat("============================================================\n\n")
 
-cat("Genes testados:", nrow(results), "\n")
+cat("Genes tested:", nrow(results), "\n")
 
 cat(
-    "DEG por FDR < 0.05 e |logFC| > 1:",
+    "DEGs with FDR < 0.05 and |logFC| > 1:",
     nrow(deg_fdr),
     "\n"
 )
@@ -234,7 +234,7 @@ print(
     )
 )
 
-# 17. SALVAR
+# 17. SAVE
 
 write.table(
     results,
@@ -308,10 +308,10 @@ write.table(
 
 cat("\n")
 cat("============================================================\n")
-cat("ANÁLISE CONCLUÍDA\n")
+cat("ANALYSIS COMPLETE\n")
 cat("============================================================\n\n")
 
-cat("Arquivos salvos em:", output_dir, "\n\n")
+cat("Files saved in:", output_dir, "\n\n")
 
 cat(" - DEG_COVID_vs_CONTROL_completo.tsv\n")
 cat(" - DEG_COVID_vs_CONTROL_FDR.tsv\n")

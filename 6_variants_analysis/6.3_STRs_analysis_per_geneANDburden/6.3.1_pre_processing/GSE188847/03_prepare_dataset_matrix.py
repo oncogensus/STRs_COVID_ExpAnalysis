@@ -9,7 +9,7 @@ SALMON_DIR = "salmon"
 OUT_MATRIX = "GSE188847_matrix.tsv.gz"
 OUT_METADATA = "GSE188847_metadata.tsv"
 
-# Selecionar somente COVID, CONTROL e ICUVENT
+# Select only COVID, CONTROL and ICUVENT
 arquivos = []
 
 for f in sorted(os.listdir(SALMON_DIR)):
@@ -17,7 +17,7 @@ for f in sorted(os.listdir(SALMON_DIR)):
     if not f.endswith(".gz"):
         continue
 
-    # Somente os 54 pacientes desejados
+    # Only the 54 desired patients
     m = re.match(r"(GSM[0-9]+)_(COVID|CONTROL|ICUVENT)([0-9]+)\.salmon\.", f)
 
     if m:
@@ -36,7 +36,7 @@ print("=" * 70)
 print("GSE188847")
 print("=" * 70)
 
-print("Arquivos selecionados:", len(arquivos))
+print("Selected files:", len(arquivos))
 
 for grupo in ["COVID", "CONTROL", "ICUVENT"]:
     n = sum(x["group"] == grupo for x in arquivos)
@@ -46,13 +46,13 @@ print("=" * 70)
 
 if len(arquivos) != 54:
     raise Exception(
-        "ERRO: esperadas 54 amostras, mas foram encontradas {}".format(
+        "ERROR: expected 54 samples, but {} were found".format(
             len(arquivos)
         )
     )
 
 # ---------------------------------------------------------
-# Ler arquivos Salmon
+# Read Salmon files
 # ---------------------------------------------------------
 
 matriz = None
@@ -71,27 +71,27 @@ for i, info in enumerate(arquivos):
 
     with gzip.open(caminho, "rt") as f:
 
-        # Detectar automaticamente o formato
+        # Automatically detect the format
         df = pd.read_csv(f, sep="\t")
 
-    # Salmon pode ter:
+    # Salmon can have:
     # Name / Length / EffectiveLength / TPM / NumReads
     if "Name" not in df.columns:
         raise Exception(
-            "Coluna Name não encontrada em {}".format(info["file"])
+            "Column Name not found in {}".format(info["file"])
         )
 
     if "NumReads" not in df.columns:
         raise Exception(
-            "Coluna NumReads não encontrada em {}".format(info["file"])
+            "Column NumReads not found in {}".format(info["file"])
         )
 
-    # Manter apenas gene/transcrito e contagem
+    # Keep only gene/transcript and count
     df = df[["Name", "NumReads"]].copy()
 
     df.columns = ["gene", info["sample"]]
 
-    # Remover duplicatas
+    # Remove duplicates
     df = df.groupby("gene", as_index=False)[info["sample"]].sum()
 
     if matriz is None:
@@ -104,20 +104,20 @@ for i, info in enumerate(arquivos):
         )
 
 # ---------------------------------------------------------
-# Limpeza
+# Cleaning
 # ---------------------------------------------------------
 
 matriz = matriz.fillna(0)
 
-# Ordenar genes
+# Sort genes
 matriz = matriz.sort_values("gene")
 
 # ---------------------------------------------------------
-# Salvar matriz
+# Save matrix
 # ---------------------------------------------------------
 
 print("=" * 70)
-print("Salvando matriz...")
+print("Saving matrix...")
 
 matriz.to_csv(
     OUT_MATRIX,
@@ -143,23 +143,23 @@ metadata.to_csv(
 )
 
 # ---------------------------------------------------------
-# Resumo
+# Summary
 # ---------------------------------------------------------
 
 print("=" * 70)
-print("CONCLUÍDO")
+print("DONE")
 print("=" * 70)
 
-print("Matriz:", OUT_MATRIX)
+print("Matrix:", OUT_MATRIX)
 print("Metadata:", OUT_METADATA)
 
 print()
-print("Dimensão da matriz:")
+print("Matrix dimensions:")
 print("Genes:", matriz.shape[0])
-print("Amostras:", matriz.shape[1] - 1)
+print("Samples:", matriz.shape[1] - 1)
 
 print()
-print("Grupos:")
+print("Groups:")
 print(metadata["group"].value_counts())
 
 print("=" * 70)

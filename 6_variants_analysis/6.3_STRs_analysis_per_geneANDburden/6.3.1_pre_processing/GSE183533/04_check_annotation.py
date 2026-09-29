@@ -4,26 +4,26 @@ import os
 ARQUIVO = "DEG_results/DEG_COVID_vs_CONTROL_FDR_anotado.tsv"
 
 print("=" * 75)
-print("CHECAGEM FINAL DOS DEGs - GSE183533")
+print("FINAL DEG CHECK - GSE183533")
 print("=" * 75)
 
-# 1. LEITURA
+# 1. READ
 
-print("\nLendo arquivo...")
+print("\nReading file...")
 
 df = pd.read_csv(ARQUIVO, sep="\t")
 
-print(f"Genes/linhas: {len(df)}")
-print(f"Colunas: {len(df.columns)}")
+print(f"Genes/rows: {len(df)}")
+print(f"Columns: {len(df.columns)}")
 
-print("\nColunas disponíveis:")
+print("\nAvailable columns:")
 print(df.columns.tolist())
 
 
-# 2. TOTAL DE DEGs
+# 2. TOTAL DEGs
 
 print("\n" + "=" * 75)
-print("1. TOTAL DE DEGs")
+print("1. TOTAL DEGs")
 print("=" * 75)
 
 print(f"Total: {len(df)}")
@@ -32,7 +32,7 @@ print(f"Total: {len(df)}")
 # 3. UP / DOWN
 
 print("\n" + "=" * 75)
-print("2. DIREÇÃO DA EXPRESSÃO")
+print("2. EXPRESSION DIRECTION")
 print("=" * 75)
 
 if "Direction" in df.columns:
@@ -41,13 +41,13 @@ if "Direction" in df.columns:
 
 else:
 
-    print("Coluna Direction não encontrada.")
+    print("Column Direction not found.")
 
 
-# 4. BIOTIPOS
+# 4. BIOTYPES
 
 print("\n" + "=" * 75)
-print("3. BIOTIPOS")
+print("3. BIOTYPES")
 print("=" * 75)
 
 if "biotype" in df.columns:
@@ -55,7 +55,7 @@ if "biotype" in df.columns:
     biotipo = (
         df["biotype"]
         .fillna("")
-        .replace("", "SEM_ANOTACAO")
+        .replace("", "NO_ANNOTATION")
         .value_counts()
     )
 
@@ -63,7 +63,7 @@ if "biotype" in df.columns:
 
 else:
 
-    print("Coluna biotype não encontrada.")
+    print("Column biotype not found.")
 
 
 # 5. PROTEIN CODING
@@ -81,10 +81,10 @@ if "biotype" in df.columns:
     print(f"Protein-coding: {len(protein)}")
 
 
-# 6. GENES SEM ANOTAÇÃO
+# 6. GENES WITHOUT ANNOTATION
 
 print("\n" + "=" * 75)
-print("5. GENES SEM ANOTAÇÃO")
+print("5. GENES WITHOUT ANNOTATION")
 print("=" * 75)
 
 if "gene_symbol" in df.columns:
@@ -94,11 +94,11 @@ if "gene_symbol" in df.columns:
         (df["gene_symbol"].astype(str).str.strip() == "")
     ]
 
-    print(f"Sem gene symbol: {len(sem_symbol)}")
+    print(f"Without gene symbol: {len(sem_symbol)}")
 
     if len(sem_symbol) > 0:
 
-        print("\nPrimeiros genes sem símbolo:")
+        print("\nFirst genes without symbol:")
 
         print(
             sem_symbol[
@@ -107,10 +107,10 @@ if "gene_symbol" in df.columns:
         )
 
 
-# 7. PRINCIPAIS GENES UP
+# 7. TOP UP GENES
 
 print("\n" + "=" * 75)
-print("6. PRINCIPAIS GENES UP")
+print("6. TOP UP GENES")
 print("=" * 75)
 
 if "Direction" in df.columns:
@@ -140,10 +140,10 @@ if "Direction" in df.columns:
     )
 
 
-# 8. PRINCIPAIS GENES DOWN
+# 8. TOP DOWN GENES
 
 print("\n" + "=" * 75)
-print("7. PRINCIPAIS GENES DOWN")
+print("7. TOP DOWN GENES")
 print("=" * 75)
 
 if "Direction" in df.columns:
@@ -173,21 +173,21 @@ if "Direction" in df.columns:
     )
 
 
-# 9. DUPLICIDADE DE GENES
+# 9. GENE DUPLICATES
 
 print("\n" + "=" * 75)
-print("8. DUPLICIDADE")
+print("8. DUPLICATES")
 print("=" * 75)
 
 if "gene_id_clean" in df.columns:
 
     duplicados = df["gene_id_clean"].duplicated().sum()
 
-    print(f"Gene IDs duplicados: {duplicados}")
+    print(f"Duplicated gene IDs: {duplicados}")
 
     if duplicados > 0:
 
-        print("\nGenes duplicados:")
+        print("\nDuplicated genes:")
 
         print(
             df[
@@ -200,10 +200,10 @@ if "gene_id_clean" in df.columns:
         )
 
 
-# 10. VERIFICAÇÃO DE IDs
+# 10. ID VERIFICATION
 
 print("\n" + "=" * 75)
-print("9. VERIFICAÇÃO DOS IDENTIFICADORES")
+print("9. IDENTIFIER VERIFICATION")
 print("=" * 75)
 
 if "gene_id_clean" in df.columns:
@@ -221,11 +221,11 @@ if "gene_id_clean" in df.columns:
     ]
 
     print(f"ENSG: {len(ensg)}")
-    print(f"Não-ENSG: {len(nao_ensg)}")
+    print(f"Non-ENSG: {len(nao_ensg)}")
 
     if len(nao_ensg) > 0:
 
-        print("\nIDs não-ENSG:")
+        print("\nNon-ENSG IDs:")
 
         print(
             nao_ensg[
@@ -234,32 +234,32 @@ if "gene_id_clean" in df.columns:
         )
 
 
-# 11. VERIFICAÇÃO DE POSSÍVEIS GENES VIRAIS/MICROBIANOS
+# 11. CHECK FOR POSSIBLE VIRAL/MICROBIAL GENES
 
 print("\n" + "=" * 75)
-print("10. VERIFICAÇÃO DE GENES NÃO HUMANOS")
+print("10. NON-HUMAN GENE VERIFICATION")
 print("=" * 75)
 
 print(
     """
-A matriz utilizada contém IDs ENSG (Ensembl Homo sapiens).
-Portanto, os resultados desta análise correspondem à
-matriz de expressão gênica humana.
+The matrix used contains ENSG IDs (Ensembl Homo sapiens).
+Therefore, the results of this analysis correspond to the
+human gene expression matrix.
 
-A identificação de sequências virais/microbianas deve ser
-feita separadamente a partir da análise de reads/metagenômica,
-e não misturada com esta matriz de expressão humana.
+The identification of viral/microbial sequences must be
+done separately from the analysis of reads/metagenomics,
+and should not be mixed with this human expression matrix.
 """
 )
 
 
-# 12. RESUMO FINAL
+# 12. FINAL SUMMARY
 
 print("\n" + "=" * 75)
-print("RESUMO FINAL")
+print("FINAL SUMMARY")
 print("=" * 75)
 
-print(f"Total de DEGs: {len(df)}")
+print(f"Total DEGs: {len(df)}")
 
 if "Direction" in df.columns:
 
@@ -281,15 +281,15 @@ if "biotype" in df.columns:
 if "gene_symbol" in df.columns:
 
     print(
-        f"Sem gene symbol: "
+        f"Without gene symbol: "
         f"{df['gene_symbol'].isna().sum() + (df['gene_symbol'].astype(str).str.strip() == '').sum()}"
     )
 
 if "gene_id_clean" in df.columns:
 
     print(
-        f"IDs ENSG: "
+        f"ENSG IDs: "
         f"{df['gene_id_clean'].astype(str).str.startswith('ENSG').sum()}"
     )
 
-print("\nChecagem concluída.")
+print("\nCheck finished.")

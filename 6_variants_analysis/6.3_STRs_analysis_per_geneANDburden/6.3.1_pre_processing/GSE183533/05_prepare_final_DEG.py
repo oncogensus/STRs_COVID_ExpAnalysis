@@ -6,7 +6,7 @@ saida = "DEG_results"
 
 df = pd.read_csv(arquivo, sep="\t")
 
-# 1. ARQUIVO COMPLETO
+# 1. FULL FILE
 
 df.to_csv(
     f"{saida}/GSE183533_DEG_COVID_vs_CONTROL_FINAL.tsv",
@@ -74,23 +74,23 @@ protein_down.to_csv(
     index=False
 )
 
-# RESUMO
+# SUMMARY
 
 print("=" * 70)
-print("ARQUIVOS FINAIS - GSE183533")
+print("FINAL FILES - GSE183533")
 print("=" * 70)
 
-print(f"DEGs totais:              {len(df)}")
-print(f"UP COVID:                 {len(up)}")
-print(f"DOWN COVID:               {len(down)}")
-print(f"Protein-coding:           {len(protein)}")
-print(f"Protein-coding UP:        {len(protein_up)}")
-print(f"Protein-coding DOWN:      {len(protein_down)}")
+print(f"Total DEGs:            {len(df)}")
+print(f"UP COVID:              {len(up)}")
+print(f"DOWN COVID:            {len(down)}")
+print(f"Protein-coding:        {len(protein)}")
+print(f"Protein-coding UP:     {len(protein_up)}")
+print(f"Protein-coding DOWN:   {len(protein_down)}")
 
-print("\nArquivos gerados:")
+print("\nGenerated files:")
 
 for arquivo in sorted(os.listdir(saida)):
     if "GSE183533" in arquivo:
         print(" -", arquivo)
 
-print("\nConcluído.")
+print("\nDone.")

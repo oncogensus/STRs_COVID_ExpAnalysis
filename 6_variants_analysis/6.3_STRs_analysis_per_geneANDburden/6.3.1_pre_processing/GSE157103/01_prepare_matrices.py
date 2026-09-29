@@ -5,7 +5,7 @@ import csv
 import re
 import sys
 
-# ARQUIVOS
+# FILES
 
 MATRIX = "GSE157103_genes.ec.tsv.gz"
 METADATA = "GSE157103_clinical_metadata.tsv"
@@ -17,10 +17,10 @@ OUT_COVID_META = "COVID_ICU_NonICU_metadata.tsv"
 OUT_NONCOVID_META = "NONCOVID_ICU_NonICU_metadata.tsv"
 
 
-# 1. LER METADATA
+# 1. READ METADATA
 
 print("\n==============================================")
-print("GSE157103 - PREPARACAO DAS MATRIZES")
+print("GSE157103 - MATRIX PREPARATION")
 print("==============================================")
 
 metadata = []
@@ -31,10 +31,10 @@ with open(METADATA, "r") as f:
     for row in reader:
         metadata.append(row)
 
-print("\nTotal de amostras na metadata:", len(metadata))
+print("\nTotal samples in metadata:", len(metadata))
 
 
-# 2. SEPARAR COVID / NONCOVID
+# 2. SPLIT COVID / NONCOVID
 
 covid = [
     x for x in metadata
@@ -58,7 +58,7 @@ print("  ICU:", sum(x["ICU_status"] == "ICU" for x in noncovid))
 print("  NonICU:", sum(x["ICU_status"] == "NonICU" for x in noncovid))
 
 
-# 3. FUNCAO PARA EXTRAIR NUMERO DO SAMPLE TITLE
+# 3. FUNCTION TO EXTRACT NUMBER FROM SAMPLE TITLE
 
 def extract_number(title):
 
@@ -69,13 +69,13 @@ def extract_number(title):
 
     if not m:
         raise ValueError(
-            "Nao foi possivel extrair numero de: {}".format(title)
+            "Could not extract number from: {}".format(title)
         )
 
     return int(m.group(1))
 
 
-# 4. CRIAR MAPEAMENTO
+# 4. CREATE MAPPING
 
 covid_map = {}
 
@@ -86,7 +86,7 @@ for row in covid:
     key = "C{}".format(n)
 
     if key in covid_map:
-        print("ERRO: duplicacao:", key)
+        print("ERROR: duplicate:", key)
         sys.exit(1)
 
     covid_map[key] = row
@@ -101,20 +101,20 @@ for row in noncovid:
     key = "NC{}".format(n)
 
     if key in noncovid_map:
-        print("ERRO: duplicacao:", key)
+        print("ERROR: duplicate:", key)
         sys.exit(1)
 
     noncovid_map[key] = row
 
 
-# 5. VERIFICAR NUMERACAO
+# 5. VERIFY NUMBERING
 
 print("\n==============================================")
-print("VERIFICANDO MAPEAMENTO")
+print("VERIFYING MAPPING")
 print("==============================================")
 
 
-print("\nExemplos COVID:")
+print("\nCOVID examples:")
 
 for key in sorted(covid_map.keys(), key=lambda x: int(x[1:]))[:15]:
 
@@ -129,7 +129,7 @@ for key in sorted(covid_map.keys(), key=lambda x: int(x[1:]))[:15]:
     )
 
 
-print("\nExemplos NONCOVID:")
+print("\nNONCOVID examples:")
 
 for key in sorted(noncovid_map.keys(), key=lambda x: int(x[2:]))[:15]:
 
@@ -144,10 +144,10 @@ for key in sorted(noncovid_map.keys(), key=lambda x: int(x[2:]))[:15]:
     )
 
 
-# 6. VERIFICAR MATRIZ
+# 6. VERIFY MATRIX
 
 print("\n==============================================")
-print("VERIFICANDO MATRIZ DE EXPRESSAO")
+print("VERIFYING EXPRESSION MATRIX")
 print("==============================================")
 
 with gzip.open(MATRIX, "rt") as f:
@@ -158,15 +158,15 @@ with gzip.open(MATRIX, "rt") as f:
 
     original_samples = header[1:]
 
-    print("Numero de amostras na matriz:", len(original_samples))
+    print("Number of samples in matrix:", len(original_samples))
 
     if len(original_samples) != 126:
 
-        print("ERRO: esperadas 126 amostras.")
+        print("ERROR: expected 126 samples.")
         sys.exit(1)
 
 
-    # Verificar se todos os C/NC existem
+    # Verify that all C/NC exist
 
     missing = []
 
@@ -183,7 +183,7 @@ with gzip.open(MATRIX, "rt") as f:
 
     if missing:
 
-        print("\nERRO: amostras nao encontradas na matriz:")
+        print("\nERROR: samples not found in matrix:")
 
         for x in sorted(missing):
             print(x)
@@ -191,11 +191,11 @@ with gzip.open(MATRIX, "rt") as f:
         sys.exit(1)
 
 
-    print("Todos os identificadores foram encontrados.")
+    print("All identifiers were found.")
 
 
     # ========================================================
-    # 7. DEFINIR ORDEM DAS AMOSTRAS
+    # 7. DEFINE SAMPLE ORDER
     # ========================================================
 
     covid_keys = sorted(
@@ -210,7 +210,7 @@ with gzip.open(MATRIX, "rt") as f:
 
 
     # ========================================================
-    # 8. CONVERTER C/NC PARA INDICES DA MATRIZ
+    # 8. CONVERT C/NC TO MATRIX INDICES
     # ========================================================
 
     index = {
@@ -231,7 +231,7 @@ with gzip.open(MATRIX, "rt") as f:
 
 
     # ========================================================
-    # 9. GSMs NA MESMA ORDEM DA MATRIZ NOVA
+    # 9. GSMs IN THE SAME ORDER AS THE NEW MATRIX
     # ========================================================
 
     covid_gsms = [
@@ -246,7 +246,7 @@ with gzip.open(MATRIX, "rt") as f:
 
 
     # ========================================================
-    # 10. SALVAR MATRIZES
+    # 10. SAVE MATRICES
     # ========================================================
 
     covid_out = gzip.open(
@@ -274,7 +274,7 @@ with gzip.open(MATRIX, "rt") as f:
 
 
     # ========================================================
-    # 11. PROCESSAR GENES
+    # 11. PROCESS GENES
     # ========================================================
 
     genes = 0
@@ -284,7 +284,7 @@ with gzip.open(MATRIX, "rt") as f:
         if len(row) != 127:
 
             print(
-                "\nERRO: linha com numero incorreto de colunas."
+                "\nERROR: line with an incorrect number of columns."
             )
 
             print(
@@ -293,7 +293,7 @@ with gzip.open(MATRIX, "rt") as f:
             )
 
             print(
-                "Numero de campos:",
+                "Number of fields:",
                 len(row)
             )
 
@@ -331,7 +331,7 @@ with gzip.open(MATRIX, "rt") as f:
         if genes % 5000 == 0:
 
             print(
-                "Genes processados:",
+                "Genes processed:",
                 genes
             )
 
@@ -340,7 +340,7 @@ with gzip.open(MATRIX, "rt") as f:
     noncovid_out.close()
 
 
-# 12. SALVAR METADATA
+# 12. SAVE METADATA
 
 fields = [
     "GSM",
@@ -386,22 +386,22 @@ with open(OUT_NONCOVID_META, "w") as out:
         )
 
 
-# 13. RESUMO FINAL
+# 13. FINAL SUMMARY
 
 print("\n==============================================")
-print("CONCLUIDO")
+print("DONE")
 print("==============================================")
 
 print("\nGenes:", genes)
 
 print("\nCOVID:")
-print("  Amostras:", len(covid_gsms))
-print("  Matriz:", OUT_COVID_MATRIX)
+print("  Samples:", len(covid_gsms))
+print("  Matrix:", OUT_COVID_MATRIX)
 print("  Metadata:", OUT_COVID_META)
 
 print("\nNONCOVID:")
-print("  Amostras:", len(noncovid_gsms))
-print("  Matriz:", OUT_NONCOVID_MATRIX)
+print("  Samples:", len(noncovid_gsms))
+print("  Matrix:", OUT_NONCOVID_MATRIX)
 print("  Metadata:", OUT_NONCOVID_META)
 
 print("\n==============================================")

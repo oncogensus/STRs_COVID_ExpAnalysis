@@ -6,12 +6,12 @@ ARQUIVO = "DEG_results/DEG_COVID_vs_CONTROL_FDR.tsv"
 SAIDA = "DEG_results/DEG_COVID_vs_CONTROL_FDR_anotado.tsv"
 
 print("=" * 70, flush=True)
-print("ANOTAÇÃO DOS DEGs - GSE183533", flush=True)
+print("DEG ANNOTATION - GSE183533", flush=True)
 print("=" * 70, flush=True)
 
 df = pd.read_csv(ARQUIVO, sep="\t")
 
-print(f"Genes no arquivo: {len(df)}", flush=True)
+print(f"Genes in the file: {len(df)}", flush=True)
 
 df["gene_id_clean"] = (
     df["gene_id"]
@@ -71,7 +71,7 @@ for inicio in range(0, len(genes), TAMANHO_LOTE):
     fim = min(inicio + TAMANHO_LOTE, len(genes))
 
     print(
-        f"Consultando genes {inicio + 1}-{fim}/{len(genes)}",
+        f"Querying genes {inicio + 1}-{fim}/{len(genes)}",
         flush=True
     )
 
@@ -117,12 +117,12 @@ for inicio in range(0, len(genes), TAMANHO_LOTE):
     except Exception as e:
 
         print(
-            f"Lote apresentou erro: {e}",
+            f"Batch raised an error: {e}",
             flush=True
         )
 
     print(
-        f"Consultando individualmente {len(lote)} genes...",
+        f"Querying {len(lote)} genes individually...",
         flush=True
     )
 
@@ -150,17 +150,17 @@ df.to_csv(
 )
 
 print("\n" + "=" * 70, flush=True)
-print("CONCLUÍDO", flush=True)
+print("DONE", flush=True)
 print("=" * 70, flush=True)
 
-print(f"Arquivo: {SAIDA}", flush=True)
-print(f"Genes no resultado: {len(df)}", flush=True)
+print(f"File: {SAIDA}", flush=True)
+print(f"Genes in the result: {len(df)}", flush=True)
 
-print("\nBiotipos:", flush=True)
+print("\nBiotypes:", flush=True)
 
 print(
     df["biotype"]
-    .fillna("não_anotado")
+    .fillna("not_annotated")
     .value_counts()
     .head(20),
     flush=True
