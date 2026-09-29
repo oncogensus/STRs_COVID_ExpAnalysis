@@ -1,20 +1,20 @@
 #!/usr/bin/env Rscript
 # 7_merged_table_allele_stats.R
 # ---------------------------------------------------------------------------
-# Gera tabela unica transposta (wide) com estatisticas descritivas de
-# allele2_est por regiao genomica + overall, comparando Case vs Control.
+# Generates a single transposed (wide) table with descriptive statistics of
+# allele2_est per genomic region + overall, comparing Case vs Control.
 #
-# Entradas:
-#   results/strs_by_locus_combo.csv  (dados brutos: locus, sample_id, group,
+# Inputs:
+#   results/strs_by_locus_combo.csv  (raw data: locus, sample_id, group,
 #                                     region, allele2_est, ...)
 #
-# Saidas:
+# Outputs:
 #   results/table_allele_stats_merged.html
 #   results/table_allele_stats_merged.csv
 #
-# Uso:
+# Usage:
 #   Rscript 7_merged_table_allele_stats.R
-#   ou como cell no 2_desc_analysis.ipynb
+#   or as a cell in 2_desc_analysis.ipynb
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(readr)
@@ -24,15 +24,15 @@ suppressPackageStartupMessages({
 })
 
 # ==========================================
-# 1. Ler dados brutos
+# 1. Load raw data
 # ==========================================
 df <- read_csv("results/strs_by_locus_combo.csv", show_col_types = FALSE)
 
-cat(sprintf("Dados carregados: %d linhas, %d regioes unicas\n",
+cat(sprintf("Data loaded: %d rows, %d unique regions\n",
             nrow(df), n_distinct(df$region)))
 
 # ==========================================
-# 2. Calcular estatisticas por regiao + grupo
+# 2. Compute statistics per region + group
 # ==========================================
 region_stats <- df %>%
   group_by(region, group) %>%
@@ -47,7 +47,7 @@ region_stats <- df %>%
     Max      = max(allele2_est, na.rm = TRUE),
     .groups  = "drop"
   ) %>%
-  # Nomes legiveis das regioes
+  # Readable region names
   mutate(
     region = case_when(
       region == "CDS"              ~ "CDS",
@@ -63,7 +63,7 @@ region_stats <- df %>%
   )
 
 # ==========================================
-# 3. Estatisticas globais (Overall)
+# 3. Global statistics (Overall)
 # ==========================================
 overall_stats <- df %>%
   group_by(group) %>%
@@ -81,11 +81,11 @@ overall_stats <- df %>%
   mutate(region = "Overall")
 
 # ==========================================
-# 4. Juntar e transpor para wide (Option B)
+# 4. Join and transpose to wide (Option B)
 # ==========================================
 all_stats <- bind_rows(overall_stats, region_stats)
 
-# Transpor: metricas viram colunas com sufixo _Case / _Control
+# Transpose: metrics become columns with _Case / _Control suffix
 wide_case <- all_stats %>%
   filter(group == "case") %>%
   select(-group) %>%
@@ -97,7 +97,7 @@ wide_control <- all_stats %>%
   rename_with(~ paste0(.x, "_Control"), -c(region))
 
 merged <- full_join(wide_case, wide_control, by = "region") %>%
-  # Ordem desejada das colunas
+  # Desired column order
   select(
     region,
     N_Case, N_Control,
@@ -109,22 +109,22 @@ merged <- full_join(wide_case, wide_control, by = "region") %>%
     Min_Case, Min_Control,
     Max_Case, Max_Control
   ) %>%
-  # Ordenar regioes (Overall primeiro)
+  # Order regions (Overall first)
   mutate(region = factor(region, levels = c(
     "Overall", "Promoter", "5' UTR", "CDS", "3' UTR",
     "Intron", "Non-coding Exons", "Intergenic", "Others"
   ))) %>%
   arrange(region)
 
-cat(sprintf("Tabela final: %d linhas x %d colunas\n", nrow(merged), ncol(merged)))
+cat(sprintf("Final table: %d rows x %d columns\n", nrow(merged), ncol(merged)))
 
 # ==========================================
-# 5. Gerar tabela GT
+# 5. Generate GT table
 # ==========================================
 gt_table <- merged %>%
   gt(rowname_col = "region") %>%
 
-  # Spanners para Case e Control
+  # Spanners for Case and Control
   tab_spanner(
     label = html("<b>Case</b>"),
     columns = ends_with("_Case")
@@ -134,7 +134,7 @@ gt_table <- merged %>%
     columns = ends_with("_Control")
   ) %>%
 
-  # Labels das colunas (remover sufixo)
+  # Column labels (remove suffix)
   cols_label(
     N_Case       = "N",
     N_Control    = "N",
@@ -154,7 +154,7 @@ gt_table <- merged %>%
     Max_Control  = "Max"
   ) %>%
 
-  # Formatacao de numeros
+  # Number formatting
   fmt_number(
     columns = where(is.numeric) & !ends_with("N_Case") & !ends_with("N_Control"),
     decimals = 2,
@@ -166,7 +166,7 @@ gt_table <- merged %>%
     use_seps = TRUE
   ) %>%
 
-  # Titulo
+  # Title
   tab_header(
     title = "Descriptive Statistics of Major Allele Size (allele2_est)",
     subtitle = "By Genomic Region — Case vs Control"
@@ -178,7 +178,7 @@ gt_table <- merged %>%
     locations = cells_column_labels(columns = c(SD_Case, SD_Control))
   ) %>%
 
-  # Estilo
+  # Style
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
@@ -192,7 +192,7 @@ gt_table <- merged %>%
     locations = cells_row_groups()
   ) %>%
 
-  # Bordas
+  # Borders
   tab_options(
     table.border.top.style = "solid",
     table.border.bottom.style = "solid",
@@ -206,12 +206,12 @@ gt_table <- merged %>%
   )
 
 # ==========================================
-# 6. Salvar
+# 6. Save
 # ==========================================
 gtsave(gt_table, "results/table_allele_stats_merged.html")
 write_csv(merged, "results/table_allele_stats_merged.csv")
 
-cat("\n=== Saidas ===\n")
+cat("\n=== Outputs ===\n")
 cat("  results/table_allele_stats_merged.html\n")
 cat("  results/table_allele_stats_merged.csv\n")
-cat("=== FIM ===\n")
+cat("=== END ===\n")

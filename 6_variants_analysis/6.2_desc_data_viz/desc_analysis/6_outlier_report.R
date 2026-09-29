@@ -1,20 +1,20 @@
 #!/usr/bin/env Rscript
 # 6_outlier_report.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Relatorio unificado de outliers DBSCAN para a coorte global:
+# PURPOSE
+#   Unified DBSCAN outlier report for the global cohort:
 #     - General Summary (total, signal, no_signal)
 #     - Cluster Distribution (1, 2, 3+ clusters)
 #     - Noise Tiers (0-5%, 5-10%, 10-20%, 20-50%, >50%)
 #     - Outlier Frequency (0 vs >0 outliers)
-#   Inclui tabela publication-ready (gt HTML).
-#   Avalia TODOS os registros (sem filtro de outliers).
+#   Includes a publication-ready table (gt HTML).
+#   Evaluates ALL records (without outlier filtering).
 #
-# ENTRADAS (por argumentos de linha de comando)
-#   --str-catalog    STRs_analysis_dataset.tsv (coorte global)
-#   --out-dir        Diretorio de saida
+# INPUTS (via command-line arguments)
+#   --str-catalog    STRs_analysis_dataset.tsv (global cohort)
+#   --out-dir        Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   unified_binary_outlier_report.csv
 #   unified_technical_report.csv
 #   Technical_Validation_Table.html
@@ -40,7 +40,7 @@ path_str_catalog <- parse_arg("--str-catalog")
 out_dir          <- parse_arg("--out-dir", ".")
 
 if (is.null(path_str_catalog)) {
-  stop("Argumento ausente: --str-catalog")
+  stop("Missing argument: --str-catalog")
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -51,7 +51,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 cat("--- Unified Outlier Report (Cohort Global) ---\n")
 
 df_strs <- fread(path_str_catalog, header = TRUE, sep = "\t")
-cat(sprintf("  STRs_analysis_dataset.tsv: %d linhas\n", nrow(df_strs)))
+cat(sprintf("  STRs_analysis_dataset.tsv: %d rows\n", nrow(df_strs)))
 
 # Rename DBSCAN columns (with _dbscan_global suffix) to short names
 col_names <- names(df_strs)
@@ -63,13 +63,13 @@ if ("n_clusters_dbscan_global" %in% col_names) {
            c("n_clusters", "noise_ratio",
              "n_outliers", "outlier_samples",
              "outlier_residuals"))
-  cat("  Colunas DBSCAN renomeadas (removido _dbscan_global)\n")
+  cat("  DBSCAN columns renamed (removed _dbscan_global)\n")
 }
 
 # ==========================================
 # 2. Build unified report
 # ==========================================
-cat("\nGerando relatorio unificado...\n")
+cat("\nGenerating unified report...\n")
 
 # A. General Summary
 general_summary <- df_strs[, .(
@@ -125,7 +125,7 @@ outlier_counts[, percentage := round(raw_value / sum(raw_value) * 100, 2)]
 df_report <- rbind(df_general, cluster_dist, noise_tiers, outlier_counts)
 df_report <- df_report[, .(category, metric, raw_value, percentage)]
 
-cat("\n--- Relatorio Unificado ---\n")
+cat("\n--- Unified Report ---\n")
 print(as.data.frame(df_report))
 
 # ==========================================
@@ -133,12 +133,12 @@ print(as.data.frame(df_report))
 # ==========================================
 out_csv <- file.path(out_dir, "unified_binary_outlier_report.csv")
 fwrite(df_report, out_csv, sep = ";", dec = ",")
-cat(sprintf("\nCSV salvo em: %s\n", out_csv))
+cat(sprintf("\nCSV saved to: %s\n", out_csv))
 
 # ==========================================
 # 4. Publication-ready table (gt HTML)
 # ==========================================
-cat("\nGerando tabela publication-ready...\n")
+cat("\nGenerating publication-ready table...\n")
 
 # Friendly labels
 df_friendly <- copy(df_report)
@@ -193,11 +193,11 @@ pub_gt <- df_friendly %>%
 
 out_gt_html <- file.path(out_dir, "Technical_Validation_Table.html")
 gtsave(pub_gt, out_gt_html)
-cat(sprintf("Tabela gt HTML salva em: %s\n", out_gt_html))
+cat(sprintf("gt HTML table saved to: %s\n", out_gt_html))
 
 # Save raw CSV for the report
 out_report_csv <- file.path(out_dir, "unified_technical_report.csv")
 fwrite(df_report, out_report_csv, sep = ";", dec = ",")
-cat(sprintf("CSV exportado em: %s\n", out_report_csv))
+cat(sprintf("CSV exported to: %s\n", out_report_csv))
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")

@@ -1,17 +1,17 @@
 #!/usr/bin/env Rscript
 # 5_dbscan_validation.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Validacao tecnica do DBSCAN: painel dual com metricas por regiao genomica.
-#     Painel A: Distribuicao de genotipos (1 Cluster, 2 Clusters, 3+, Unknown)
-#     Painel B: Tiers de noise (High Quality < 0.10, Acceptable < 0.25, Other)
-#   Avalia TODOS os loci da coorte (sem filtro de outliers).
+# PURPOSE
+#   Technical validation of DBSCAN: dual panel with metrics per genomic region.
+#     Panel A: Genotype distribution (1 Cluster, 2 Clusters, 3+, Unknown)
+#     Panel B: Noise tiers (High Quality < 0.10, Acceptable < 0.25, Other)
+#   Evaluates ALL loci in the cohort (without outlier filtering).
 #
-# ENTRADAS (por argumentos de linha de comando)
-#   --str-catalog    STRs_analysis_dataset.tsv (coorte global)
-#   --out-dir        Diretorio de saida
+# INPUTS (via command-line arguments)
+#   --str-catalog    STRs_analysis_dataset.tsv (global cohort)
+#   --out-dir        Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   dbscan_dual_panel_validation.png
 #   quality_funnel_summary.csv
 # ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ path_str_catalog <- parse_arg("--str-catalog")
 out_dir          <- parse_arg("--out-dir", ".")
 
 if (is.null(path_str_catalog)) {
-  stop("Argumento ausente: --str-catalog")
+  stop("Missing argument: --str-catalog")
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -48,7 +48,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 cat("--- DBSCAN Technical Validation (Cohort Global) ---\n")
 
 df_strs <- fread(path_str_catalog, header = TRUE, sep = "\t")
-cat(sprintf("  STRs_analysis_dataset.tsv: %d linhas\n", nrow(df_strs)))
+cat(sprintf("  STRs_analysis_dataset.tsv: %d rows\n", nrow(df_strs)))
 
 # Rename DBSCAN columns (with _dbscan_global suffix) to short names
 col_names <- names(df_strs)
@@ -60,7 +60,7 @@ if ("n_clusters_dbscan_global" %in% col_names) {
            c("n_clusters", "noise_ratio",
              "n_outliers", "outlier_samples",
              "outlier_residuals"))
-  cat("  Colunas DBSCAN renomeadas (removido _dbscan_global)\n")
+  cat("  DBSCAN columns renamed (removed _dbscan_global)\n")
 }
 
 # ==========================================
@@ -102,7 +102,7 @@ locus_tech_stats[, cluster_tier := case_when(
 # Passed QC
 locus_tech_stats[, passed_qc := noise_ratio < 0.10 & n_clusters == 1]
 
-cat(sprintf("  Observacoes unicas (STR x Sample): %d\n", nrow(locus_tech_stats)))
+cat(sprintf("  Unique observations (STR x Sample): %d\n", nrow(locus_tech_stats)))
 
 # ==========================================
 # 3. Quality funnel summary table
@@ -122,7 +122,7 @@ print(as.data.frame(quality_table))
 # ==========================================
 # 4. Panel A: Genotypes per Sample/Region
 # ==========================================
-cat("\nGerando dual-panel validation plot...\n")
+cat("\nGenerating dual-panel validation plot...\n")
 
 panel_a_data <- locus_tech_stats[, .N, by = .(region, cluster_tier)]
 panel_a_data[, total := sum(N), by = region]
@@ -186,11 +186,11 @@ ggsave(
   dpi = 600,
   bg = "white"
 )
-cat(sprintf("\nDual-panel salvo em: %s\n", out_png))
+cat(sprintf("\nDual-panel saved to: %s\n", out_png))
 
 # Save quality table
 out_csv <- file.path(out_dir, "quality_funnel_summary.csv")
 fwrite(quality_table, out_csv, sep = ";", dec = ",")
-cat(sprintf("Quality table salva em: %s\n", out_csv))
+cat(sprintf("Quality table saved to: %s\n", out_csv))
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")
