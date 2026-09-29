@@ -6,6 +6,30 @@ Short Tandem Repeat (STR) genotyping of the cohort BAM files using [STRling](htt
 
 Extract STR-containing regions from the aligned BAMs, merge the per-sample bins, and call expanded STR loci.
 
+## STRling Commands
+
+```bash
+strling extract -b sample.bam -f reference.fa -o output_dir
+```
+
+- `extract`: Extracts STR-containing regions from BAM files
+- `-b sample.bam`: Input BAM file for analysis
+- `-f reference.fa`: Reference genome in FASTA format
+- `-o output_dir`: Output directory for results
+
+## Required Files
+
+- `hg38.fa`: Reference genome (FASTA)
+- `hg38.fa.str`: Reference genome with STR metadata
+- Sequenced sample files (BAM format)
+
+## STRling Pipeline Stages
+
+1. **Extract**: Collects STR regions from input BAM
+2. **Merge**: Combines data from multiple samples (if joint analysis)
+3. **Estimate**: Estimates STR expansions
+4. **Call**: Calls expanded STR loci
+
 ## Structure
 
 ```

@@ -34,7 +34,7 @@ Compares allele distributions and DBSCAN outlier burden between categorical popu
 
 **Input**: `STRs_analysis_dataset.tsv`
 
-**QC Filters**:
+**QC Filters** (7,141 STRs passing filters):
 - `n_clusters > 0`
 - `noise_ratio <= 0.10`
 - `n_outliers >= 1`
