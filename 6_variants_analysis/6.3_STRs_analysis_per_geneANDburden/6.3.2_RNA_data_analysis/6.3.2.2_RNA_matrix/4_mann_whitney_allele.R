@@ -1,20 +1,20 @@
 #!/usr/bin/env Rscript
 # 4_mann_whitney_allele.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Mann-Whitney U test: case vs. control para STRs com outliers DBSCAN,
-#   por intervencao (GSE). Dois testes:
-#     (a) allele2_est com N >= 3 por grupo
-#     (b) mean_allele = (allele1 + allele2) / 2 com N >= 3 por grupo
-#   Inclui effect size (rank-biserial r) e FDR (Benjamini-Hochberg).
-#   Gera tabela publication-ready (gt HTML) com todos os loci testados.
+# PURPOSE
+#   Mann-Whitney U test: case vs. control for STRs with DBSCAN outliers,
+#   per comparison (GSE). Two tests:
+#     (a) allele2_est with N >= 3 per group
+#     (b) mean_allele = (allele1 + allele2) / 2 with N >= 3 per group
+#   Includes effect size (rank-biserial r) and FDR (Benjamini-Hochberg).
+#   Generates a publication-ready table (gt HTML) with all tested loci.
 #
-# ENTRADAS (por argumentos de linha de comando)
-#   --str-catalog    intervention_outliers.tsv (saida do step 1)
-#   --intervention   GSE (ex: GSE157103) ou ALL (default: ALL)
-#   --out-dir        Diretorio de saida
+# INPUTS (via command-line arguments)
+#   --str-catalog    intervention_outliers.tsv (output from step 1)
+#   --intervention   GSE (e.g. GSE157103) or ALL (default: ALL)
+#   --out-dir        Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   {intervention}_allele2_mw.csv
 #   {intervention}_mean_allele_mw.csv
 # ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ intervention     <- parse_arg("--intervention", "ALL")
 out_dir          <- parse_arg("--out-dir", ".")
 
 if (is.null(path_str_catalog)) {
-  stop("Argumento ausente: --str-catalog")
+  stop("Missing argument: --str-catalog")
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -53,7 +53,7 @@ cat("--- Mann-Whitney U Test: Case vs Control (Outlier Loci) ---\n")
 
 df <- fread(path_str_catalog, header = TRUE, sep = "\t")
 setnames(df, "intervention", "comparison_type")
-cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
+cat(sprintf("  intervention_outliers.tsv: %d rows\n", nrow(df)))
 
 # ==========================================
 # 2. Filter by DBSCAN quality (stricter than file default)
@@ -63,7 +63,7 @@ df_filtered <- df[
   noise_ratio_dbscan_global < 0.10 &
   n_outliers_dbscan_global >= 1
 ]
-cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): %d linhas\n",
+cat(sprintf("  After DBSCAN filter (clusters >= 1, noise < 10%%, outliers >= 1): %d rows\n",
             nrow(df_filtered)))
 
 # ==========================================
@@ -71,13 +71,13 @@ cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): 
 # ==========================================
 if (intervention != "ALL") {
   df_filtered <- df_filtered[gse == intervention]
-  cat(sprintf("  Intervention '%s': %d linhas\n", intervention, nrow(df_filtered)))
+  cat(sprintf("  Intervention '%s': %d rows\n", intervention, nrow(df_filtered)))
 } else {
-  cat(sprintf("  ALL interventions: %d linhas\n", nrow(df_filtered)))
+  cat(sprintf("  ALL interventions: %d rows\n", nrow(df_filtered)))
 }
 
 if (nrow(df_filtered) == 0) {
-  cat("Nenhuma observacao apos filtragem. Saindo.\n")
+  cat("No observations after filtering. Exiting.\n")
   quit(status = 0)
 }
 
@@ -99,17 +99,17 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
   dt[, target_metric := get(metric_col)]
   dt <- dt[!is.na(target_metric)]
 
-  cat(sprintf("  Observacoes validas: %d\n", nrow(dt)))
+  cat(sprintf("  Valid observations: %d\n", nrow(dt)))
 
   # Filter loci with sufficient samples per group (per variant x study)
   eligible <- dt[, .N, by = .(STRs_ID, gse, group)]
   eligible <- dcast(eligible, STRs_ID + gse ~ group, value.var = "N", fill = 0)
   eligible <- eligible[case >= min_n_per_group & control >= min_n_per_group]
 
-  cat(sprintf("  Combinacoes variantexestudo elegiveis: %d\n", nrow(eligible)))
+  cat(sprintf("  Eligible variant x study combinations: %d\n", nrow(eligible)))
 
   if (nrow(eligible) == 0) {
-    cat("  Nenhuma combinacao elegivel.\n")
+    cat("  No eligible combinations.\n")
     return(data.table())
   }
 
@@ -136,8 +136,8 @@ run_mann_whitney <- function(data, metric_col, min_n_per_group, label) {
 
   results <- results[order(p.adj, STRs_ID, gse)]
 
-  cat(sprintf("  Total de testes: %d\n", nrow(results)))
-  cat(sprintf("  Significativos (p.adj < 0.05): %d\n", sum(results$p.adj < 0.05, na.rm = TRUE)))
+  cat(sprintf("  Total tests: %d\n", nrow(results)))
+  cat(sprintf("  Significant (p.adj < 0.05): %d\n", sum(results$p.adj < 0.05, na.rm = TRUE)))
 
   return(results)
 }
@@ -162,17 +162,17 @@ suffix <- if (intervention == "ALL") "ALL" else intervention
 if (nrow(res_allele2) > 0) {
   out_allele2 <- file.path(out_dir, paste0(suffix, "_allele2_mw.csv"))
   fwrite(as.data.frame(res_allele2), out_allele2, sep = ";", dec = ",")
-  cat(sprintf("\n  Allele2 MW salvo em: %s\n", out_allele2))
+  cat(sprintf("\n  Allele2 MW saved at: %s\n", out_allele2))
 } else {
-  cat("\n  Nenhum resultado para Allele 2.\n")
+  cat("\n  No results for Allele 2.\n")
 }
 
 if (nrow(res_mean) > 0) {
   out_mean <- file.path(out_dir, paste0(suffix, "_mean_allele_mw.csv"))
   fwrite(as.data.frame(res_mean), out_mean, sep = ";", dec = ",")
-  cat(sprintf("  Mean Allele MW salvo em: %s\n", out_mean))
+  cat(sprintf("  Mean Allele MW saved at: %s\n", out_mean))
 } else {
-  cat("  Nenhum resultado para Mean Allele.\n")
+  cat("  No results for Mean Allele.\n")
 }
 
 # ==========================================
@@ -202,8 +202,8 @@ gene_map <- unique(df_filtered[, .(STRs_ID, gene_name)])
 res_combined <- merge(res_combined, gene_map, by = "STRs_ID", all.x = TRUE)
 
 if (nrow(res_combined) == 0) {
-  cat("  Nenhum resultado para tabela.\n")
-  cat("\nConcluido.\n")
+  cat("  No results for the table.\n")
+  cat("\nDone.\n")
   quit(status = 0)
 }
 
@@ -235,7 +235,7 @@ tbl <- tbl[order(Comparison, Gene, Metric)]
 n_loci <- uniqueN(tbl$Gene)
 n_comps <- uniqueN(tbl$Comparison)
 
-cat(sprintf("  Tabela: %d testes em %d loci x %d comparacoes\n", nrow(tbl), n_loci, n_comps))
+cat(sprintf("  Table: %d tests across %d loci x %d comparisons\n", nrow(tbl), n_loci, n_comps))
 
 # Build gt table
 out_gt <- tbl %>%
@@ -314,6 +314,6 @@ out_gt <- tbl %>%
 
 out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
 gtsave(out_gt, out_html)
-cat(sprintf("  Tabela salva em: %s\n", out_html))
+cat(sprintf("  Table saved at: %s\n", out_html))
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")

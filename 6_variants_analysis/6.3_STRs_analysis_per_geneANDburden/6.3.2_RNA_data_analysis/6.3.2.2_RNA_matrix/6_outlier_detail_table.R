@@ -1,16 +1,16 @@
 #!/usr/bin/env Rscript
-# 8_outlier_detail_table.R
+# 6_outlier_detail_table.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Gera tabela publication-ready (gt HTML) com detalhes dos outliers
-#   DBSCAN identificados no raincloud. Inclui localizacao genomica,
-#   tamanhos de alelos, metricas DBSCAN e informacoes DEG.
+# PURPOSE
+#   Generates a publication-ready table (gt HTML) with the DBSCAN outliers
+#   identified in the raincloud. Includes genomic location, allele sizes,
+#   DBSCAN metrics and DEG information.
 #
-# ENTRADAS (por argumentos de linha de comando)
-#   --intervention-outliers  intervention_outliers.tsv (saida do step 1)
-#   --out-dir                Diretorio de saida
+# INPUTS (via command-line arguments)
+#   --intervention-outliers  intervention_outliers.tsv (output from step 1)
+#   --out-dir                Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   outlier_detail_table.html
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
@@ -35,7 +35,7 @@ path_others_csv <- parse_arg("--others-csv")
 out_dir       <- parse_arg("--out-dir", ".")
 
 if (is.null(path_outliers)) {
-  stop("Argumento ausente: --intervention-outliers")
+  stop("Missing argument: --intervention-outliers")
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -46,7 +46,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 cat("--- Outlier Detail Table (Publication-Ready) ---\n")
 
 dt <- fread(path_outliers, header = TRUE, sep = "\t")
-cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(dt)))
+cat(sprintf("  intervention_outliers.tsv: %d rows\n", nrow(dt)))
 
 # ==========================================
 # 2. Rename DBSCAN columns (remove suffix)
@@ -82,7 +82,7 @@ if ("case" %in% names(n_wide) && "control" %in% names(n_wide)) {
 # ==========================================
 # 4. Prepare table data (aggregated per STR_ID)
 # ==========================================
-cat("\nPreparando dados da tabela...\n")
+cat("\nPreparing table data...\n")
 
 # Format FDR for display
 fmt_fdr <- function(x) {
@@ -117,7 +117,7 @@ if (!is.null(path_others_csv) && file.exists(path_others_csv)) {
     matched <- biotype_map[dt$STRs_ID[other_rows]]
     n_reclass <- sum(!is.na(matched))
     dt$region[other_rows] <- ifelse(is.na(matched), "Non-coding", matched)
-    cat(sprintf("  Biotype lookup: %d/%d variantes 'others' reclassificados\n",
+    cat(sprintf("  Biotype lookup: %d/%d 'others' variants reclassified\n",
                 n_reclass, length(other_rows)))
   }
 }
@@ -189,13 +189,13 @@ keep_cols <- c("Group", "Gene", "Region", "Chrom", "Start", "Motif",
                "Cases", "Controls")
 tbl <- tbl[, ..keep_cols]
 
-cat(sprintf("  STRs_ID unicos: %d (de %d observacoes originais)\n", n_strs, nrow(dt)))
-cat(sprintf("  Tabela final: %d linhas\n", nrow(tbl)))
+cat(sprintf("  Unique STRs_ID: %d (from %d original observations)\n", n_strs, nrow(dt)))
+cat(sprintf("  Final table: %d rows\n", nrow(tbl)))
 
 # ==========================================
 # 5. Build gt table
 # ==========================================
-cat("\nGerando tabela gt...\n")
+cat("\nBuilding gt table...\n")
 
 out_gt <- tbl %>%
   gt(groupname_col = "Group") %>%
@@ -299,6 +299,6 @@ out_gt <- tbl %>%
 # ==========================================
 out_html <- file.path(out_dir, "outlier_detail_table.html")
 gtsave(out_gt, out_html)
-cat(sprintf("\nTabela salva em: %s\n", out_html))
+cat(sprintf("\nTable saved at: %s\n", out_html))
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")

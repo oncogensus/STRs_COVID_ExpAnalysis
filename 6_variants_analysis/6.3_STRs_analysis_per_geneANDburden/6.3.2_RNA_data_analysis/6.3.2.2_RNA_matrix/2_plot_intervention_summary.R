@@ -1,26 +1,26 @@
 #!/usr/bin/env Rscript
 # plot_intervention_summary.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Gera visualizacoes para o cruzamento RNA-Seq x STRs POR INTERVENCAO:
-#     1) 2D hexbin density: allele2_est vs depth por GSE e group.
-#     2) Tabela de publicacao: por intervencao, contagens e proporcoes.
+# PURPOSE
+#   Generates visualizations for the RNA-Seq x STRs crossing PER INTERVENTION:
+#     1) 2D hexbin density: allele2_est vs depth by GSE and group.
+#     2) Publication table: counts and proportions per intervention.
 #
-# ENTRADAS (por argumentos de linha de comando)
+# INPUTS (via command-line arguments)
 #   --str-catalog       STRs_analysis_dataset.tsv (per-sample x STR)
-#   --intervention-strs intervention_strs.tsv (cruzação por intervenção)
+#   --intervention-strs intervention_strs.tsv (crossing by intervention)
 #   --intervention-outliers intervention_outliers.tsv
-#   --intervention-summary intervention_summary.tsv (resumo intervenção x gene)
-#   --out-dir           Diretório de saída
+#   --intervention-summary intervention_summary.tsv (intervention x gene summary)
+#   --out-dir           Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   intervention_density.png
 #   intervention_publication_table.tsv
 #   intervention_publication_table.html
 #
-# ESTILO
-#   Density plot em hexbin com cor unica (destaque nos outliers, sem
-#   colorbar/contagem), inspirado na estetica classica do pacote {hexbin}:
+# STYLE
+#   Hexbin density plot with a single color (highlighting outliers, without
+#   colorbar/count), inspired by the classic {hexbin} package aesthetics:
 #     bin <- hexbin(x, y, xbins = 40)
 #     plot(bin, col = "#4C72B0", legend = FALSE)
 # ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ missing_args <- c(
   "--intervention-summary" = is.null(path_intv_summary)
 )
 if (any(missing_args)) {
-  stop("Argumentos ausentes: ", paste(names(missing_args[missing_args]), collapse = ", "))
+  stop("Missing arguments: ", paste(names(missing_args[missing_args]), collapse = ", "))
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -64,19 +64,19 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # ==========================================
 # 1. Load data
 # ==========================================
-cat("Carregando dados...\n")
+cat("Loading data...\n")
 
 str_cat <- fread(path_str_catalog, header = TRUE, sep = "\t")
-cat(sprintf("  STR catalog: %d linhas\n", nrow(str_cat)))
+cat(sprintf("  STR catalog: %d rows\n", nrow(str_cat)))
 
 intv_strs <- fread(path_intv_strs, header = TRUE, sep = "\t")
-cat(sprintf("  intervention_strs.tsv: %d linhas\n", nrow(intv_strs)))
+cat(sprintf("  intervention_strs.tsv: %d rows\n", nrow(intv_strs)))
 
 intv_out <- fread(path_intv_outliers, header = TRUE, sep = "\t")
-cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(intv_out)))
+cat(sprintf("  intervention_outliers.tsv: %d rows\n", nrow(intv_out)))
 
 intv_sum <- fread(path_intv_summary, header = TRUE, sep = "\t")
-cat(sprintf("  intervention_summary.tsv: %d linhas\n", nrow(intv_sum)))
+cat(sprintf("  intervention_summary.tsv: %d rows\n", nrow(intv_sum)))
 
 # Ensure intv_sum has gse column for label mapping
 if (!"gse" %in% names(intv_sum)) {
@@ -87,13 +87,13 @@ if (!"gse" %in% names(intv_sum)) {
 # ==========================================
 # 2. Prepare data for density plot
 # ==========================================
-cat("\nPreparando dados para density plot...\n")
+cat("\nPreparing data for the density plot...\n")
 
 plot_data <- intv_out[!is.na(group) & group != ""]
 plot_data[, group := factor(group, levels = c("case", "control"))]
 
-cat(sprintf("  Intervenções: %s\n", paste(unique(plot_data$intervention), collapse = ", ")))
-cat(sprintf("  Observações: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
+cat(sprintf("  Comparisons: %s\n", paste(unique(plot_data$intervention), collapse = ", ")))
+cat(sprintf("  Observations: %d (GSEs: %d)\n", nrow(plot_data), uniqueN(plot_data$gse)))
 
 # ==========================================
 # 2.1 Publication-quality intervention labels
@@ -123,32 +123,32 @@ apply_labels(intv_sum)
 
 # ==========================================
 # 3. 2D HEXBIN density: allele2_est vs depth
-#    - Fundo (todas as STRs em DEGs): cinza neutro
-#    - Overlay (outliers DBSCAN):      vermelho
+#    - Background (all STRs in DEGs): neutral grey
+#    - Overlay (DBSCAN outliers): red
 # ==========================================
-cat("\nGerando density plot (hexbin)...\n")
+cat("\nGenerating density plot (hexbin)...\n")
 
-# --- 3.1 Preparar dados de fundo (todos os STRs em DEGs) ---
+# --- 3.1 Prepare background data (all STRs in DEGs) ---
 bg_data <- intv_strs[!is.na(group) & group != ""]
 bg_data[, group := factor(group, levels = c("case", "control"))]
 
-# --- 3.2 Preparar dados de outliers (o que sera destacado) ---
+# --- 3.2 Prepare outlier data (what will be highlighted) ---
 out_data <- intv_out[!is.na(group) & group != ""]
 out_data[, group := factor(group, levels = c("case", "control"))]
 
-cat(sprintf("  Fundo   : %d observações\n", nrow(bg_data)))
-cat(sprintf("  Outliers: %d observações\n", nrow(out_data)))
+cat(sprintf("  Background : %d observations\n", nrow(bg_data)))
+cat(sprintf("  Outliers   : %d observations\n", nrow(out_data)))
 
 n_gse <- uniqueN(out_data$gse)
 
 hex_bins <- 40
 
-# Cores: fundo neutro + outliers em vermelho
-bg_color  <- "#B0B0B0"   # cinza medio
-out_color <- "#E41A1C"   # vermelho (mesmo tom do raincloud "case")
+# Colors: neutral background + outliers in red
+bg_color  <- "#B0B0B0"   # medium grey
+out_color <- "#E41A1C"   # red (same tone as the "case" raincloud)
 
 p_density <- ggplot() +
-  # ---- Camada 1: fundo (todos os STRs em DEGs) ----
+  # ---- Layer 1: background (all STRs in DEGs) ----
   geom_hex(
     data   = bg_data,
     aes(x = allele2_est, y = depth),
@@ -157,7 +157,7 @@ p_density <- ggplot() +
     colour = NA,
     alpha  = 0.6
   ) +
-  # ---- Camada 2: outliers em vermelho (por cima) ----
+  # ---- Layer 2: outliers in red (on top) ----
   geom_hex(
     data   = out_data,
     aes(x = allele2_est, y = depth),
@@ -206,12 +206,12 @@ ggsave(
   bg = "white",
   limitsize = FALSE
 )
-cat(sprintf("Density plot salvo em: %s\n", out_png))
+cat(sprintf("Density plot saved at: %s\n", out_png))
 
 # ==========================================
 # 4. Publication table (per intervention x GSE)
 # ==========================================
-cat("\nGerando tabela de publicacao por intervenção...\n")
+cat("\nGenerating publication table per comparison...\n")
 
 # --- 4.1 Outlier counts per intervention x GSE (sample-level) ---
 setnames(intv_out, "gene_name", "gene")
@@ -301,7 +301,7 @@ pub_table[, n_out_no_overlap_str := fmt_pct(n_out_no_overlap, n_outliers)]
 # Order by n_outliers descending
 pub_table <- pub_table[order(-n_outliers)]
 
-cat(sprintf("  Tabela final: %d intervenções\n", nrow(pub_table)))
+cat(sprintf("  Final table: %d comparisons\n", nrow(pub_table)))
 
 # Save TSV
 out_tsv <- file.path(out_dir, "intervention_publication_table.tsv")
@@ -310,10 +310,10 @@ pub_tsv <- pub_table[, .(intervention, gse, n_genes, n_strs_total, str_density_p
                           median_allele_case, median_allele_control,
                           n_outliers_str, n_out_case_str, n_out_control_str,
                           n_overlap_str, n_out_no_overlap_str)]
-cat("  Primeiras 3 linhas:\n")
+cat("  First 3 rows:\n")
 print(head(as.data.frame(pub_tsv), 3))
 fwrite(pub_tsv, out_tsv, sep = "\t")
-cat(sprintf("Tabela salva em: %s (%d intervenções)\n", out_tsv, nrow(pub_tsv)))
+cat(sprintf("Table saved at: %s (%d comparisons)\n", out_tsv, nrow(pub_tsv)))
 
 # Save formatted gt table as HTML (publication ready)
 pub_gt <- pub_tsv %>%
@@ -407,6 +407,6 @@ pub_gt <- pub_tsv %>%
 
 out_gt_html <- file.path(out_dir, "intervention_publication_table.html")
 gtsave(pub_gt, out_gt_html)
-cat(sprintf("Tabela gt HTML salva em: %s\n", out_gt_html))
+cat(sprintf("gt table HTML saved at: %s\n", out_gt_html))
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")

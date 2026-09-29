@@ -1,26 +1,26 @@
 #!/usr/bin/env Rscript
 # plot_raincloud_per_locus.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Raincloud POR LOCUS (STR) com apenas outliers DBSCAN.
-#   Para cada intervenção (ou uma única, se --intervention) gera, para
-#   cada GSE (acesso do estudo):
-#     1) Raincloud por locus, salvo em <out-dir>/<GSE>/<intervention>_*.png
-#     2) CSV por paciente, salvo em <out-dir>/<GSE>/<intervention>_patients.csv
+# PURPOSE
+#   Raincloud PER LOCUS (STR) with only DBSCAN outliers.
+#   For each comparison (or a single one, if --intervention) generates, for
+#   each GSE (study accession):
+#     1) Raincloud per locus, saved at <out-dir>/<GSE>/<intervention>_*.png
+#     2) CSV per patient, saved at <out-dir>/<GSE>/<intervention>_patients.csv
 #
-# ENTRADAS
-#   --intervention-outliers intervention_outliers.tsv (outliers DBSCAN)
-#   --intervention          <nome> | "ALL" (default: ALL)
-#   --out-dir               Diretorio de saida
+# INPUTS
+#   --intervention-outliers intervention_outliers.tsv (DBSCAN outliers)
+#   --intervention          <name> | "ALL" (default: ALL)
+#   --out-dir               Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   <out-dir>/<GSE>/<intervention>_patients.csv
 #   <out-dir>/<GSE>/<intervention>_raincloud_per_locus_pXX.png
 #
-# ESTILO
-#   Raincloud em ggplot2 puro. Repeat units em escala LINEAR (sem log1p).
-#   Sem subtitle. Exceção: COVID_vs_CONTROL||GSE183533 (split + box/dots
-#   separados + caption com o critério de estratificação).
+# STYLE
+#   Raincloud in pure ggplot2. Repeat units on a LINEAR scale (no log1p).
+#   No subtitle. Exception: COVID_vs_CONTROL||GSE183533 (split + separate
+#   box/dots + caption with the stratification criterion).
 # ---------------------------------------------------------------------------
 suppressPackageStartupMessages({
   library(data.table)
@@ -85,7 +85,7 @@ intervention_sel   <- parse_arg("--intervention", "ALL")
 out_dir            <- parse_arg("--out-dir", ".")
 
 if (is.null(path_intv_outliers)) {
-  stop("Argumento ausente: --intervention-outliers")
+  stop("Missing argument: --intervention-outliers")
 }
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -93,7 +93,7 @@ group_colors  <- c("case" = "#E41A1C", "control" = "#377EB8")
 loci_per_page <- 20
 
 # ==========================================
-# Overrides de estetica por (intervencao, GSE)
+# Aesthetic overrides per (comparison, GSE)
 # ==========================================
 style_overrides <- list(
   "COVID_vs_CONTROL||GSE183533" = list(
@@ -136,12 +136,12 @@ get_style <- function(intv, gse_tag) {
 # ==========================================
 # 1. Load data
 # ==========================================
-cat("Carregando intervention_outliers.tsv...\n")
+cat("Loading intervention_outliers.tsv...\n")
 intv_out <- fread(path_intv_outliers, header = TRUE, sep = "\t")
-cat(sprintf("  Linhas: %d\n", nrow(intv_out)))
+cat(sprintf("  Rows: %d\n", nrow(intv_out)))
 
 for (req in c("STRs_ID", "intervention", "group", "gene_name", "gse"))
-  if (!req %in% names(intv_out)) stop("Coluna ausente no input: ", req)
+  if (!req %in% names(intv_out)) stop("Missing column in input: ", req)
 
 intv_out[, group := tolower(trimws(as.character(group)))]
 intv_out <- intv_out[!is.na(group) & group != ""]
@@ -153,21 +153,21 @@ intv_out[, locus_label := ifelse(is.na(gene_name) | gene_name == "",
                                  sprintf("%s (%s)", gene_name, str_variant))]
 
 available <- sort(unique(intv_out$intervention))
-cat(sprintf("  Intervenções disponíveis: %s\n",
+cat(sprintf("  Available comparisons: %s\n",
             paste(available, collapse = ", ")))
 
 if (toupper(intervention_sel) == "ALL") {
   interventions <- available
 } else {
   if (!intervention_sel %in% available) {
-    stop("Intervenção '", intervention_sel, "' não encontrada. Disponíveis: ",
+    stop("Comparison '", intervention_sel, "' not found. Available: ",
          paste(available, collapse = ", "))
   }
   interventions <- intervention_sel
 }
 
 # ==========================================
-# Helper: gera rainclouds de um dataset (paginação por locus)
+# Helper: generates rainclouds of a dataset (pagination by locus)
 # ==========================================
 make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
   dest_dir <- file.path(out_dir, gsub("[^A-Za-z0-9._-]", "_", gse_tag))
@@ -175,13 +175,13 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
 
   loci   <- unique(dat$locus_label)
   n_loci <- length(loci)
-  cat(sprintf("    [%s] %d loci -> %d páginas\n",
+  cat(sprintf("    [%s] %d loci -> %d pages\n",
               gse_tag, n_loci, ceiling(n_loci / loci_per_page)))
 
   pages <- split(loci, ceiling(seq_along(loci) / loci_per_page))
 
   st <- get_style(intv, gse_tag)
-  cat(sprintf("    [%s] estilo: sep=%s split=%s violin=%s\n",
+  cat(sprintf("    [%s] style: sep=%s split=%s violin=%s\n",
               gse_tag, st$box_dots_separate, st$split_by_allele,
               st$show_violin))
 
@@ -191,7 +191,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
     pdat[, locus_label := factor(locus_label,
                                  levels = rev(sort(unique(locus_label))))]
 
-    # ---- Split por tamanho do alelo (opcional) ----
+    # ---- Split by allele size (optional) ----
     use_facet     <- FALSE
     split_caption <- NULL
 
@@ -223,7 +223,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
     }
 
     # ==========================================================
-    # MODO A: boxplot e dots em faixas separadas
+    # MODE A: boxplot and dots in separate bands
     # ==========================================================
     if (isTRUE(st$box_dots_separate)) {
       pdat[, locus_num := as.numeric(locus_label)]
@@ -304,7 +304,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
       }
 
     # ==========================================================
-    # MODO B: layout original
+    # MODE B: original layout
     # ==========================================================
     } else {
       p <- ggplot(pdat,
@@ -361,7 +361,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
           panel.background = element_rect(fill = "white", color = NA),
           plot.background  = element_rect(fill = "white", color = NA)
         )
-      # (facet_wrap(~ gse) removido — nao ha mais visao ALL)
+      # (facet_wrap(~ gse) removed — there is no longer an ALL view)
     }
 
     out_file <- file.path(dest_dir,
@@ -378,12 +378,12 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
       bg        = "white",
       limitsize = FALSE
     )
-    cat(sprintf("    Salvo: %s\n", out_file))
+    cat(sprintf("    Saved: %s\n", out_file))
   }
 }
 
 # ==========================================
-# Helper: CSV por paciente numa pasta de GSE
+# Helper: CSV per patient in a GSE folder
 # ==========================================
 write_patients_csv <- function(dat, intv, gse_tag) {
   dest_dir <- file.path(out_dir, gsub("[^A-Za-z0-9._-]", "_", gse_tag))
@@ -400,28 +400,28 @@ write_patients_csv <- function(dat, intv, gse_tag) {
                 "n_clusters_dbscan_global", "noise_ratio_dbscan_global")
   present_cols <- intersect(csv_cols, names(dat))
   fwrite(dat[, ..present_cols], csv_out)
-  cat(sprintf("    CSV por paciente: %s\n", csv_out))
+  cat(sprintf("    CSV per patient: %s\n", csv_out))
 }
 
 # ==========================================
-# 2. Loop por intervenção — apenas por GSE
+# 2. Loop per comparison — by GSE only
 # ==========================================
 for (intv in interventions) {
-  cat(sprintf("\n=== Intervenção: %s ===\n", intv))
+  cat(sprintf("\n=== Comparison: %s ===\n", intv))
 
   dat <- intv_out[intervention == intv]
   if (nrow(dat) == 0) {
-    cat("  Sem observações, pulando.\n")
+    cat("  No observations, skipping.\n")
     next
   }
-  cat(sprintf("  Observações: %d | Loci: %d | GSEs: %s\n",
+  cat(sprintf("  Observations: %d | Loci: %d | GSEs: %s\n",
               nrow(dat), uniqueN(dat$locus_label),
               paste(sort(unique(dat$gse)), collapse = ", ")))
 
-  # --- Apenas por GSE ---
+  # --- By GSE only ---
   for (gse_i in sort(unique(dat$gse))) {
     dat_gse <- dat[gse == gse_i]
-    cat(sprintf("  Gerando por GSE: %s\n", gse_i))
+    cat(sprintf("  Generating per GSE: %s\n", gse_i))
     write_patients_csv(dat_gse, intv, gse_i)
     make_raincloud(
       dat = dat_gse, intv = intv, gse_tag = gse_i,
@@ -432,4 +432,4 @@ for (intv in interventions) {
   }
 }
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")

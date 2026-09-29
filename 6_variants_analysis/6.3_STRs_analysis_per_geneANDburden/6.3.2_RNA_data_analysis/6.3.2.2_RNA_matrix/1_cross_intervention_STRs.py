@@ -2,36 +2,36 @@
 """
 cross_intervention_STRs.py
 --------------------------
-Cruza DEGs de cada intervenção (arquivo TSV por comparação) com o catálogo
-de STRs da coorte, incluindo métricas DBSCAN global.
+Crosses the DEGs of each comparison (TSV file per comparison) with the cohort
+STR catalog, including global DBSCAN metrics.
 
-Cada subpasta GSE contém um ou mais TSVs de DEGs. O nome da intervenção
-é extraído do nome do arquivo (prefixo DEG(s)_ e sufixos removidos).
+Each GSE subfolder contains one or more DEG TSVs. The comparison name is
+extracted from the file name (the DEG(s)_ prefix and suffixes are removed).
 
-Cada linha das saídas representa UM STR anotado em UM gene DEG,
-para UMA combinação única (GSE, intervenção). O GSE é mantido como
-coluna, de modo que a mesma STR pode aparecer N vezes se o gene for
-DEG em N estudos/intervenções distintas.
+Each output row represents ONE STR annotated in ONE DEG gene, for ONE
+unique (GSE, comparison) combination. The GSE is kept as a column, so the
+same STR can appear N times if its gene is a DEG in N distinct
+studies/comparisons.
 
-Filtros de significância (aplicados aos DEGs):
-  --require {fdr,pval,both,either}   o que exigir (default: fdr)
-  --fdr <float>                      threshold de FDR      (default: 0.05)
-  --pval <float>                     threshold de p-valor  (default: 0.05)
-  --logfc <float>                    threshold de |logFC|  (default: 1.0;
-                                     0 desativa o filtro)
+Significance filters (applied to DEGs):
+  --require {fdr,pval,both,either}   what to require (default: fdr)
+  --fdr <float>                      FDR threshold         (default: 0.05)
+  --pval <float>                     raw p-value threshold (default: 0.05)
+  --logfc <float>                    |logFC| threshold     (default: 1.0;
+                                     0 disables the filter)
 
-Saídas:
-  1) intervention_strs.tsv        – todos os STRs anotados nos genes DEGs
-                                    (1 linha por STR × GSE × intervenção)
-  2) intervention_outliers.tsv    – apenas STRs com outliers DBSCAN global
-  3) intervention_summary.tsv     – resumo por (GSE, intervenção, gene)
-  4) debug_report.txt             – (com --debug) verificação pós-execução
+Outputs:
+  1) intervention_strs.tsv        - all STRs annotated in DEG genes
+                                    (1 row per STR x GSE x comparison)
+  2) intervention_outliers.tsv    - only STRs with a global DBSCAN outlier set
+  3) intervention_summary.tsv     - summary per (GSE, comparison, gene)
+  4) debug_report.txt             - (with --debug) post-execution check
 
-Uso:
+Usage:
   python3 cross_intervention_STRs.py \
-      --deg-dir <diretorio_com_subpastas_GSE> \
-      --str-catalog <caminho/STRs_analysis_dataset.tsv> \
-      --out-dir <diretorio_de_saida> \
+      --deg-dir <directory_with_GSE_subfolders> \
+      --str-catalog <path/STRs_analysis_dataset.tsv> \
+      --out-dir <output_directory> \
       [--require fdr|pval|both|either] \
       [--fdr 0.05] [--pval 0.05] [--logfc 1.0] \
       [--debug]
@@ -46,7 +46,7 @@ from collections import Counter, defaultdict
 
 
 # ---------------------------------------------------------------------------
-# Colunas candidatas (separadas por tipo)
+# Candidate columns (grouped by type)
 # ---------------------------------------------------------------------------
 GENE_COL_CANDIDATES  = ['gene_symbol', 'Gene', 'gene', 'gene_name']
 FDR_COL_CANDIDATES   = ['FDR', 'adj.P.Val', 'padj', 'p_adj', 'p.adjust']
@@ -71,7 +71,7 @@ def detect_col(header, candidates):
 
 
 def extract_intervention(fname):
-    """Extrai nome da intervenção do nome do arquivo TSV."""
+    """Extract the comparison name from the TSV file name."""
     base = os.path.splitext(fname)[0]
     base = re.sub(r'^GSE\d+_', '', base)
     base = re.sub(r'^DEGs?_', '', base)
@@ -94,12 +94,12 @@ def _to_float(v):
 def load_deg_file(path, fdr_thr=0.05, pval_thr=0.05,
                   logfc_thr=1.0, require='fdr', stats=None):
     """
-    Lê um TSV de DEGs e retorna dict {gene: {...}} já filtrado.
+    Read a DEG TSV and return a filtered dict {gene: {...}}.
 
-    require: 'fdr'    -> exige FDR < fdr_thr (se FDR disponível)
-             'pval'   -> exige p-valor bruto < pval_thr
-             'both'   -> exige ambos
-             'either' -> exige pelo menos um dos dois
+    require: 'fdr'    -> require FDR < fdr_thr (if FDR is available)
+             'pval'   -> require raw p-value < pval_thr
+             'both'   -> require both
+             'either' -> require at least one of the two
     """
     genes = {}
     if stats is None:
@@ -129,17 +129,17 @@ def load_deg_file(path, fdr_thr=0.05, pval_thr=0.05,
 
         if gene_col is None:
             sys.stderr.write(
-                f"  AVISO: coluna gene nao encontrada em {path}\n")
+                f"  WARNING: gene column not found in {path}\n")
             return genes
 
         if require in ('pval', 'both') and pval_col is None:
             sys.stderr.write(
-                f"  AVISO: --require {require} mas nenhuma coluna de "
-                f"p-valor em {os.path.basename(path)}. Filtro p ignorado.\n")
+                f"  WARNING: --require {require} but no p-value column in "
+                f"{os.path.basename(path)}. p filter ignored.\n")
         if require in ('fdr', 'both') and fdr_col is None:
             sys.stderr.write(
-                f"  AVISO: --require {require} mas nenhuma coluna de "
-                f"FDR em {os.path.basename(path)}. Filtro FDR ignorado.\n")
+                f"  WARNING: --require {require} but no FDR column in "
+                f"{os.path.basename(path)}. FDR filter ignored.\n")
 
         for row in reader:
             stats['total_rows'] += 1
@@ -148,26 +148,26 @@ def load_deg_file(path, fdr_thr=0.05, pval_thr=0.05,
                 stats['sem_gene'] += 1
                 continue
 
-            # --- filtro 1: flag Significant (se existir) ---
+            # --- filter 1: Significant flag (if present) ---
             if sig_col:
                 val = row.get(sig_col, '').strip().lower()
                 if val not in SIG_TRUE_VALUES:
                     stats['sig_fail'] += 1
                     continue
 
-            # --- filtro 2: p-valor bruto ---
+            # --- filter 2: raw p-value ---
             pval_ok = True
             if pval_col and require in ('pval', 'both', 'either'):
                 p = _to_float(row.get(pval_col, '1'))
                 pval_ok = (p is not None) and (p < pval_thr)
 
-            # --- filtro 3: FDR ---
+            # --- filter 3: FDR ---
             fdr_ok = True
             if fdr_col and require in ('fdr', 'both', 'either'):
                 q = _to_float(row.get(fdr_col, '1'))
                 fdr_ok = (q is not None) and (q < fdr_thr)
 
-            # --- combinação dos dois ---
+            # --- combination of the two ---
             if require == 'both':
                 passed_sig = pval_ok and fdr_ok
             elif require == 'either':
@@ -184,7 +184,7 @@ def load_deg_file(path, fdr_thr=0.05, pval_thr=0.05,
                     stats['fdr_fail'] += 1
                 continue
 
-            # --- filtro 4: |logFC| ---
+            # --- filter 4: |logFC| ---
             if logfc_col and logfc_thr is not None:
                 lfc = _to_float(row.get(logfc_col, '0'))
                 if lfc is None or abs(lfc) < logfc_thr:
@@ -203,7 +203,7 @@ def load_deg_file(path, fdr_thr=0.05, pval_thr=0.05,
 
 
 # ---------------------------------------------------------------------------
-# MÓDULO DE DEBUG
+# DEBUG MODULE
 # ---------------------------------------------------------------------------
 class DebugReport:
     def __init__(self, enabled):
@@ -222,13 +222,13 @@ class DebugReport:
 
 def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
                    dataset_info, intervention_seen, filter_stats, dbg):
-    """Relê os TSVs gerados e checa consistência."""
+    """Re-read the generated TSVs and check consistency."""
     dbg.log('\n' + '=' * 72)
-    dbg.log('VERIFICAÇÃO PÓS-EXECUÇÃO')
+    dbg.log('POST-EXECUTION CHECK')
     dbg.log('=' * 72)
 
     # ------------------------------------------------------------------
-    # [1] Reler os TSVs gerados
+    # [1] Re-read the generated TSVs
     # ------------------------------------------------------------------
     def read_tsv(path):
         with open(path) as fh:
@@ -239,10 +239,10 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
         tsv_out  = read_tsv(os.path.join(out_dir, 'intervention_outliers.tsv'))
         tsv_sum  = read_tsv(os.path.join(out_dir, 'intervention_summary.tsv'))
     except FileNotFoundError as e:
-        dbg.log(f'[ERRO] Arquivo de saída não encontrado: {e}')
+        dbg.log(f'[ERROR] Output file not found: {e}')
         return
 
-    dbg.log('\n[1] Contagens de linhas nos TSVs')
+    dbg.log('\n[1] Row counts in the TSVs')
     dbg.log(f'    intervention_strs.tsv      : {len(tsv_strs)}')
     dbg.log(f'    intervention_outliers.tsv  : {len(tsv_out)}')
     dbg.log(f'    intervention_summary.tsv   : {len(tsv_sum)}')
@@ -250,50 +250,50 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
     dbg.log(f'    (in-memory) outlier_matches: {len(outlier_matches)}')
 
     # ------------------------------------------------------------------
-    # [2] Coerência in-memory × TSV
+    # [2] In-memory x TSV consistency
     # ------------------------------------------------------------------
-    dbg.log('\n[2] Coerência in-memory × TSV')
+    dbg.log('\n[2] In-memory x TSV consistency')
     ok = True
     if len(tsv_strs) != len(all_matches):
-        dbg.log(f'    ✗ intervention_strs.tsv tem {len(tsv_strs)} linhas, '
-                f'esperado {len(all_matches)}')
+        dbg.log(f'    x intervention_strs.tsv has {len(tsv_strs)} rows, '
+                f'expected {len(all_matches)}')
         ok = False
     if len(tsv_out) != len(outlier_matches):
-        dbg.log(f'    ✗ intervention_outliers.tsv tem {len(tsv_out)} linhas, '
-                f'esperado {len(outlier_matches)}')
+        dbg.log(f'    x intervention_outliers.tsv has {len(tsv_out)} rows, '
+                f'expected {len(outlier_matches)}')
         ok = False
     if ok:
-        dbg.log('    ✓ contagens batem')
+        dbg.log('    o counts match')
 
     # ------------------------------------------------------------------
-    # [3] GSE-dependência: mesma STR em mesmo gene em GSEs diferentes
+    # [3] GSE-dependence: same STR in same gene across different GSEs
     # ------------------------------------------------------------------
-    dbg.log('\n[3] GSE-dependência (STR × gene × GSE)')
+    dbg.log('\n[3] GSE-dependence (STR x gene x GSE)')
     str_gene_gses = defaultdict(set)
     for m in all_matches:
         str_gene_gses[(m['STRs_ID'], m['gene_name'])].add(m['gse'])
 
     multi_gse = {k: v for k, v in str_gene_gses.items() if len(v) > 1}
-    dbg.log(f'    STRs em genes DEG em ≥2 GSEs: {len(multi_gse)}')
+    dbg.log(f'    STRs in DEG genes in >=2 GSEs: {len(multi_gse)}')
     if multi_gse:
-        dbg.log('    Exemplos (STR | gene | GSEs):')
+        dbg.log('    Examples (STR | gene | GSEs):')
         for (sid, gene), gses in sorted(multi_gse.items())[:5]:
             dbg.log(f'      {sid} | {gene} | {sorted(gses)}')
-        dbg.log('    Checando se no TSV aparecem N vezes:')
+        dbg.log('    Checking that the TSV shows them N times:')
         for (sid, gene), gses in sorted(multi_gse.items())[:3]:
             n_tsv = sum(1 for r in tsv_strs
                         if r['STRs_ID'] == sid and r['gene_name'] == gene)
-            status = '✓' if n_tsv == len(gses) else '✗'
+            status = 'o' if n_tsv == len(gses) else 'x'
             dbg.log(f'      {status} {sid}/{gene}: '
-                    f'{n_tsv} linhas no TSV, {len(gses)} GSEs esperados')
+                    f'{n_tsv} rows in the TSV, {len(gses)} GSEs expected')
     else:
-        dbg.log('    ⚠ Nenhuma STR aparece em ≥2 GSEs — '
-                'verifique se os genes DEG se sobrepõem entre estudos.')
+        dbg.log('    WARNING: no STR appears in >=2 GSEs - '
+                'check whether DEG genes overlap between studies.')
 
     # ------------------------------------------------------------------
-    # [4] Subset: outliers ⊂ all
+    # [4] Subset: outliers subset of all
     # ------------------------------------------------------------------
-    dbg.log('\n[4] outlier_matches ⊂ all_matches')
+    dbg.log('\n[4] outlier_matches subset of all_matches')
     all_keys = Counter((m['gse'], m['intervention'], m['STRs_ID'])
                        for m in all_matches)
     out_keys = Counter((m['gse'], m['intervention'], m['STRs_ID'])
@@ -303,97 +303,97 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
         if k not in all_keys or n > all_keys[k]:
             inconsistent += 1
     if inconsistent == 0:
-        dbg.log(f'    ✓ Todos os {len(outlier_matches)} outliers '
-                f'estão em all_matches')
+        dbg.log(f'    o All {len(outlier_matches)} outliers '
+                f'are in all_matches')
     else:
-        dbg.log(f'    ✗ {inconsistent} chaves de outlier inconsistentes')
+        dbg.log(f'    x {inconsistent} inconsistent outlier keys')
 
     # ------------------------------------------------------------------
-    # [5] Unicidade da summary
+    # [5] Summary uniqueness
     # ------------------------------------------------------------------
-    dbg.log('\n[5] Unicidade de (gse, intervention, gene) na summary')
+    dbg.log('\n[5] (gse, intervention, gene) uniqueness in the summary')
     keys = [(r['gse'], r['intervention'], r['gene']) for r in tsv_sum]
     dups = [k for k, n in Counter(keys).items() if n > 1]
     if not dups:
-        dbg.log(f'    ✓ {len(keys)} pares únicos (gse, intervention, gene)')
+        dbg.log(f'    o {len(keys)} unique (gse, intervention, gene) pairs')
     else:
-        dbg.log(f'    ✗ {len(dups)} pares duplicados. Exemplos:')
+        dbg.log(f'    x {len(dups)} duplicated pairs. Examples:')
         for k in dups[:5]:
             dbg.log(f'      {k}')
 
     # ------------------------------------------------------------------
-    # [6] Cobertura do catálogo de STRs
+    # [6] STR catalog coverage
     # ------------------------------------------------------------------
-    dbg.log('\n[6] Cobertura do catálogo de STRs')
+    dbg.log('\n[6] STR catalog coverage')
     catalog_ids  = {r.get('STRs_ID', '').strip() for r in str_catalog}
     annotated_ids = {m['STRs_ID'] for m in all_matches}
-    dbg.log(f'    STRs no catálogo      : {len(catalog_ids)}')
-    dbg.log(f'    STRs anotados (DEGs)  : {len(annotated_ids)}')
-    dbg.log(f'    STRs sem DEG          : {len(catalog_ids - annotated_ids)}')
+    dbg.log(f'    STRs in catalog      : {len(catalog_ids)}')
+    dbg.log(f'    STRs annotated (DEGs) : {len(annotated_ids)}')
+    dbg.log(f'    STRs without DEG      : {len(catalog_ids - annotated_ids)}')
 
     # ------------------------------------------------------------------
-    # [7] Integridade de campos
+    # [7] Field integrity
     # ------------------------------------------------------------------
-    dbg.log('\n[7] Integridade de campos em intervention_strs.tsv')
+    dbg.log('\n[7] Field integrity in intervention_strs.tsv')
     issues = Counter()
     for r in tsv_strs:
         if not r.get('STRs_ID', '').strip():
-            issues['STRs_ID vazio'] += 1
+            issues['empty STRs_ID'] += 1
         if not r.get('gene_name', '').strip():
-            issues['gene_name vazio'] += 1
+            issues['empty gene_name'] += 1
         if not r.get('gse', '').strip():
-            issues['gse vazio'] += 1
+            issues['empty gse'] += 1
         if not r.get('intervention', '').strip():
-            issues['intervention vazia'] += 1
+            issues['empty intervention'] += 1
         lfc = r.get('logFC', '').strip()
         if lfc and _to_float(lfc) is None:
-            issues['logFC não-numérico'] += 1
+            issues['non-numeric logFC'] += 1
         fdr = r.get('FDR', '').strip()
         if fdr and _to_float(fdr) is None:
-            issues['FDR não-numérico'] += 1
+            issues['non-numeric FDR'] += 1
     if not issues:
-        dbg.log('    ✓ Sem problemas de integridade')
+        dbg.log('    o No integrity problems')
     else:
         for k, v in issues.items():
-            dbg.log(f'    ✗ {k}: {v} linhas')
+            dbg.log(f'    x {k}: {v} rows')
 
     # ------------------------------------------------------------------
-    # [8] Colisões de intervention entre GSEs
+    # [8] intervention collisions between GSEs
     # ------------------------------------------------------------------
-    dbg.log('\n[8] Colisões de intervention entre GSEs')
+    dbg.log('\n[8] intervention collisions between GSEs')
     collisions = {k: v for k, v in intervention_seen.items() if len(v) > 1}
     if not collisions:
-        dbg.log('    ✓ Nenhuma intervention compartilhada entre GSEs')
+        dbg.log('    o No intervention shared between GSEs')
     else:
-        dbg.log(f'    ⚠ {len(collisions)} interventions em múltiplos GSEs:')
+        dbg.log(f'    WARNING: {len(collisions)} interventions in multiple GSEs:')
         for interv, gses in sorted(collisions.items()):
             dbg.log(f'      {interv}: {sorted(gses)}')
 
     # ------------------------------------------------------------------
-    # [9] Distribuição por (gse, intervention)
+    # [9] Distribution by (gse, intervention)
     # ------------------------------------------------------------------
-    dbg.log('\n[9] Distribuição de linhas por (gse, intervention)')
+    dbg.log('\n[9] Row distribution by (gse, intervention)')
     per_ds = Counter((m['gse'], m['intervention']) for m in all_matches)
     for (gse, interv), n in sorted(per_ds.items()):
-        dbg.log(f'    {gse} | {interv}: {n} linhas STR')
+        dbg.log(f'    {gse} | {interv}: {n} STR rows')
 
     # ------------------------------------------------------------------
-    # [10] Genes por (gse, intervention) — vs dataset_info
+    # [10] Genes per (gse, intervention) - vs dataset_info
     # ------------------------------------------------------------------
-    dbg.log('\n[10] Genes DEG por (gse, intervention) — vs dataset_info')
+    dbg.log('\n[10] DEG genes per (gse, intervention) - vs dataset_info')
     per_ds_genes = defaultdict(set)
     for m in all_matches:
         per_ds_genes[(m['gse'], m['intervention'])].add(m['gene_name'])
     for key, genes in sorted(per_ds_genes.items()):
         info = dataset_info.get(key, {})
         n_expected = info.get('n_degs', '?')
-        dbg.log(f'    {key[0]} | {key[1]}: {len(genes)} genes com STR '
-                f'(DEGs filtrados no arquivo: {n_expected})')
+        dbg.log(f'    {key[0]} | {key[1]}: {len(genes)} genes with STR '
+                f'(filtered DEGs in file: {n_expected})')
 
     # ------------------------------------------------------------------
-    # [11] Spot-check: logFC varia por GSE?
+    # [11] Spot-check: does logFC vary by GSE?
     # ------------------------------------------------------------------
-    dbg.log('\n[11] Spot-check: logFC difere entre GSEs para mesmo gene?')
+    dbg.log('\n[11] Spot-check: does logFC differ between GSEs for the same gene?')
     gene_vals = defaultdict(dict)
     for m in all_matches:
         gene_vals[m['gene_name']][m['gse']] = m['logFC']
@@ -406,20 +406,20 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
                 differing += 1
             else:
                 same += 1
-    dbg.log(f'    Genes com logFC diferente entre GSEs: {differing}')
-    dbg.log(f'    Genes com logFC idêntico entre GSEs : {same}')
+    dbg.log(f'    Genes with different logFC between GSEs: {differing}')
+    dbg.log(f'    Genes with identical logFC between GSEs : {same}')
     if differing == 0 and same > 0:
-        dbg.log('    ⚠ Nenhum gene teve logFC distinto entre GSEs — '
-                'verifique se os valores estão sendo sobrescritos.')
+        dbg.log('    WARNING: no gene had a distinct logFC between GSEs - '
+                'check whether values are being overwritten.')
     elif differing > 0:
-        dbg.log('    ✓ logFC varia por GSE (GSE-dependência confirmada)')
+        dbg.log('    o logFC varies by GSE (GSE-dependence confirmed)')
 
     # ------------------------------------------------------------------
-    # [12] Estatísticas de filtragem de DEGs
+    # [12] DEG filtering statistics
     # ------------------------------------------------------------------
-    dbg.log('\n[12] Filtragem de DEGs por (gse, intervention)')
+    dbg.log('\n[12] DEG filtering by (gse, intervention)')
     if not filter_stats:
-        dbg.log('    (sem dados de filtragem)')
+        dbg.log('    (no filtering data)')
     else:
         dbg.log('    dataset | rows | sig_fail | pval_fail | fdr_fail | '
                 'logfc_fail | passed | col_pval | col_fdr')
@@ -438,7 +438,7 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
             )
 
     dbg.log('\n' + '=' * 72)
-    dbg.log('FIM DA VERIFICAÇÃO')
+    dbg.log('END OF CHECK')
     dbg.log('=' * 72)
 
 
@@ -447,25 +447,25 @@ def verify_outputs(out_dir, all_matches, outlier_matches, str_catalog,
 # ---------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(
-        description='Cruza DEGs por intervenção com STRs da coorte')
+        description='Crosses DEGs per comparison with cohort STRs')
     ap.add_argument('--deg-dir', required=True,
-                    help='Diretório raiz com subpastas GSE')
+                    help='Root directory with GSE subfolders')
     ap.add_argument('--str-catalog', required=True,
-                    help='Caminho para STRs_analysis_dataset.tsv')
+                    help='Path to STRs_analysis_dataset.tsv')
     ap.add_argument('--out-dir', default='.',
-                    help='Diretório de saída')
+                    help='Output directory')
     ap.add_argument('--fdr', type=float, default=0.05,
-                    help='Threshold de FDR (default: 0.05)')
+                    help='FDR threshold (default: 0.05)')
     ap.add_argument('--pval', type=float, default=0.05,
-                    help='Threshold de p-valor bruto (default: 0.05)')
+                    help='Raw p-value threshold (default: 0.05)')
     ap.add_argument('--logfc', type=float, default=1.0,
-                    help='Threshold de |logFC| (default: 1.0). '
-                         'Use 0 para desativar.')
+                    help='|logFC| threshold (default: 1.0). '
+                         'Use 0 to disable.')
     ap.add_argument('--require', choices=['fdr', 'pval', 'both', 'either'],
                     default='fdr',
-                    help='Quais testes de significância exigir (default: fdr)')
+                    help='Which significance tests to require (default: fdr)')
     ap.add_argument('--debug', action='store_true',
-                    help='Roda verificação pós-execução e gera debug_report.txt')
+                    help='Run post-execution check and generate debug_report.txt')
     args = ap.parse_args()
 
     dbg = DebugReport(enabled=args.debug)
@@ -473,24 +473,24 @@ def main():
 
     logfc_thr = args.logfc if args.logfc > 0 else None
     sys.stderr.write(
-        f"Filtros DEG: require={args.require}, "
+        f"DEG filters: require={args.require}, "
         f"pval<{args.pval}, fdr<{args.fdr}, "
         f"|logFC|>{logfc_thr if logfc_thr is not None else 'off'}\n")
 
     gse_dirs = sorted([d for d in glob.glob(os.path.join(args.deg_dir, 'GSE*'))
                         if os.path.isdir(d)])
     if not gse_dirs:
-        sys.stderr.write(f"ERRO: nenhuma pasta GSE em {args.deg_dir}\n")
+        sys.stderr.write(f"ERROR: no GSE folder in {args.deg_dir}\n")
         sys.exit(1)
-    sys.stderr.write(f"Pastas GSE encontradas: {len(gse_dirs)}\n")
+    sys.stderr.write(f"GSE folders found: {len(gse_dirs)}\n")
 
-    sys.stderr.write(f"Carregando catálogo: {args.str_catalog}\n")
+    sys.stderr.write(f"Loading catalog: {args.str_catalog}\n")
     str_catalog = []
     with open(args.str_catalog) as fh:
         reader = csv.DictReader(fh, delimiter='\t')
         for row in reader:
             str_catalog.append(row)
-    sys.stderr.write(f"  {len(str_catalog)} STRs carregados\n")
+    sys.stderr.write(f"  {len(str_catalog)} STRs loaded\n")
 
     all_matches = []
     outlier_matches = []
@@ -509,7 +509,7 @@ def main():
             key = (gse_name, intervention)
 
             sys.stderr.write(f"\n=== {dataset_label} "
-                             f"(intervenção: {intervention}) ===\n")
+                             f"(comparison: {intervention}) ===\n")
 
             degs_stats = {}
             degs = load_deg_file(
@@ -523,7 +523,7 @@ def main():
             filter_stats[key] = degs_stats
 
             sys.stderr.write(
-                f"  {len(degs)} genes DEGs após filtro "
+                f"  {len(degs)} DEG genes after filter "
                 f"(rows={degs_stats.get('total_rows', 0)}, "
                 f"sig_fail={degs_stats.get('sig_fail', 0)}, "
                 f"pval_fail={degs_stats.get('pval_fail', 0)}, "
@@ -536,7 +536,7 @@ def main():
             intervention_seen.setdefault(intervention, set()).add(gse_name)
             if len(intervention_seen[intervention]) > 1:
                 sys.stderr.write(
-                    f"  AVISO: intervenção '{intervention}' em múltiplos GSEs: "
+                    f"  WARNING: comparison '{intervention}' in multiple GSEs: "
                     f"{sorted(intervention_seen[intervention])}\n")
 
             dataset_info[key] = {
@@ -597,7 +597,7 @@ def main():
             sys.stderr.write(f"  STRs: {n_all} total, {n_outlier} outliers\n")
 
     # ----------------------------------------------------------------------
-    # SAÍDAS
+    # OUTPUTS
     # ----------------------------------------------------------------------
     fields = ['gse', 'intervention', 'dataset', 'gene_name', 'STRs_ID',
               'chrom', 'start', 'end', 'repeat_unit',
@@ -611,14 +611,14 @@ def main():
         w = csv.DictWriter(f, fieldnames=fields, delimiter='\t')
         w.writeheader()
         w.writerows(all_matches)
-    sys.stderr.write(f"\nEscrito: {out_strs} ({len(all_matches)} linhas)\n")
+    sys.stderr.write(f"\nWritten: {out_strs} ({len(all_matches)} rows)\n")
 
     out_out = os.path.join(args.out_dir, 'intervention_outliers.tsv')
     with open(out_out, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=fields, delimiter='\t')
         w.writeheader()
         w.writerows(outlier_matches)
-    sys.stderr.write(f"Escrito: {out_out} ({len(outlier_matches)} linhas)\n")
+    sys.stderr.write(f"Written: {out_out} ({len(outlier_matches)} rows)\n")
 
     def largest_allele(m):
         a1 = _to_float(m.get('allele1_est'))
@@ -705,9 +705,9 @@ def main():
                            delimiter='\t')
         w.writeheader()
         w.writerows(summary_rows)
-    sys.stderr.write(f"Escrito: {out_sum} ({len(summary_rows)} linhas)\n")
+    sys.stderr.write(f"Written: {out_sum} ({len(summary_rows)} rows)\n")
 
-    sys.stderr.write("\n=== Resumo por (GSE, intervenção) ===\n")
+    sys.stderr.write("\n=== Summary per (GSE, comparison) ===\n")
     for (gse_name, interv) in intervention_keys:
         rows = [r for r in summary_rows
                 if r['gse'] == gse_name and r['intervention'] == interv]
@@ -717,10 +717,10 @@ def main():
                     if r['overlap_maior_alealo_grupos'] == 'nao')
         sys.stderr.write(
             f"  {gse_name} | {interv}: {n_strs} STRs ({n_out} outliers), "
-            f"{len(rows)} genes; {n_nao} SEM sobreposição\n")
+            f"{len(rows)} genes; {n_nao} WITHOUT overlap\n")
 
     # ----------------------------------------------------------------------
-    # DEBUG / VERIFICAÇÃO
+    # DEBUG / CHECK
     # ----------------------------------------------------------------------
     if args.debug:
         verify_outputs(
@@ -735,9 +735,9 @@ def main():
         )
         report_path = os.path.join(args.out_dir, 'debug_report.txt')
         dbg.save(report_path)
-        sys.stderr.write(f'\nRelatório de debug: {report_path}\n')
+        sys.stderr.write(f'\nDebug report: {report_path}\n')
 
-    sys.stderr.write("\nConcluido.\n")
+    sys.stderr.write("\nDone.\n")
 
 
 if __name__ == '__main__':

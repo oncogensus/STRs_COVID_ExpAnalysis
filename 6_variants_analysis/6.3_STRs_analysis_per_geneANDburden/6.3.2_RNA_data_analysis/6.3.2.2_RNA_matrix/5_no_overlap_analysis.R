@@ -1,20 +1,20 @@
 #!/usr/bin/env Rscript
 # 5_no_overlap_analysis.R
 # ---------------------------------------------------------------------------
-# PROPOSITO
-#   Identificacao de variantes STR sem sobreposição entre case e control,
-#   por intervencao (GSE). Analisa loci com outliers DBSCAN:
+# PURPOSE
+#   Identification of STR variants with no overlap between case and control,
+#   per comparison (GSE). Analyzes loci with DBSCAN outliers:
 #     - mean_allele: (allele1 + allele2) / 2
 #     - allele2_est
-#   Logica: min(case) > max(control) OU min(control) > max(case)
-#   Requisito: N >= 3 por grupo.
+#   Logic: min(case) > max(control) OR min(control) > max(case)
+#   Requirement: N >= 3 per group.
 #
-# ENTRADAS (por argumentos de linha de comando)
-#   --str-catalog    intervention_outliers.tsv (saida do step 1)
-#   --intervention   GSE (ex: GSE157103) ou ALL (default: ALL)
-#   --out-dir        Diretorio de saida
+# INPUTS (via command-line arguments)
+#   --str-catalog    intervention_outliers.tsv (output from step 1)
+#   --intervention   GSE (e.g. GSE157103) or ALL (default: ALL)
+#   --out-dir        Output directory
 #
-# SAIDAS
+# OUTPUTS
 #   {intervention}_no_overlap_mean_allele.csv
 #   {intervention}_no_overlap_allele2.csv
 # ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ intervention     <- parse_arg("--intervention", "ALL")
 out_dir          <- parse_arg("--out-dir", ".")
 
 if (is.null(path_str_catalog)) {
-  stop("Argumento ausente: --str-catalog")
+  stop("Missing argument: --str-catalog")
 }
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -50,7 +50,7 @@ cat("--- No-Overlap Analysis: Case vs Control (Outlier Loci) ---\n")
 
 df <- fread(path_str_catalog, header = TRUE, sep = "\t")
 setnames(df, "intervention", "comparison_type")
-cat(sprintf("  intervention_outliers.tsv: %d linhas\n", nrow(df)))
+cat(sprintf("  intervention_outliers.tsv: %d rows\n", nrow(df)))
 
 # ==========================================
 # 2. Filter by DBSCAN quality (stricter)
@@ -60,7 +60,7 @@ df_filtered <- df[
   noise_ratio_dbscan_global < 0.10 &
   n_outliers_dbscan_global >= 1
 ]
-cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): %d linhas\n",
+cat(sprintf("  After DBSCAN filter (clusters >= 1, noise < 10%%, outliers >= 1): %d rows\n",
             nrow(df_filtered)))
 
 # ==========================================
@@ -68,13 +68,13 @@ cat(sprintf("  Apos filtro DBSCAN (clusters >= 1, noise < 10%%, outliers >= 1): 
 # ==========================================
 if (intervention != "ALL") {
   df_filtered <- df_filtered[gse == intervention]
-  cat(sprintf("  Intervention '%s': %d linhas\n", intervention, nrow(df_filtered)))
+  cat(sprintf("  Intervention '%s': %d rows\n", intervention, nrow(df_filtered)))
 } else {
-  cat(sprintf("  ALL interventions: %d linhas\n", nrow(df_filtered)))
+  cat(sprintf("  ALL interventions: %d rows\n", nrow(df_filtered)))
 }
 
 if (nrow(df_filtered) == 0) {
-  cat("Nenhuma observacao apos filtragem. Saindo.\n")
+  cat("No observations after filtering. Exiting.\n")
   quit(status = 0)
 }
 
@@ -95,7 +95,7 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
   dt[, target_metric := get(metric_col)]
   dt <- dt[!is.na(target_metric)]
 
-  cat(sprintf("  Observacoes validas: %d\n", nrow(dt)))
+  cat(sprintf("  Valid observations: %d\n", nrow(dt)))
 
   # Compute per-locus per-group statistics
   locus_stats <- dt[, .(
@@ -115,7 +115,7 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
   has_control <- "min_val_control" %in% names(locus_wide)
 
   if (!has_case || !has_control) {
-    cat("  Nao ha dados para ambos os grupos.\n")
+    cat("  No data for both groups.\n")
     return(data.table())
   }
 
@@ -123,10 +123,10 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
   locus_wide <- locus_wide[n_samples_case >= min_n_per_group &
                            n_samples_control >= min_n_per_group]
 
-  cat(sprintf("  Loci elegiveis (N >= %d por grupo): %d\n", min_n_per_group, nrow(locus_wide)))
+  cat(sprintf("  Eligible loci (N >= %d per group): %d\n", min_n_per_group, nrow(locus_wide)))
 
   if (nrow(locus_wide) == 0) {
-    cat("  Nenhum locus elegivel.\n")
+    cat("  No eligible loci.\n")
     return(data.table())
   }
 
@@ -141,10 +141,10 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
 
   no_overlap_ids <- locus_wide[overlap_type != "overlap"]$STRs_ID
 
-  cat(sprintf("  Loci sem sobreposicao: %d\n", length(no_overlap_ids)))
+  cat(sprintf("  Loci without overlap: %d\n", length(no_overlap_ids)))
 
   if (length(no_overlap_ids) == 0) {
-    cat("  Nenhum locus sem sobreposicao.\n")
+    cat("  No loci without overlap.\n")
     return(data.table())
   }
 
@@ -152,7 +152,7 @@ run_no_overlap <- function(data, metric_col, min_n_per_group, label) {
   final <- dt[STRs_ID %in% no_overlap_ids]
   final <- final[order(gene_name, STRs_ID)]
 
-  cat(sprintf("  Observacoes exportadas: %d\n", nrow(final)))
+  cat(sprintf("  Exported observations: %d\n", nrow(final)))
   return(final)
 }
 
@@ -176,17 +176,17 @@ suffix <- if (intervention == "ALL") "ALL" else intervention
 if (nrow(res_mean) > 0) {
   out_mean <- file.path(out_dir, paste0(suffix, "_no_overlap_mean_allele.csv"))
   fwrite(as.data.frame(res_mean), out_mean, sep = ";", dec = ",")
-  cat(sprintf("\n  Mean Allele no-overlap salvo em: %s\n", out_mean))
+  cat(sprintf("\n  Mean Allele no-overlap saved at: %s\n", out_mean))
 } else {
-  cat("\n  Nenhum resultado para Mean Allele.\n")
+  cat("\n  No results for Mean Allele.\n")
 }
 
 if (nrow(res_allele2) > 0) {
   out_allele2 <- file.path(out_dir, paste0(suffix, "_no_overlap_allele2.csv"))
   fwrite(as.data.frame(res_allele2), out_allele2, sep = ";", dec = ",")
-  cat(sprintf("  Allele 2 no-overlap salvo em: %s\n", out_allele2))
+  cat(sprintf("  Allele 2 no-overlap saved at: %s\n", out_allele2))
 } else {
-  cat("  Nenhum resultado para Allele 2.\n")
+  cat("  No results for Allele 2.\n")
 }
 
-cat("\nConcluido.\n")
+cat("\nDone.\n")
