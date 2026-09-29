@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# 2_igv_variant.sh — IGV.js para um STR/variante.
-# Recebe STRS_ID como argumento; le str_samples_bams.tsv para mappings.
-# Uso: bash 2_igv_variant.sh chr1:76143392:GT:16 [PORT]
+# 2_igv_variant.sh — IGV.js for one STR/variant.
+# Receives STRS_ID as argument; reads str_samples_bams.tsv for mappings.
+# Usage: bash 2_igv_variant.sh chr1:76143392:GT:16 [PORT]
 set -u
 
-STRS_ID="${1:?Uso: $0 STRS_ID [PORT]}"
+STRS_ID="${1:?Usage: $0 STRS_ID [PORT]}"
 PORT="${2:-0}"
 FLANK=1000
 
@@ -12,13 +12,13 @@ BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$BASE"
 
 TSV="str_samples_bams.tsv"
 ANN="str_samples_with_variant.bed"
-[ -f "$TSV" ] || { echo "ERRO: $TSV ausente (rode Rscript 1_generate_beds.R)."; exit 1; }
-[ -f "$ANN" ] || echo "WARN: $ANN ausente; anotacao pode faltar." >&2
+[ -f "$TSV" ] || { echo "ERROR: $TSV missing (run Rscript 1_generate_beds.R)."; exit 1; }
+[ -f "$ANN" ] || echo "WARN: $ANN missing; annotation may be absent." >&2
 
 SAFE=$(echo "$STRS_ID" | tr ':' '_')
 
 row="$(awk -F'\t' -v g="$STRS_ID" '$2==g' "$TSV")"
-[ -z "$row" ] && { echo "ERRO: $STRS_ID nao encontrado no TSV."; exit 1; }
+[ -z "$row" ] && { echo "ERROR: $STRS_ID not found in TSV."; exit 1; }
 gene="$(echo "$row" | cut -f1)"
 chr="$(echo "$row" | cut -f3)"; start0="$(echo "$row" | cut -f4)"; end="$(echo "$row" | cut -f5)"
 vbam="$(echo "$row" | cut -f7 | sed 's|//*|/|g')"
@@ -30,8 +30,8 @@ if [ "$PORT" -eq 0 ]; then
   PORT=$((8200 + (16#${hash} % 9900 + 100)))
 fi
 
-command -v samtools >/dev/null 2>&1 || { echo "ERRO: samtools ausente."; exit 1; }
-command -v python >/dev/null 2>&1 || { echo "ERRO: python ausente."; exit 1; }
+command -v samtools >/dev/null 2>&1 || { echo "ERROR: samtools missing."; exit 1; }
+command -v python >/dev/null 2>&1 || { echo "ERROR: python missing."; exit 1; }
 
 OUT="/tmp/igvjs_${SAFE}"; mkdir -p "$OUT"
 
@@ -66,19 +66,19 @@ norm_chr() {
 
 extract_bam() {
   local full="$1" label="$2"
-  [ -f "$full" ] || { echo "WARN: BAM ausente: $full" >&2; return; }
+  [ -f "$full" ] || { echo "WARN: BAM missing: $full" >&2; return; }
   local cur; cur="$(bam_chr "$full" "$chr")"
   local fstart=$(( s1 - FLANK )); [ "$fstart" -lt 1 ] && fstart=1
   local fend=$(( end + FLANK ))
   local outb="$OUT/${SAFE}.${label}.bam"
-  echo "Extraindo $label (contig '$cur'): ${cur}:${fstart}-${fend}" >&2
+  echo "Extracting $label (contig '$cur'): ${cur}:${fstart}-${fend}" >&2
   if samtools view -b -h "$full" "${cur}:${fstart}-${fend}" > "$outb" 2>>"/tmp/igvjs_${SAFE}_samtools.log"; then
     if [ -s "$outb" ]; then
       norm_chr "$outb" "$cur" "$chr"
       echo "$outb $outb.bai"; return
     fi
   fi
-  echo "WARN: regiao falhou p/ $full; usando streaming (pode demorar)..." >&2
+  echo "WARN: region failed for $full; using streaming (may take longer)..." >&2
   samtools view -h "$full" \
     | awk -v c="$cur" -v a="$fstart" -v b="$fend" 'BEGIN{FS=OFS="\t"} {
          if ($1 ~ /^@/) { print; next }
@@ -88,20 +88,20 @@ extract_bam() {
     norm_chr "$outb" "$cur" "$chr"
     echo "$outb $outb.bai"
   else
-    echo "WARN: extract vazio para $full" >&2
+    echo "WARN: empty extract for $full" >&2
   fi
 }
 read -r vb_out vb_idx <<< "$(extract_bam "$vbam" variant)"
 read -r cb_out cb_idx <<< "$(extract_bam "$cbam" control)"
 
 tt="$(mktemp)"
-echo "{\"type\":\"annotation\",\"name\":\"variante $SAFE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
+echo "{\"type\":\"annotation\",\"name\":\"variant $SAFE\",\"url\":\"$BED_URL\",\"format\":\"bed\"}" > "$tt"
 add_extracted() {
   local b="$1" idx="$2" name="$3"
   if [ -n "$b" ] && [ -f "$b" ] && [ -n "$idx" ] && [ -f "$idx" ]; then
     echo "{\"type\":\"alignment\",\"name\":\"$name\",\"url\":\"$b\",\"indexURL\":\"$idx\"}" >> "$tt"
   else
-    echo "WARN: track nao adicionado: $b ($idx)" >&2
+    echo "WARN: track not added: $b ($idx)" >&2
   fi
 }
 add_extracted "$vb_out" "$vb_idx" "$(basename "$vbam")"
@@ -111,7 +111,7 @@ rm -f "$tt"
 
 sed "s/__LOCUS__/${chr}:${s1}-${end}/" > "$OUT/index.html" <<'HTML'
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <title>IGV STR</title>
@@ -127,7 +127,7 @@ fetch('tracks.json')
   .then(tracks => igv.createBrowser(document.getElementById('igv'),
         { genome: 'hg38', locus: locus, tracks: tracks }))
   .catch(e => { document.body.insertAdjacentHTML('beforeend',
-        '<pre style="color:red">Erro: '+e+'</pre>'); });
+        '<pre style="color:red">Error: '+e+'</pre>'); });
 </script>
 </body>
 </html>
@@ -150,23 +150,23 @@ trap "kill $PID 2>/dev/null" EXIT
 
 sleep 1
 if command -v curl >/dev/null 2>&1; then
-  echo "Auto-teste (HTTP 200 esperado):"
+  echo "Auto-test (HTTP 200 expected):"
   for u in "$BED_URL" "$vb_out" "$vb_idx" "$cb_out" "$cb_idx"; do
     [ -n "$u" ] && code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT$u") && echo "  [$code]  $u"
   done
 else
-  echo "WARN: curl ausente; auto-teste ignorado."
+  echo "WARN: curl missing; auto-test skipped."
 fi
 
 echo
 echo "============================================================"
-echo "Variante $STRS_ID ($gene)"
-echo "Regiao: ${chr}:${s1}-${end} (flank +/-${FLANK})"
-echo "BAM variante extraido: $vb_out"
-echo "BAM controle extraido: $cb_out"
-echo "Abra no navegador:  http://localhost:$PORT/tmp/igvjs_${SAFE}/index.html"
-echo "No PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
-echo "Log IGV: /tmp/igvjs_${SAFE}.log   samtools: /tmp/igvjs_${SAFE}_samtools.log"
+echo "Variant $STRS_ID ($gene)"
+echo "Region: ${chr}:${s1}-${end} (flank +/-${FLANK})"
+echo "Extracted variant BAM: $vb_out"
+echo "Extracted control BAM: $cb_out"
+echo "Open in browser:  http://localhost:$PORT/tmp/igvjs_${SAFE}/index.html"
+echo "On PC:  ssh -L $PORT:localhost:$PORT Carlos_Chagas"
+echo "IGV log: /tmp/igvjs_${SAFE}.log   samtools: /tmp/igvjs_${SAFE}_samtools.log"
 echo "============================================================"
 
 wait "$PID"

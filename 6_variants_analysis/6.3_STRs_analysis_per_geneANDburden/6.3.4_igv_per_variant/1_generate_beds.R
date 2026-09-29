@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 # 1_generate_beds.R
-# Gera BEDs + mapeamento BAM para IGV.js (6.3.4).
-# Outputs sao escritos no dir de execucao.
+# Generates BEDs + BAM mapping for IGV.js (6.3.4).
+# Outputs are written to the execution directory.
 #
-# Para cada STR com outlier em intervention_outliers.tsv:
-#   - amostra COM variante  = outlier_samples_dbscan_global
-#   - amostra SEM variante  = outro sample_id do MESMO STRs_ID em
-#       STRs_normalized_residuals.tsv, nao-outlier, com BAM indexado em
-#       bam_dir, de menor |allele2_residuals| (mais proximo do esperado).
+# For each STR with an outlier in intervention_outliers.tsv:
+#   - sample WITH the variant  = outlier_samples_dbscan_global
+#   - sample WITHOUT the variant = another sample_id of the SAME STRs_ID in
+#       STRs_normalized_residuals.tsv, non-outlier, with an indexed BAM in
+#       bam_dir, with the smallest |allele2_residuals| (closest to expected).
 
 REPO_ROOT <- "/storage2/matheusbomfim/projects/git_repos/STRs_COVID_Analysis"
 
@@ -41,7 +41,7 @@ db <- read.delim(outlier_file, header = TRUE, stringsAsFactors = FALSE)
 db$STRs_ID <- trimws(db$STRs_ID)
 db <- db[nzchar(trimws(db$outlier_samples_dbscan_global)), ]
 
-cat("[1_generate_beds] STRs com outlier:", nrow(db), "\n")
+cat("[1_generate_beds] STRs with outlier:", nrow(db), "\n")
 
 variants <- data.frame(
   STRs_ID  = rep(db$STRs_ID, lengths(lapply(db$outlier_samples_dbscan_global, split_samples))),
@@ -59,7 +59,7 @@ variants$end    <- variants$start0 + nchar(variants$motif) * variants$copy
 variants$gene[is.na(variants$gene) | variants$gene == ""] <- "UNKNOWN"
 
 variants <- variants[!duplicated(variants$STRs_ID), ]
-cat("[1_generate_beds] STRs_ID unicos:", nrow(variants), "\n")
+cat("[1_generate_beds] Unique STRs_ID:", nrow(variants), "\n")
 
 norm <- read.delim(norm_file, header = TRUE, stringsAsFactors = FALSE)
 norm$STRs_ID   <- trimws(norm$STRs_ID)
@@ -128,9 +128,9 @@ for (i in seq_len(nrow(variants))) {
   c_indexed <- !is.null(c_bam)
 
   if (!v_indexed)
-    warning("Sem BAM indexado p/ amostra-com-variante: ", v_sample, " (", v_strs, ")")
+    warning("No indexed BAM for variant sample: ", v_sample, " (", v_strs, ")")
   if (!c_indexed)
-    warning("Sem controle valido (BAM indexado) p/ locus: ", v_gene, " (", v_strs, ")")
+    warning("No valid control (indexed BAM) for locus: ", v_gene, " (", v_strs, ")")
 
   v_score <- 0
   c_score <- if (!is.na(c_sample)) {
@@ -176,13 +176,13 @@ for (i in seq_len(nrow(variants))) {
 
 write_bed <- function(rows, out) {
   if (length(rows) == 0) {
-    cat("Nenhuma linha valida p/", out, "- arquivo NAO escrito.\n")
+    cat("No valid rows for", out, "- file NOT written.\n")
     return(0)
   }
   df <- do.call(rbind, rows)
   df <- df[order(df$chr, df$start), ]
   write.table(df, out, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
-  cat("Escrevi", nrow(df), "loci ->", out, "\n")
+  cat("Wrote", nrow(df), "loci ->", out, "\n")
   nrow(df)
 }
 
@@ -190,7 +190,7 @@ n_with    <- write_bed(with_rows, out_with)
 n_without <- write_bed(without_rows, out_without)
 
 write.table(mapping, out_map, sep = "\t", row.names = FALSE, quote = FALSE)
-cat("Escrevi", nrow(mapping), "loci ->", out_map, "\n")
+cat("Wrote", nrow(mapping), "loci ->", out_map, "\n")
 
-cat("\n=== Resumo (verify_tab) ===\n")
+cat("\n=== Summary (verify_tab) ===\n")
 print(verify_tab)
