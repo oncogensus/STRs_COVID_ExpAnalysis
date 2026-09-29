@@ -35,7 +35,7 @@ cat("Total STRs:", length(str_list), "\n")
 results <- data.frame(
   STRs_ID = str_list,
   n_samples = NA,
-  n_samples_valid = NA,  # NOVA: amostras válidas (sem NA)
+  n_samples_valid = NA,  # NEW: valid samples (without NA)
   n_outliers = NA,
   outlier_samples = NA,
   outlier_residuals = NA,

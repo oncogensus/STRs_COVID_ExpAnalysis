@@ -82,7 +82,7 @@ def run_debug():
 
     if df_others.is_empty():
         print(" - No variants found in 'others' region.")
-        return # Encerrar pois não há "others" para auditar
+        return # Stop because there are no "others" to audit
 
     total_others = df_others.shape[0]
     print(f" - Total 'others' variants found: {total_others}")
