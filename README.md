@@ -9,6 +9,7 @@
 - [Overview](#overview)
 - [Background](#background)
 - [Pipeline Architecture](#pipeline-architecture)
+- [Module Documentation](#module-documentation)
 - [Important Notes](#important-notes)
 - [Stage 1: STR Calling](#stage-1-str-calling-strs_call)
 - [Stage 2: Data Stratification](#stage-2-data-stratification-data_split)
@@ -68,6 +69,27 @@ STRs_COVID_ExpAnalysis/
     │   └── 6.3.4_igv_per_variant/
     └── 6.5_ancestry_analysis/
 ```
+
+---
+
+## Module Documentation
+
+Each pipeline module has its own README with detailed inputs, outputs, and execution instructions:
+
+| Module | Description | Documentation |
+|---|---|---|
+| 1 — STR Calling | STRling extract/merge/call | [`1_strs_call/README.md`](1_strs_call/README.md) |
+| 2 — Data Stratification | Unify + quality filtering + case/control split | [`2_data_split/README.md`](2_data_split/README.md) |
+| 3 — Genomic Annotation | GTF-based region + gene annotation | [`3_gtf_annot/README.md`](3_gtf_annot/README.md) |
+| 4 — Ancestry Assignment | EthSEQ ancestry inference | [`4_ancestry/README.md`](4_ancestry/README.md) |
+| 5 — Global DBSCAN | Normalization + DBSCAN outlier detection | [`5_global_dbscan/README.md`](5_global_dbscan/README.md) |
+| 6.1 — Merge Datasets | Unified STR dataset | [`6.1_merge_datasets/README.md`](6_variants_analysis/6.1_merge_datasets/README.md) |
+| 6.2 — Descriptive Analysis & Visualization | Coverage, DBSCAN validation, genome viz | [`6.2_desc_data_viz/README.md`](6_variants_analysis/6.2_desc_data_viz/README.md) |
+| 6.3 — STRs per Gene & Burden | DEG x STR, raincloud plots, IGV | [`6.3_.../README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/README.md) |
+| 6.5 — Ancestry Analysis | Ancestry x DBSCAN correlations + viz | [`6.5_ancestry_analysis/README.md`](6_variants_analysis/6.5_ancestry_analysis/README.md) |
+| UCSC Tracks Table | Publication-ready table builder | [`.../UCSC_tracks_table/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/UCSC_tracks_table/README.md) |
+
+> The 6.3 module bundles sub-modules with their own READMEs: [`6.3.1_pre_processing/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_pre_processing/README.md), [`6.3.2_RNA_data_analysis/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/README.md), and [`6.3.4_igv_per_variant/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/README.md).
 
 ---
 
@@ -356,16 +378,15 @@ Generate publication-ready tables and heatmaps from ancestry analysis results.
 
 ### 1. Environment Setup
 
-Create conda/micromamba environments from YAML files:
+The pipeline runs in multiple conda/micromamba environments. `str_env.yaml`, `r_env.yaml` and `ethseq_env.yaml` are tracked in the repository (currently empty placeholders pending their final definitions):
 
 ```bash
 micromamba create -n str -f str_env.yaml
 micromamba create -n r_env -f r_env.yaml
-micromamba create -n r_viz -f r_viz.yaml
-micromamba create -n r_enrich_env -f r_enrich_env.yaml
-micromamba create -n dbscan-r -f dbscan-r.yaml
-micromamba create -n ethseq_vcf_run -f ethseq_vcf_run.yaml
+micromamba create -n ethseq_vcf_run -f ethseq_env.yaml
 ```
+
+Additional environments used along the pipeline (`r_viz`, `r_enrich_env`, `dbscan-r`, `igv`) are provisioned directly on the cluster and are not pinned in this repository. See each module README for the environment required per script.
 
 ### 2. Prepare Reference Files
 
@@ -435,8 +456,6 @@ STRs_COVID_ExpAnalysis/
     │   ├── .gitignore
     │   ├── 6.3.1_pre_processing/
     │   ├── 6.3.2_RNA_data_analysis/
-    │   │   ├── 6.3.2.1_descriptive_analysis/
-    │   │   │   └── results/         # rna_outlier_sets.tsv, per_str_case_control.tsv
     │   │   └── 6.3.2.2_RNA_matrix/
     │   │       └── results/         # intervention_strs.tsv, intervention_outliers.tsv
     │   ├── 6.3.4_igv_per_variant/

@@ -148,7 +148,7 @@ def run_debug():
             pl.col("end").cast(pl.Int64)
         ])
         
-        # Salvando na pasta ../samples/
+        # Saving to the ../samples/ folder
         bed_path = samples_dir / "temp_others.bed"
         bed_df_others.select([
             "chrom", 
@@ -182,7 +182,7 @@ def run_debug():
             pl.col("end").cast(pl.Int64)
         ])
 
-        # Salvando na pasta ../samples/
+        # Saving to the ../samples/ folder
         gtf_bed_path = samples_dir / "temp_coding.bed"
         df_coding.select([
             "chrom", 
@@ -219,7 +219,7 @@ def run_debug():
             print("\n Distribution by Feature Type:")
             print(feature_dist)
 
-        # Cleanup temporary files (remove da pasta ../samples/)
+        # Cleanup temporary files (remove from the ../samples/ folder)
         if bed_path.exists(): bed_path.unlink()
         if gtf_bed_path.exists(): gtf_bed_path.unlink()
 

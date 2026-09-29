@@ -16,7 +16,7 @@ Differential expression analyses included:
 - HFD-45 = 0 vs HFD-45 > 0
 
 Scripts for the dataset-specific preprocessing and differential expression
-analysis are provided in `scripts/GSE157103/`.
+analysis are provided in `GSE157103/`.
 
 ### GSE183533 — Lung
 
@@ -28,7 +28,7 @@ Differential expression analysis:
 - COVID-19 vs control
 
 Scripts for the dataset-specific preprocessing and differential expression
-analysis are provided in `scripts/GSE183533/`.
+analysis are provided in `GSE183533/`.
 
 ### GSE188847 — Brain
 
@@ -40,17 +40,15 @@ Differential expression analysis:
 - COVID-19 vs control
 
 Scripts for the dataset-specific preprocessing and differential expression
-analysis are provided in `scripts/GSE188847/`.
+analysis are provided in `GSE188847/`.
 
 ## Repository structure
 
 ```text
-scripts/
-├── GSE157103/
-├── GSE183533/
-└── GSE188847/
-
-
+6.3.1_pre_processing/
+├── GSE157103/    # Blood
+├── GSE183533/    # Lung
+└── GSE188847/    # Brain
 ```
 
 Each directory contains the scripts used for dataset-specific data preparation

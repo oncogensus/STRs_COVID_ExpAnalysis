@@ -11,8 +11,8 @@ Cross-referencing differentially expressed genes (DEGs) from public RNA-seq data
     ├── 2_plot_intervention_summary.R  Raincloud + publication table (per intervention)
     ├── 3_plot_raincloud_per_locus.R   Raincloud per locus (outlier DBSCAN)
     ├── 4_mann_whitney_allele.R        Mann-Whitney U test (case vs control)
-    ├── 5_no_overlap_analysis.R        No-overlap analysis per intervention
-    ├── 8_outlier_detail_table.R       Publication-ready outlier detail table
+├── 5_no_overlap_analysis.R        No-overlap analysis per intervention
+    ├── 6_outlier_detail_table.R       Publication-ready outlier detail table
     └── README.md
 ```
 
@@ -127,7 +127,7 @@ Identifies STR variants with NO allele overlap between case and control groups p
 
 **Run**: `qsub 5_no_overlap_analysis.pbs`
 
-### Step 8: `8_outlier_detail_table.R`
+### Step 6: `6_outlier_detail_table.R`
 
 Publication-ready gt HTML table with detailed outlier locus information: genomic location, allele sizes, DBSCAN metrics, and DEG statistics.
 
@@ -140,7 +140,7 @@ Publication-ready gt HTML table with detailed outlier locus information: genomic
 |---|---|
 | `outlier_detail_table.html` | `gt` publication-ready table with all outlier details |
 
-**Run**: `qsub 8_outlier_detail_table.pbs`
+**Run**: `qsub 8_outlier_detail_table.pbs` (PBS file retains the legacy `8_` name; it launches `6_outlier_detail_table.R`)
 
 ---
 
