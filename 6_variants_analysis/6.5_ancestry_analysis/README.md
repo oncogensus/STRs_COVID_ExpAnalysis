@@ -1,61 +1,61 @@
 # 6.5 — Ancestry Analysis
 
-Análise de ancestralidade: correlação entre proporções de ancestralidade (EthSEQ) e métricas DBSCAN outliers.
+Ancestry analysis: correlation between ancestry proportions (EthSEQ) and DBSCAN outlier metrics.
 
-## Estrutura
+## Structure
 
 ```
 6.5_ancestry_analysis/
-├── 1_ancestry_comparison_cat.r         # Comparação categórica (Kruskal-Wallis + Dunn)
-├── 2_ancestry_comparison_high_resolution.r  # Correlação alta resolução (Spearman)
-└── 3_ancestry_dataviz.ipynb             # Visualização publication-ready
+├── 1_ancestry_comparison_cat.r         # Categorical comparison (Kruskal-Wallis + Dunn)
+├── 2_ancestry_comparison_high_resolution.r  # High-resolution correlation (Spearman)
+└── 3_ancestry_dataviz.ipynb             # Publication-ready visualization
 ```
 
-## Fluxo de Dados
+## Data Flow
 
 ```
-samples/STRs_analysis_dataset.tsv (dataset unificado, etapa 6.1)
+samples/STRs_analysis_dataset.tsv (unified dataset, stage 6.1)
     ↓
-1_ancestry_comparation_cat.r  →  results/categorical_data/
-    ↓                           (testes Kruskal-Wallis + Dunn post-hoc)
+1_ancestry_comparison_cat.r  →  results/categorical_data/
+    ↓                           (Kruskal-Wallis + Dunn post-hoc tests)
     ↓
-2_ancestry_comparation_high_resolution.r  →  results/high_resolution/
-    ↓                                       (correlação Spearman contínua)
+2_ancestry_comparison_high_resolution.r  →  results/high_resolution/
+    ↓                                       (continuous Spearman correlation)
     ↓
 3_ancestry_dataviz.ipynb  →  results/high_resolution/dataviz/
-                             (tabelas GT, heatmaps, ridge plots)
+                             (GT tables, heatmaps, ridge plots)
 ```
 
 ---
 
-## 1. Comparação Categórica (`1_ancestry_comparison_cat.r`)
+## 1. Categorical Comparison (`1_ancestry_comparison_cat.r`)
 
-Compara distribuições de alleles e burden de outliers DBSCAN entre populações categóricas via Kruskal-Wallis e Dunn post-hoc.
+Compares allele distributions and DBSCAN outlier burden between categorical populations via Kruskal-Wallis and Dunn post-hoc tests.
 
 **Input**: `STRs_analysis_dataset.tsv`
 
-**Filtros QC**:
+**QC Filters**:
 - `n_clusters > 0`
 - `noise_ratio <= 0.10`
 - `n_outliers >= 1`
 
 **Outputs** (`results/categorical_data/`):
 
-| Arquivo | Descrição |
+| File | Description |
 |---|---|
-| `alleles_distribution_summary.csv` | Resumo de distribuição de alleles |
-| `alleles_kruskal_results.csv` | Resultados Kruskal-Wallis (alleles) |
-| `alleles_dunn_results.csv` | Resultados Dunn post-hoc (alleles) |
-| `dbscan_distribution_summary.csv` | Resumo de distribuição DBSCAN |
-| `dbscan_kruskal_results.csv` | Resultados Kruskal-Wallis (DBSCAN) |
-| `dbscan_dunn_results.csv` | Resultados Dunn post-hoc (DBSCAN) |
-| `plotdata_alleles_long.csv` | Dados para plotagem (alleles, long) |
-| `plotdata_alleles_wide.csv` | Dados para plotagem (alleles, wide) |
-| `plotdata_dbscan_long.csv` | Dados para plotagem (DBSCAN, long) |
-| `plotdata_dbscan_wide.csv` | Dados para plotagem (DBSCAN, wide) |
-| `dbscan_qc_flags.csv` | Flags de QC do DBSCAN |
+| `alleles_distribution_summary.csv` | Allele distribution summary |
+| `alleles_kruskal_results.csv` | Kruskal-Wallis results (alleles) |
+| `alleles_dunn_results.csv` | Dunn post-hoc results (alleles) |
+| `dbscan_distribution_summary.csv` | DBSCAN distribution summary |
+| `dbscan_kruskal_results.csv` | Kruskal-Wallis results (DBSCAN) |
+| `dbscan_dunn_results.csv` | Dunn post-hoc results (DBSCAN) |
+| `plotdata_alleles_long.csv` | Plot data (alleles, long) |
+| `plotdata_alleles_wide.csv` | Plot data (alleles, wide) |
+| `plotdata_dbscan_long.csv` | Plot data (DBSCAN, long) |
+| `plotdata_dbscan_wide.csv` | Plot data (DBSCAN, wide) |
+| `dbscan_qc_flags.csv` | DBSCAN QC flags |
 
-**Execução**:
+**Execution**:
 ```bash
 cd 6.5_ancestry_analysis
 Rscript 1_ancestry_comparison_cat.r
@@ -63,51 +63,51 @@ Rscript 1_ancestry_comparison_cat.r
 
 ---
 
-## 2. Correlação Alta Resolução (`2_ancestry_comparison_high_resolution.r`)
+## 2. High-Resolution Correlation (`2_ancestry_comparison_high_resolution.r`)
 
-Correlaciona proporções contínuas de ancestralidade (EthSEQ) com métricas de outliers DBSCAN (proporção e força) por região genômica usando Spearman correlation.
+Correlates continuous ancestry proportions (EthSEQ) with DBSCAN outlier metrics (proportion and strength) per genomic region using Spearman correlation.
 
 **Input**: `STRs_analysis_dataset.tsv`
 
 **Outputs** (`results/high_resolution/`):
 
-| Arquivo | Descrição |
+| File | Description |
 |---|---|
-| `plotdata_region_sample.csv` | Métricas de outlier por região × sample |
-| `correlation_full.csv` | Spearman rho e p-valor ajustado |
-| `ancestry_region_distribution_wide.csv` | Proporções de ancestralidade por região |
+| `plotdata_region_sample.csv` | Outlier metrics per region x sample |
+| `correlation_full.csv` | Spearman rho and adjusted p-value |
+| `ancestry_region_distribution_wide.csv` | Ancestry proportions per region |
 
-**Execução**:
+**Execution**:
 ```bash
 Rscript 2_ancestry_comparison_high_resolution.r
 ```
 
 ---
 
-## 3. Visualização (`3_ancestry_dataviz.ipynb`)
+## 3. Visualization (`3_ancestry_dataviz.ipynb`)
 
-Gera tabelas publication-ready e heatmaps dos resultados de ancestralidade.
+Generates publication-ready tables and heatmaps of the ancestry results.
 
-**Inputs**: CSVs das etapas 1 e 2
+**Inputs**: CSVs from steps 1 and 2
 
 **Outputs** (`results/high_resolution/dataviz/`):
 
-| Arquivo | Descrição |
+| File | Description |
 |---|---|
-| `genomic_summary_per_region.html` | Tabela regional (ancestry + outlier metrics) |
-| `heatmap_correlation_outlier_prop.png` | Heatmap Spearman rho (proporção outlier) |
-| `heatmap_correlation_outlier_strength.png` | Heatmap Spearman rho (força outlier) |
-| `comprehensive_correlation_table.html` | Tabela completa com significância |
-| Ridge plots, boxplots | Distribuições de allele por ancestralidade |
+| `genomic_summary_per_region.html` | Regional table (ancestry + outlier metrics) |
+| `heatmap_correlation_outlier_prop.png` | Spearman rho heatmap (outlier proportion) |
+| `heatmap_correlation_outlier_strength.png` | Spearman rho heatmap (outlier strength) |
+| `comprehensive_correlation_table.html` | Full table with significance |
+| Ridge plots, boxplots | Allele distributions per ancestry |
 
-**Execução**:
+**Execution**:
 ```bash
-# Abrir no Jupyter
+# Open in Jupyter
 jupyter notebook 3_ancestry_dataviz.ipynb
 ```
 
 ---
 
-## Ambiente
+## Environment
 
 - `r_enrich_env` (micromamba): `data.table`, `rstatix`, `dplyr`, `gt`, `ggplot2`
