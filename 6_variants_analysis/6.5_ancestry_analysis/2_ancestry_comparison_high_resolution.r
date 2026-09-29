@@ -152,7 +152,7 @@ merged_dt[is_outlier == TRUE & is.na(outlier_strength_val), outlier_strength_val
 
 cat("\nAggregating by Region and Sample (QC Filtered - Main Dataset)...\n")
 
-# LÓGICA DO BK: Utilizada para gerar o dataset principal rigoroso
+# BK'S LOGIC: Used to generate the rigorous main dataset
 region_sample_dt <- merged_dt[, .(
   total_STRs_raw = .N,
   total_STRs_after_QC = sum(dbscan_pass),
@@ -167,7 +167,7 @@ region_sample_dt <- merge(region_sample_dt, final_ancestry, by = "sample_id", al
 
 cat("\nAggregating by Region and Sample (Unfiltered - ONLY for Correlation/Debug)...\n")
 
-# LÓGICA NOVA: Objeto à parte sem filtro DBSCAN para alimentar apenas a correlação e o Debug
+# NEW LOGIC: Separate object without DBSCAN filter, only to feed the correlation and the Debug
 region_sample_dt_unfiltered <- merged_dt[, .(
   total_STRs_raw = .N,
   total_STRs_after_QC = sum(dbscan_pass, na.rm = TRUE),
@@ -228,7 +228,7 @@ cor_region <- corr_data[, {
       x <- .SD[[anc]]
       y <- .SD[[m]]
       
-      # Verificação de variância segura da versão nova
+      # Safe variance check from the new version
       if (length(x) > 2 && var(x, na.rm=TRUE) > 0 && var(y, na.rm=TRUE) > 0) {
         test <- suppressWarnings(cor.test(y, x, method = "spearman"))
         res[[paste0(m, "_", anc)]] <- data.table(

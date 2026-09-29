@@ -177,12 +177,12 @@ if (nrow(dunn_alleles_results) > 0) {
 # Specific QC filter for DBSCAN metrics
 merged_dt[, qc_pass := (n_clusters > 0 & noise_ratio <= 0.10)]
 
-# Sample-level aggregation: mantendo os nomes originais para evitar erro nos testes estatísticos
+# Sample-level aggregation: keeping the original names to avoid errors in statistical tests
 sample_outlier_dt <- merged_dt[qc_pass == TRUE, .(
   total_STRs_after_QC = .N,
   n_outlier_STRs = sum(n_outliers > 0, na.rm = TRUE),
-  prop_outliers = mean(n_outliers > 0, na.rm = TRUE), # Removido o sufixo _after_QC
-  mean_outlier_strength = mean(abs(as.numeric(outlier_residuals[n_outliers > 0])), na.rm = TRUE) # Removido o sufixo
+  prop_outliers = mean(n_outliers > 0, na.rm = TRUE), # Removed the _after_QC suffix
+  mean_outlier_strength = mean(abs(as.numeric(outlier_residuals[n_outliers > 0])), na.rm = TRUE) # Removed the suffix
 ), by = .(sample_id, pop_ancestry)]
 
 # Merge with the initial raw total counts per sample
@@ -193,7 +193,7 @@ sample_outlier_dt <- merge(
   all.x = TRUE
 )
 
-# Data Cleaning: Agora as colunas prop_outliers e mean_outlier_strength existem!
+# Data Cleaning: now the columns prop_outliers and mean_outlier_strength exist!
 sample_outlier_dt[is.na(mean_outlier_strength), mean_outlier_strength := 0]
 sample_outlier_dt <- sample_outlier_dt[!is.na(pop_ancestry)]
 
