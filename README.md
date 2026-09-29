@@ -138,15 +138,19 @@ Integrated description, visualization, and filtering of identified variants.
 
 ### 1. Environment Setup
 
-The pipeline runs in multiple conda/micromamba environments. `str_env.yaml`, `r_env.yaml` and `ethseq_env.yaml` are tracked in the repository (currently empty placeholders pending their final definitions):
+The pipeline runs in multiple conda/micromamba environments. `str_env.yaml`, `r_env.yaml` and `ethseq_env.yaml` are tracked in the repository (currently empty placeholders pending their final definitions); `r_viz`, `r_enrich_env`, `dbscan-r` and `igv` are pinned with the environments used on the cluster:
 
 ```bash
 micromamba create -n str -f str_env.yaml
 micromamba create -n r_env -f r_env.yaml
 micromamba create -n ethseq_vcf_run -f ethseq_env.yaml
+micromamba create -f r_viz.yaml
+micromamba create -f r_enrich_env.yaml
+micromamba create -f dbscan-r.yaml
+micromamba create -f igv.yaml
 ```
 
-Additional environments used along the pipeline (`r_viz`, `r_enrich_env`, `dbscan-r`, `igv`) are provisioned directly on the cluster and are not pinned in this repository. See each module README for the environment required per script.
+See each module README for the environment required per script.
 
 ### 2. Prepare Reference Files
 

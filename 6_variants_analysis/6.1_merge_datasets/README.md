@@ -43,4 +43,4 @@ Rscript 1_merge_datasets.r
 
 ## Environment
 
-- `r_enrich_env` (micromamba): `data.table`, `dplyr`, `stringr`
+- `r_enrich_env` (micromamba): `data.table`, `dplyr`, `stringr` (pinned as `r_enrich_env.yaml`, repo root)

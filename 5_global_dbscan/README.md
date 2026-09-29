@@ -55,6 +55,6 @@ Rscript 5.2_dbscan_str.r
 
 ## Environment
 
-- `dbscan-r` (micromamba): `data.table`, `dbscan`
+- `dbscan-r` (micromamba): `data.table`, `dbscan` (pinned as `dbscan-r.yaml`, repo root)
 
 **Reference**: DBSCAN approach based on [AD_STR](https://github.com/mhguo1/AD_STR/tree/main).

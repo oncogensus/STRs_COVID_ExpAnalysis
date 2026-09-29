@@ -112,5 +112,5 @@ Rscript 7_merged_table_allele_stats.R
 
 ## Environment
 
-- `r_enrich_env` (micromamba): `data.table`, `dplyr`, `gt`, `ggplot2`, `patchwork`
-- `r_viz` (micromamba): `regioneR`, `ggbio` (for dataviz)
+- `r_enrich_env` (micromamba): `data.table`, `dplyr`, `gt`, `ggplot2`, `patchwork` (pinned as `r_enrich_env.yaml`, repo root)
+- `r_viz` (micromamba): `regioneR`, `ggbio` (for dataviz) (pinned as `r_viz.yaml`, repo root)

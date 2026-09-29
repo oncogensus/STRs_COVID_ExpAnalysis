@@ -61,7 +61,7 @@ ssh -L 8201-82XX:localhost:8201-82XX Carlos_Chagas
 Open in the browser: `http://localhost:8201/tmp/igvjs_chr1_76143392_GT_16/index.html`
 
 ## Prerequisites
-- `igv` env on the cluster (with `samtools`, `R`, `python`)
+- `igv` env (`samtools`, `R`, `python`), pinned as `igv.yaml` (repo root)
 - BAM dir: `/storage/users/tulio/Projeto_Luy_COVID/results/recal/`
 - Internet access on the PC to load igv.js from the CDN
 

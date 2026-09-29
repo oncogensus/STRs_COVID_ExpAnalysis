@@ -257,6 +257,7 @@ dependencies:
   - r-googlesheets4=1.1.2=r44h785f33e_1
   - r-gridgraphics=0.5_1=r44hc72bb7e_4
   - r-gson=0.1.0=r44hc72bb7e_3
+  - r-gt
   - r-gtable=0.3.6=r44hc72bb7e_1
   - r-haven=2.5.5=r44h6d565e7_1
   - r-highr=0.11=r44hc72bb7e_2
@@ -328,6 +329,7 @@ dependencies:
   - r-scatterpie=0.2.6=r44hc72bb7e_1
   - r-selectr=0.4_2=r44hc72bb7e_5
   - r-snow=0.4_4=r44hc72bb7e_4
+  - r-statix
   - r-stringi=1.8.7=r44h2dae267_1
   - r-stringr=1.5.2=r44h785f33e_1
   - r-sys=3.4.3=r44h54b55ab_1

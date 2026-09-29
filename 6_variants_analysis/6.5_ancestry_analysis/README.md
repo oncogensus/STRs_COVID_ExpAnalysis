@@ -110,4 +110,4 @@ jupyter notebook 3_ancestry_dataviz.ipynb
 
 ## Environment
 
-- `r_enrich_env` (micromamba): `data.table`, `rstatix`, `dplyr`, `gt`, `ggplot2`
+- `r_enrich_env` (micromamba): `data.table`, `rstatix`, `dplyr`, `gt`, `ggplot2` (pinned as `r_enrich_env.yaml`, repo root)
