@@ -4,7 +4,7 @@ Complementary burden analyses for the association-model reviewer comment (1.10).
 
 ## Objective
 
-Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). P-values are reported as nominal, with a Benjamini–Hochberg FDR (`p_adj`) for every panel (A: family of one; B: across the non-intercept predictors; C: across DEG contexts; D: across estimable regions). Four analyses are performed:
+Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). P-values are reported as nominal. A Benjamini–Hochberg FDR (`p_adj`) is computed for panels B (across the non-intercept predictors), C (across DEG contexts) and D (across estimable regions); panel A is a single comparison and is shown with nominal *P* only. Four analyses are performed:
 
 | # | Context | Test |
 |---|---|---|
@@ -47,6 +47,8 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | `burden_region_mw.csv` | Panel D: relative burden per genomic region; includes BH FDR (`p_adj`) |
 | `tables/burden_analysis.html` | All four panels (gt HTML) |
 | `tables/burden_global.html`, `burden_firth.html`, `burden_deg.html`, `burden_region.html` | Individual panels (gt HTML) |
+
+Tables omit comparisons without variance in both groups (IQR span = 0); panel A shows nominal *P* only (no FDR).
 
 ## Execution
 

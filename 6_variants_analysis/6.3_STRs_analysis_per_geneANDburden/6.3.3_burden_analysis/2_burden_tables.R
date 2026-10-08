@@ -8,8 +8,10 @@
 #     B - Firth logistic regression of global relative burden
 #     C - Relative burden within DEGs (global + per intervention)
 #     D - Relative burden per genomic region
-#   Every panel reports nominal P and Benjamini-Hochberg FDR (family of one
-#   for Panel A). Style matches the other supplementary tables.
+#   Panels report nominal P; a Benjamini-Hochberg FDR is shown for B, C and D
+#   (Panel A is a single comparison, nominal only). Rows without variance in
+#   both groups (IQR span = 0) are omitted. Style matches the other
+#   supplementary tables.
 #
 # INPUTS (via command-line arguments)
 #   --results-dir   Directory with burden_*.csv (default: results)
@@ -72,6 +74,17 @@ split_iqr <- function(s) {
   ifelse(is.na(s) | !grepl("\\[", s), "", out)
 }
 
+# Width of the IQR interval (upper - lower). 0 = no variance (proxy), NA = missing.
+# Used to keep only rows with variance in both groups (script-2-only heuristic).
+iqr_span <- function(iqr) {
+  inner <- gsub("\\[|\\]", "", iqr)
+  vapply(strsplit(inner, "-", fixed = TRUE), function(v) {
+    v <- suppressWarnings(as.numeric(v))
+    v <- v[!is.na(v)]
+    if (length(v) >= 2) abs(v[length(v)] - v[1]) else NA_real_
+  }, numeric(1))
+}
+
 read_csv_safe <- function(f) {
   if (file.exists(f)) return(fread(f))
   cat(sprintf("  [WARN] missing: %s\n", f))
@@ -125,27 +138,30 @@ cat("--- Supplementary burden tables ---\n")
 gtA <- NULL
 gmw <- read_csv_safe(file.path(results_dir, "burden_global_mw.csv"))
 if (!is.null(gmw)) {
-  p_adj <- if ("p_adj" %in% names(gmw)) gmw$p_adj[1] else gmw$p[1]
   med <- c(gmw$survivors_median_IQR[1], gmw$fatal_median_IQR[1])
-  pa <- data.table(
-    Group = c("Survivors", "Fatal COVID-19 cases"),
-    N = c(gmw$n_survivors[1], gmw$n_fatal[1]),
-    Median = split_med(med),
-    IQR = split_iqr(med),
-    Sig = c(sig_stars(gmw$p[1], p_adj), ""),
-    `P (nominal)` = c(fmt_pval(gmw$p[1]), ""),
-    FDR = c(fmt_pval(p_adj), "")
-  )
-  gtA <- pa %>%
-    gt() %>%
-    tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
-    tab_spanner(label = "Relative burden", columns = c(Median, IQR)) %>%
-    cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
-               `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
-    style_gt() %>%
-    bold_sig() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U test. Single test: BH-FDR (family of one) equals the nominal *P*-value.")) %>%
-    tab_source_note(source_note = note_legend)
+  spans <- iqr_span(split_iqr(med))
+  if (all(!is.na(spans) & spans > 0)) {
+    pa <- data.table(
+      Group = c("Survivors", "Fatal COVID-19 cases"),
+      N = c(gmw$n_survivors[1], gmw$n_fatal[1]),
+      Median = split_med(med),
+      IQR = split_iqr(med),
+      Sig = c(sig_stars(gmw$p[1], NA_real_), ""),
+      `P (nominal)` = c(fmt_pval(gmw$p[1]), "")
+    )
+    gtA <- pa %>%
+      gt() %>%
+      tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
+      tab_spanner(label = "Relative burden", columns = c(Median, IQR)) %>%
+      cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
+                 `P (nominal)` = md("*P* (nominal)")) %>%
+      style_gt() %>%
+      bold_sig() %>%
+      tab_source_note(source_note = md("Mann\u2013Whitney U test (single comparison; no multiple-testing correction).")) %>%
+      tab_source_note(source_note = note_legend)
+  } else {
+    cat("  [WARN] Panel A skipped: no variance in one group.\n")
+  }
 }
 
 # ==========================================
@@ -191,6 +207,10 @@ if (!is.null(dc)) {
     `P (nominal)` = ifelse(is.na(dc$p), "Not estimable", fmt_pval(dc$p)),
     FDR = ifelse(is.na(dc$p), "-", fmt_pval(p_adj))
   )
+  # Keep only contexts with variance in both groups (IQR span > 0).
+  keep <- iqr_span(pc$s_iqr) > 0 & iqr_span(pc$f_iqr) > 0
+  keep[is.na(keep)] <- FALSE
+  pc <- pc[keep]
   gtC <- pc %>%
     gt() %>%
     tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
@@ -201,7 +221,7 @@ if (!is.null(dc)) {
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
     bold_sig() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context. FDR: BH across all DEG contexts.")) %>%
+    tab_source_note(source_note = md("Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context. Contexts without variance in both groups (IQR span = 0) were omitted. FDR: BH across all DEG contexts.")) %>%
     tab_source_note(source_note = note_sig)
 }
 
@@ -223,6 +243,10 @@ if (!is.null(dr)) {
     `P (nominal)` = ifelse(dr$not_estimable, "Not estimable", fmt_pval(dr$p)),
     FDR = ifelse(dr$not_estimable, "-", fmt_pval(p_adj))
   )
+  # Keep only regions with variance in both groups (IQR span > 0).
+  keep <- iqr_span(pd$s_iqr) > 0 & iqr_span(pd$f_iqr) > 0
+  keep[is.na(keep)] <- FALSE
+  pd <- pd[keep]
   gtD <- pd %>%
     gt() %>%
     tab_header(title = md("**Relative burden by genomic region**")) %>%
@@ -233,7 +257,7 @@ if (!is.null(dr)) {
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
     bold_sig() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region. FDR: BH across estimable regions.")) %>%
+    tab_source_note(source_note = md("Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region. Regions without variance in both groups (IQR span = 0) were omitted. FDR: BH across estimable regions.")) %>%
     tab_source_note(source_note = note_sig)
 }
 
