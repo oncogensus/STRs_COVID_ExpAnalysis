@@ -7,8 +7,10 @@
 #   between fatal COVID-19 cases and survivors:
 #     (1) Global relative burden                -> Mann-Whitney U
 #     (2) Global relative burden (adjusted)     -> Firth logistic regression
-#                                                  fatal ~ burden + age + sex + PC1
+#                                                  fatal ~ burden_pct + age + sex + PC1_z
+#                                                  (burden per 1%, PC1 per SD)
 #     (3) Relative burden within DEGs           -> Mann-Whitney U
+#                                                  (global + per intervention)
 #     (4) Relative burden per genomic region    -> Mann-Whitney U
 #   All analyses are exploratory; p-values are nominal (no FDR).
 #
@@ -111,6 +113,7 @@ mw_summary <- function(dt, metric_col, group_col = "outcome") {
                       fatal_median_IQR = NA_character_, p = NA_real_))
   }
   p <- tryCatch(wilcox.test(x, y)$p.value, error = function(e) NA_real_)
+  if (length(p) == 0 || is.nan(p)) p <- NA_real_
   data.table(
     n_survivors          = length(y),
     n_fatal              = length(x),
@@ -197,19 +200,32 @@ print(global_mw)
 # ==========================================
 # 5. Analysis 2: Firth logistic regression
 # ==========================================
-cat("\n[2] Firth logistic regression: fatal ~ burden_rel + age + sex + PC1\n")
+cat("\n[2] Firth logistic regression: fatal ~ burden_pct + age + sex + PC1\n")
 fit_res <- NULL
 if (has_logistf) {
   fit_dt <- as.data.frame(burden[!is.na(outcome) & !is.na(age) & !is.na(sex) & !is.na(PC1)])
+  # Scale predictors for numerical stability and interpretable ORs:
+  # burden per 1 percentage point, PC1 per standard deviation.
+  fit_dt$burden_pct <- fit_dt$burden_rel * 100
+  fit_dt$PC1_z <- as.numeric(scale(fit_dt$PC1))
   fit_dt$sex <- as.factor(fit_dt$sex)
   if (nrow(fit_dt) > 0 && length(unique(fit_dt$outcome)) == 2) {
     fit <- tryCatch(
-      logistf::logistf(outcome ~ burden_rel + age + sex + PC1, data = fit_dt),
+      logistf::logistf(outcome ~ burden_pct + age + sex + PC1_z, data = fit_dt,
+                       control = logistf::logistf.control(maxit = 1000, maxstep = 0.5)),
       error = function(e) { cat("[WARN] Firth model did not converge:", conditionMessage(e), "\n"); NULL }
     )
     if (!is.null(fit)) {
+      pred_labels <- c(
+        "(Intercept)" = "(Intercept)",
+        "burden_pct"  = "Relative burden (per 1%)",
+        "age"         = "Age (per year)",
+        "sexM"        = "Sex (male)",
+        "PC1_z"       = "PC1 (per SD)"
+      )
+      raw <- names(coef(fit))
       fit_res <- data.table(
-        predictor = names(coef(fit)),
+        predictor = unname(ifelse(raw %in% names(pred_labels), pred_labels[raw], raw)),
         OR        = exp(coef(fit)),
         CI_low    = exp(fit$ci.lower),
         CI_high   = exp(fit$ci.upper),
@@ -225,22 +241,33 @@ if (has_logistf) {
 }
 
 # ==========================================
-# 6. Analysis 3: relative burden within DEGs
+# 6. Analysis 3: relative burden within DEGs (global + per intervention)
 # ==========================================
 cat("\n[3] Relative burden within DEGs - Mann-Whitney U\n")
 deg_mw <- NULL
 if (file.exists(path_deg_strs)) {
-  deg_strs <- unique(fread(path_deg_strs)$STRs_ID)
-  cat(sprintf("  STRs within DEGs: %d\n", length(deg_strs)))
-  merged_dt[, is_deg := STRs_ID %in% deg_strs]
-  deg_dt <- merged_dt[qc_pass == TRUE & is_deg == TRUE, .(
-    total_deg = .N,
-    n_out_deg = sum(is_outlier, na.rm = TRUE)
-  ), by = sample_id]
-  deg_dt[, burden_rel_DEG := n_out_deg / pmax(total_deg, 1)]
-  deg_burden <- merge(deg_dt, pheno, by = "sample_id")
-  deg_mw <- mw_summary(deg_burden, "burden_rel_DEG")
-  deg_mw[, context := "DEGs"]
+  deg_all <- fread(path_deg_strs)
+  cat(sprintf("  STRs within DEGs (all): %d\n", uniqueN(deg_all$STRs_ID)))
+
+  contexts <- list("DEGs (all)" = unique(deg_all$STRs_ID))
+  if ("intervention" %in% names(deg_all)) {
+    for (iv in sort(unique(deg_all$intervention))) {
+      contexts[[paste0("DEGs: ", iv)]] <- unique(deg_all[intervention == iv]$STRs_ID)
+    }
+  }
+
+  deg_mw <- rbindlist(lapply(names(contexts), function(lbl) {
+    ids <- contexts[[lbl]]
+    m <- merged_dt[qc_pass == TRUE & STRs_ID %in% ids, .(
+      total_deg = .N,
+      n_out_deg = sum(is_outlier, na.rm = TRUE)
+    ), by = sample_id]
+    m[, burden_rel_DEG := n_out_deg / pmax(total_deg, 1)]
+    mb <- merge(m, pheno, by = "sample_id")
+    r <- mw_summary(mb, "burden_rel_DEG")
+    r[, context := lbl]
+    r
+  }), fill = TRUE)
   print(deg_mw)
 } else {
   cat(sprintf("  [WARN] DEG file not found: %s - Panel C skipped.\n", path_deg_strs))

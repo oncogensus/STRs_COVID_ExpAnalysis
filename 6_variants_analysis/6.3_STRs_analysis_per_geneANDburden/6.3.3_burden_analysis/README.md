@@ -9,14 +9,14 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | # | Context | Test |
 |---|---|---|
 | 1 | Global relative burden | Mann-Whitney U |
-| 2 | Global relative burden (adjusted) | Firth logistic regression: `fatal ~ burden_rel + age + sex + PC1` |
-| 3 | Relative burden within DEGs | Mann-Whitney U |
+| 2 | Global relative burden (adjusted) | Firth logistic regression: `fatal ~ burden_pct + age + sex + PC1` (burden per 1%, PC1 per SD) |
+| 3 | Relative burden within DEGs (global + per intervention) | Mann-Whitney U |
 | 4 | Relative burden per genomic region | Mann-Whitney U |
 
 **Definitions**
 
 - Relative burden = `n_outliers / n_total_strs` per individual (QC: `n_clusters > 0`, `noise_ratio <= 0.10`).
-- Relative burden within DEGs = outliers restricted to STRs within DEGs / total STRs within DEGs.
+- Relative burden within DEGs = outliers restricted to STRs within DEGs / total STRs within DEGs. Reported globally (all DEGs) and per intervention.
 - Relative burden per region = outliers in the region / total STRs in the region (8 regions: Intergenic, Intron, Non-Coding Elements, Promoter, 3′ UTR, Non-coding Exons, 5′ UTR, CDS).
 - Outcome: fatal (case) = 1 vs survivor (control) = 0.
 
@@ -42,7 +42,7 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | `burden_per_sample.csv` | Per-individual absolute and relative burden |
 | `burden_global_mw.csv` | Panel A: global relative burden (Mann-Whitney) |
 | `burden_firth.csv` | Panel B: Firth logistic regression (OR, 95% CI, p) |
-| `burden_deg_mw.csv` | Panel C: relative burden within DEGs |
+| `burden_deg_mw.csv` | Panel C: relative burden within DEGs (global + per intervention) |
 | `burden_region_mw.csv` | Panel D: relative burden per genomic region |
 
 ## Execution
