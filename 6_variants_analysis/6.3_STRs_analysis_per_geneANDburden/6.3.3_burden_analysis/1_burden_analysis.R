@@ -12,7 +12,9 @@
 #     (3) Relative burden within DEGs           -> Mann-Whitney U
 #                                                  (global + per intervention)
 #     (4) Relative burden per genomic region    -> Mann-Whitney U
-#   All analyses are exploratory; p-values are nominal (no FDR).
+#   All analyses are exploratory. P-values are nominal; a Benjamini-Hochberg
+#   FDR is added for the multi-test panels (C: contexts, D: regions).
+#   Panels A and B involve a single test, so no FDR is computed.
 #
 # INPUTS (command-line arguments; defaults are repo-relative)
 #   --str-catalog   samples/STRs_analysis_dataset.tsv (stage 6.1)
@@ -268,6 +270,8 @@ if (file.exists(path_deg_strs)) {
     r[, context := lbl]
     r
   }), fill = TRUE)
+  # Benjamini-Hochberg FDR across all DEG contexts (non-estimable rows excluded).
+  deg_mw[, p_adj := p.adjust(p, method = "BH", n = sum(!is.na(p)))]
   print(deg_mw)
 } else {
   cat(sprintf("  [WARN] DEG file not found: %s - Panel C skipped.\n", path_deg_strs))
@@ -294,8 +298,11 @@ region_list <- lapply(regions, function(r) {
   mw
 })
 region_mw <- rbindlist(region_list)
+# Benjamini-Hochberg FDR across estimable regions (invariant regions excluded).
+region_mw[, p_adj := p.adjust(p, method = "BH", n = sum(!is.na(p)))]
 setcolorder(region_mw, c("region", "n_survivors", "n_fatal",
-                         "survivors_median_IQR", "fatal_median_IQR", "p", "not_estimable"))
+                         "survivors_median_IQR", "fatal_median_IQR",
+                         "p", "p_adj", "not_estimable"))
 print(region_mw)
 
 # ==========================================

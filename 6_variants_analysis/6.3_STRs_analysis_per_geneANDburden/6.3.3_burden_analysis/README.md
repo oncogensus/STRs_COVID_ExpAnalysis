@@ -4,7 +4,7 @@ Complementary burden analyses for the association-model reviewer comment (1.10).
 
 ## Objective
 
-Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). Four analyses are performed, all with nominal p-values (no FDR):
+Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). P-values are reported as nominal; a Benjamini–Hochberg FDR is added for the multi-test panels (C and D). Four analyses are performed:
 
 | # | Context | Test |
 |---|---|---|
@@ -25,7 +25,7 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 ```
 6.3.3_burden_analysis/
 ├── 1_burden_analysis.R      # Burden analyses (4 tests)
-└── 2_burden_tables.R        # Supplementary Table S11 (gt HTML)
+└── 2_burden_tables.R        # Supplementary tables (gt HTML)
 ```
 
 ## Inputs
@@ -43,17 +43,17 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | `burden_per_sample.csv` | Per-individual absolute and relative burden |
 | `burden_global_mw.csv` | Panel A: global relative burden (Mann-Whitney) |
 | `burden_firth.csv` | Panel B: Firth logistic regression (OR, 95% CI, p) |
-| `burden_deg_mw.csv` | Panel C: relative burden within DEGs (global + per intervention) |
-| `burden_region_mw.csv` | Panel D: relative burden per genomic region |
-| `tables/Supplementary_Table_S11.html` | All four panels (gt HTML) |
-| `tables/Supplementary_Table_S11_A-D.html` | Individual panels (gt HTML) |
+| `burden_deg_mw.csv` | Panel C: relative burden within DEGs (global + per intervention); includes BH FDR (`p_adj`) |
+| `burden_region_mw.csv` | Panel D: relative burden per genomic region; includes BH FDR (`p_adj`) |
+| `tables/burden_analysis.html` | All four panels (gt HTML) |
+| `tables/burden_global.html`, `burden_firth.html`, `burden_deg.html`, `burden_region.html` | Individual panels (gt HTML) |
 
 ## Execution
 
 ```bash
 cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.3_burden_analysis
 qsub 1_burden_analysis.pbs          # on the cluster (r_enrich_env)
-qsub 2_burden_tables.pbs            # Supplementary Table S11 (gt HTML)
+qsub 2_burden_tables.pbs            # supplementary tables (gt HTML)
 # or directly:
 Rscript 1_burden_analysis.R
 Rscript 2_burden_tables.R --results-dir results --out-dir results/tables
