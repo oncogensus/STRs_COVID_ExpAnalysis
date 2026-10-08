@@ -108,7 +108,7 @@ style_gt <- function(g) {
     tab_options(
       table.font.size = px(13),
       table.width = pct(100),
-      heading.align = "left",
+      heading.align = "center",
       heading.title.font.size = px(16),
       heading.subtitle.font.size = px(12),
       column_labels.font.weight = "bold",
@@ -159,10 +159,11 @@ if (!is.null(gmw)) {
       `P (nominal)` = c(fmt_pval(gmw$p[1]), "")
     )
     gtA <- pa %>%
-      gt() %>%
-      tab_header(title = md("**A.** Global relative burden of outlier STRs between fatal cases and survivors")) %>%
+      gt(rowname_col = "Group") %>%
+      tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
+      tab_stubhead(label = "A") %>%
       tab_spanner(label = "Relative burden", columns = c(Median, IQR)) %>%
-      cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
+      cols_label(N = "N", Median = "Median", IQR = "IQR", Sig = "",
                  `P (nominal)` = md("*P* (nominal)")) %>%
       style_gt() %>%
       bold_sig()
@@ -186,9 +187,10 @@ if (!is.null(fb)) {
     FDR = fmt_pval(p_adj)
   )
   gtB <- pb %>%
-    gt() %>%
-    tab_header(title = md("**B.** Firth logistic regression of global relative burden on COVID-19 fatality")) %>%
-    cols_label(Predictor = "Predictor", `OR (95% CI)` = md("OR (95% CI)"), Sig = "",
+    gt(rowname_col = "Predictor") %>%
+    tab_header(title = md("**Firth logistic regression of global relative burden on COVID-19 fatality**")) %>%
+    tab_stubhead(label = "B") %>%
+    cols_label(`OR (95% CI)` = md("OR (95% CI)"), Sig = "",
                `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
     bold_sig()
@@ -217,11 +219,12 @@ if (!is.null(dc)) {
   keep[is.na(keep)] <- FALSE
   pc <- pc[keep]
   gtC <- pc %>%
-    gt() %>%
-    tab_header(title = md("**C.** Relative burden within DEGs by intervention")) %>%
+    gt(rowname_col = "Context") %>%
+    tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
+    tab_stubhead(label = "C") %>%
     tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
     tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
-    cols_label(Context = "Context", `N (survivors/fatal)` = "N (survivors/fatal)",
+    cols_label(`N (survivors/fatal)` = "N (survivors/fatal)",
                s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
@@ -251,11 +254,12 @@ if (!is.null(dr)) {
   keep[is.na(keep)] <- FALSE
   pd <- pd[keep]
   gtD <- pd %>%
-    gt() %>%
-    tab_header(title = md("**D.** Relative burden by genomic region")) %>%
+    gt(rowname_col = "Region") %>%
+    tab_header(title = md("**Relative burden by genomic region**")) %>%
+    tab_stubhead(label = "D") %>%
     tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
     tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
-    cols_label(Region = "Region", `N (survivors/fatal)` = "N (survivors/fatal)",
+    cols_label(`N (survivors/fatal)` = "N (survivors/fatal)",
                s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
