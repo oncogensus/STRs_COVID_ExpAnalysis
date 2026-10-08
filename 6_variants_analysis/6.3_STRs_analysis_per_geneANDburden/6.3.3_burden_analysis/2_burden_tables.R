@@ -23,6 +23,9 @@
 #   burden_firth.html      Panel B
 #   burden_deg.html        Panel C
 #   burden_region.html     Panel D
+#   legends.md             Table legends (external, for the manuscript)
+#
+#   Legends are not embedded in the HTML tables.
 #
 # ENVIRONMENT
 #   r_enrich_env (micromamba): data.table, gt
@@ -127,8 +130,14 @@ bold_sig <- function(g) {
   )
 }
 
-note_sig <- md("Significance: <sup>**</sup> *P* < 0.05 (FDR); <sup>*</sup> *P* < 0.05 (nominal, uncorrected).")
-note_legend <- md("*DEG*, differentially expressed gene; *IQR*, interquartile range; *BH*, Benjamini\u2013Hochberg; *OR*, odds ratio; *CI*, confidence interval; *PC1*, first ancestry principal component.")
+# Table legends are NOT embedded in the HTML; they are written to legends.md
+# so they can be placed manually in the manuscript.
+leg_A <- "Mann\u2013Whitney U test (single comparison; no multiple-testing correction)."
+leg_B <- "Outcome: fatal COVID-19 (1) vs survivor (0). Relative burden per 1 percentage point; age per year; sex (male vs female); PC1 per standard deviation. Firth's penalized likelihood. FDR: BH across the four non-intercept predictors."
+leg_C <- "Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context. Contexts without variance in both groups (IQR span = 0) were omitted. FDR: BH across all DEG contexts."
+leg_D <- "Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region. Regions without variance in both groups (IQR span = 0) were omitted. FDR: BH across estimable regions."
+leg_shared <- "DEG, differentially expressed gene; IQR, interquartile range; BH, Benjamini\u2013Hochberg; OR, odds ratio; CI, confidence interval; PC1, first ancestry principal component."
+leg_sig <- "Significance: ** P < 0.05 (FDR); * P < 0.05 (nominal, uncorrected)."
 
 cat("--- Supplementary burden tables ---\n")
 
@@ -156,9 +165,7 @@ if (!is.null(gmw)) {
       cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
                  `P (nominal)` = md("*P* (nominal)")) %>%
       style_gt() %>%
-      bold_sig() %>%
-      tab_source_note(source_note = md("Mann\u2013Whitney U test (single comparison; no multiple-testing correction).")) %>%
-      tab_source_note(source_note = note_legend)
+      bold_sig()
   } else {
     cat("  [WARN] Panel A skipped: no variance in one group.\n")
   }
@@ -184,9 +191,7 @@ if (!is.null(fb)) {
     cols_label(Predictor = "Predictor", `OR (95% CI)` = md("OR (95% CI)"), Sig = "",
                `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    bold_sig() %>%
-    tab_source_note(source_note = md("Outcome: fatal COVID-19 (1) vs survivor (0). Relative burden per 1 percentage point; age per year; sex (male vs female); PC1 per standard deviation. Firth's penalized likelihood. FDR: BH across the four non-intercept predictors.")) %>%
-    tab_source_note(source_note = note_legend)
+    bold_sig()
 }
 
 # ==========================================
@@ -220,9 +225,7 @@ if (!is.null(dc)) {
                s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    bold_sig() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context. Contexts without variance in both groups (IQR span = 0) were omitted. FDR: BH across all DEG contexts.")) %>%
-    tab_source_note(source_note = note_sig)
+    bold_sig()
 }
 
 # ==========================================
@@ -256,9 +259,7 @@ if (!is.null(dr)) {
                s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
                Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    bold_sig() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region. Regions without variance in both groups (IQR span = 0) were omitted. FDR: BH across estimable regions.")) %>%
-    tab_source_note(source_note = note_sig)
+    bold_sig()
 }
 
 # ==========================================
@@ -295,5 +296,32 @@ if (length(raw) > 0) {
 } else {
   cat("  [WARN] No panels generated (missing inputs).\n")
 }
+
+# Legends (external markdown, for manual placement in the manuscript)
+legends_md <- c(
+  "# Burden analyses \u2014 table legends",
+  "",
+  "## Panel A. Global relative burden of outlier STRs between fatal cases and survivors",
+  leg_A,
+  "",
+  "## Panel B. Firth logistic regression of global relative burden on COVID-19 fatality",
+  leg_B,
+  "",
+  "## Panel C. Relative burden within DEGs by intervention",
+  leg_C,
+  "",
+  "## Panel D. Relative burden by genomic region",
+  leg_D,
+  "",
+  "**Shared legend.** ",
+  leg_shared,
+  "",
+  "**Significance.** ",
+  leg_sig,
+  ""
+)
+f_md <- file.path(out_dir, "legends.md")
+writeLines(legends_md, f_md)
+cat(sprintf("  Saved: %s\n", f_md))
 
 cat("\nDone.\n")

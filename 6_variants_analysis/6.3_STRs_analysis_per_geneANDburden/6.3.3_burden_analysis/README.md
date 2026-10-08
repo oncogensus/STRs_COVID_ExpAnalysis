@@ -47,8 +47,9 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | `burden_region_mw.csv` | Panel D: relative burden per genomic region; includes BH FDR (`p_adj`) |
 | `tables/burden_analysis.html` | All four panels (gt HTML) |
 | `tables/burden_global.html`, `burden_firth.html`, `burden_deg.html`, `burden_region.html` | Individual panels (gt HTML) |
+| `tables/legends.md` | Table legends (external; not embedded in the HTML) |
 
-Tables omit comparisons without variance in both groups (IQR span = 0); panel A shows nominal *P* only (no FDR).
+Tables omit comparisons without variance in both groups (IQR span = 0); panel A shows nominal *P* only (no FDR). Legends are written to `legends.md` for manual placement in the manuscript.
 
 ## Execution
 
