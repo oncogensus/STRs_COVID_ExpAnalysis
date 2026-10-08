@@ -1,0 +1,61 @@
+# 6.3.3 — Burden Analysis
+
+Complementary burden analyses for the association-model reviewer comment (1.10). Compares the **relative burden** of DBSCAN outlier STRs per individual between fatal COVID-19 cases and survivors.
+
+## Objective
+
+Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). Four analyses are performed, all with nominal p-values (no FDR):
+
+| # | Context | Test |
+|---|---|---|
+| 1 | Global relative burden | Mann-Whitney U |
+| 2 | Global relative burden (adjusted) | Firth logistic regression: `fatal ~ burden_rel + age + sex + PC1` |
+| 3 | Relative burden within DEGs | Mann-Whitney U |
+| 4 | Relative burden per genomic region | Mann-Whitney U |
+
+**Definitions**
+
+- Relative burden = `n_outliers / n_total_strs` per individual (QC: `n_clusters > 0`, `noise_ratio <= 0.10`).
+- Relative burden within DEGs = outliers restricted to STRs within DEGs / total STRs within DEGs.
+- Relative burden per region = outliers in the region / total STRs in the region (8 regions: Intergenic, Intron, Non-Coding Elements, Promoter, 3′ UTR, Non-coding Exons, 5′ UTR, CDS).
+- Outcome: fatal (case) = 1 vs survivor (control) = 0.
+
+## Structure
+
+```
+6.3.3_burden_analysis/
+└── 1_burden_analysis.R      # Burden analyses (4 tests)
+```
+
+## Inputs
+
+| File | Source | Description |
+|---|---|---|
+| `STRs_analysis_dataset.tsv` | `samples/` (stage 6.1) | Unified STR dataset (group, age, sex, DBSCAN global metrics) |
+| `intervention_strs.tsv` | `6.3.2.2_RNA_matrix/results/` | STRs within DEGs (per intervention), for Panel C |
+| `Report.PCAcoord` | `4_ancestry/EthSEQ_Results_3D/` | Ancestry coordinates (EV1 = PC1) |
+
+## Outputs (`results/`)
+
+| File | Description |
+|---|---|
+| `burden_per_sample.csv` | Per-individual absolute and relative burden |
+| `burden_global_mw.csv` | Panel A: global relative burden (Mann-Whitney) |
+| `burden_firth.csv` | Panel B: Firth logistic regression (OR, 95% CI, p) |
+| `burden_deg_mw.csv` | Panel C: relative burden within DEGs |
+| `burden_region_mw.csv` | Panel D: relative burden per genomic region |
+
+## Execution
+
+```bash
+cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.3_burden_analysis
+Rscript 1_burden_analysis.R
+```
+
+Paths are repo-relative by default and can be overridden with `--str-catalog`, `--deg-strs`, `--pca`, and `--out-dir`. Requires `intervention_strs.tsv` (stage 6.3.2.2 step 1) for Panel C; if missing, Panel C is skipped with a warning.
+
+## Environment
+
+- `r_enrich_env` (micromamba): `data.table`, `dplyr`, `stringr`, `logistf` (pinned as `r_enrich_env.yaml`, repo root)
+
+> Panel B (Firth) requires `logistf`. If unavailable, the script skips Panel B with a warning and the remaining analyses still run.

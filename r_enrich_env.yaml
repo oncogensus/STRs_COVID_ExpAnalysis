@@ -278,6 +278,7 @@ dependencies:
   - r-lattice=0.22_7=r44h54b55ab_1
   - r-lazyeval=0.2.2=r44h54b55ab_6
   - r-lifecycle=1.0.4=r44hc72bb7e_2
+  - r-logistf
   - r-lubridate=1.9.4=r44h54b55ab_1
   - r-magrittr=2.0.4=r44h54b55ab_0
   - r-mass=7.3_65=r44h54b55ab_0

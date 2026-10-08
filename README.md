@@ -66,6 +66,7 @@ STRs_COVID_ExpAnalysis/
     │   ├── 6.3.1_pre_processing/
     │   ├── 6.3.2_RNA_data_analysis/
     │   │   └── 6.3.2.2_RNA_matrix/
+    │   ├── 6.3.3_burden_analysis/
     │   └── 6.3.4_igv_per_variant/
     └── 6.5_ancestry_analysis/
 ```
@@ -85,11 +86,11 @@ Each pipeline module has its own README with detailed inputs, outputs, and execu
 | 5 — Global DBSCAN | Normalization + DBSCAN outlier detection | [`5_global_dbscan/README.md`](5_global_dbscan/README.md) |
 | 6.1 — Merge Datasets | Unified STR dataset | [`6.1_merge_datasets/README.md`](6_variants_analysis/6.1_merge_datasets/README.md) |
 | 6.2 — Descriptive Analysis & Visualization | Coverage, DBSCAN validation, genome viz | [`6.2_desc_data_viz/README.md`](6_variants_analysis/6.2_desc_data_viz/README.md) |
-| 6.3 — STRs per Gene & Burden | DEG x STR, raincloud plots, IGV | [`6.3_.../README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/README.md) |
+| 6.3 — STRs per Gene & Burden | DEG x STR, raincloud plots, Mann-Whitney U, burden (Mann-Whitney + Firth), IGV | [`6.3_.../README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/README.md) |
 | 6.5 — Ancestry Analysis | Ancestry x DBSCAN correlations + viz | [`6.5_ancestry_analysis/README.md`](6_variants_analysis/6.5_ancestry_analysis/README.md) |
 | UCSC Tracks Table | Publication-ready table builder | [`.../UCSC_tracks_table/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/6.3.2.2_RNA_matrix/UCSC_tracks_table/README.md) |
 
-> The 6.3 module bundles sub-modules with their own READMEs: [`6.3.1_pre_processing/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_pre_processing/README.md), [`6.3.2_RNA_data_analysis/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/README.md), and [`6.3.4_igv_per_variant/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/README.md).
+> The 6.3 module bundles sub-modules with their own READMEs: [`6.3.1_pre_processing/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.1_pre_processing/README.md), [`6.3.2_RNA_data_analysis/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.2_RNA_data_analysis/README.md), [`6.3.3_burden_analysis/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.3_burden_analysis/README.md), and [`6.3.4_igv_per_variant/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.4_igv_per_variant/README.md).
 
 ---
 
@@ -129,7 +130,7 @@ Integrated description, visualization, and filtering of identified variants.
 
 - **6.1 Dataset Integration** — unified dataset. See [`6.1_merge_datasets/README.md`](6_variants_analysis/6.1_merge_datasets/README.md)
 - **6.2 Descriptive Analysis & Visualization** — coverage, DBSCAN validation, genome viz. See [`6.2_desc_data_viz/README.md`](6_variants_analysis/6.2_desc_data_viz/README.md)
-- **6.3 Per-STR Analysis** — DEG x STR, raincloud plots, IGV. See [`6.3_STRs_analysis_per_geneANDburden/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/README.md)
+- **6.3 Per-STR Analysis** — DEG x STR, raincloud plots, Mann-Whitney U, burden (Mann-Whitney + Firth), IGV. See [`6.3_STRs_analysis_per_geneANDburden/README.md`](6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/README.md)
 - **6.5 Ancestry Analysis** — ancestry x DBSCAN correlations + viz. See [`6.5_ancestry_analysis/README.md`](6_variants_analysis/6.5_ancestry_analysis/README.md)
 
 ---
@@ -217,6 +218,8 @@ STRs_COVID_ExpAnalysis/
     │   ├── 6.3.2_RNA_data_analysis/
     │   │   └── 6.3.2.2_RNA_matrix/
     │   │       └── results/         # intervention_strs.tsv, intervention_outliers.tsv
+    │   ├── 6.3.3_burden_analysis/
+    │   │   └── results/             # burden_*.csv
     │   ├── 6.3.4_igv_per_variant/
     │   │   ├── str_samples_bams.tsv
     │   │   ├── str_samples_with_variant.bed

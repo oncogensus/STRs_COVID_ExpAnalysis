@@ -8,6 +8,7 @@ Main module for the analysis of COVID-19-associated STRs: cross-referencing agai
 |---|---|---|
 | `6.3.1_pre_processing/` | Preprocessing and differential expression of public COVID-19 transcriptomic datasets (GEO) | [`6.3.1_pre_processing/README.md`](6.3.1_pre_processing/README.md) |
 | `6.3.2_RNA_data_analysis/` | DEG x STR crossing, raincloud plots, Mann-Whitney U, no-overlap and outlier detail tables | [`6.3.2_RNA_data_analysis/README.md`](6.3.2_RNA_data_analysis/README.md) |
+| `6.3.3_burden_analysis/` | Relative outlier burden: Mann-Whitney U + Firth logistic regression (global, DEGs, per region) | [`6.3.3_burden_analysis/README.md`](6.3.3_burden_analysis/README.md) |
 | `6.3.4_igv_per_variant/` | IGV.js visual inspection of each STR with outliers | [`6.3.4_igv_per_variant/README.md`](6.3.4_igv_per_variant/README.md) |
 
 ## Data Flow
@@ -20,6 +21,8 @@ samples/STRs_analysis_dataset.tsv (unified dataset, stage 6.1)
     intervention_strs.tsv / intervention_outliers.tsv / intervention_summary.tsv
     ↓
     raincloud + publication tables, Mann-Whitney U, no-overlap, outlier detail tables
+    ↓
+6.3.3: relative outlier burden (global, DEGs, per region) → burden_*.csv
     ↓
 6.3.4: BEDs + BAM mapping → IGV.js per variant
 ```
@@ -42,6 +45,10 @@ qsub 3_submit_raincloud.pbs
 qsub 4_mann_whitney_allele.pbs
 qsub 5_no_overlap_analysis.pbs
 qsub 6_outlier_detail_table.pbs  # note: PBS file is named 8_outlier_detail_table.pbs
+
+# 6.3.3: burden analyses
+cd ../6.3.3_burden_analysis
+Rscript 1_burden_analysis.R
 
 # 6.3.4: IGV visualization
 cd ../../6.3.4_igv_per_variant
