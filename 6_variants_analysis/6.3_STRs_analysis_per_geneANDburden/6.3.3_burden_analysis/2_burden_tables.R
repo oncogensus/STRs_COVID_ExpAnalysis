@@ -108,7 +108,7 @@ style_gt <- function(g) {
     tab_options(
       table.font.size = px(13),
       table.width = pct(100),
-      heading.align = "center",
+      heading.align = "left",
       heading.title.font.size = px(16),
       heading.subtitle.font.size = px(12),
       column_labels.font.weight = "bold",
@@ -160,7 +160,7 @@ if (!is.null(gmw)) {
     )
     gtA <- pa %>%
       gt() %>%
-      tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
+      tab_header(title = md("**A.** Global relative burden of outlier STRs between fatal cases and survivors")) %>%
       tab_spanner(label = "Relative burden", columns = c(Median, IQR)) %>%
       cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
                  `P (nominal)` = md("*P* (nominal)")) %>%
@@ -187,7 +187,7 @@ if (!is.null(fb)) {
   )
   gtB <- pb %>%
     gt() %>%
-    tab_header(title = md("**Firth logistic regression of global relative burden on COVID-19 fatality**")) %>%
+    tab_header(title = md("**B.** Firth logistic regression of global relative burden on COVID-19 fatality")) %>%
     cols_label(Predictor = "Predictor", `OR (95% CI)` = md("OR (95% CI)"), Sig = "",
                `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
@@ -218,7 +218,7 @@ if (!is.null(dc)) {
   pc <- pc[keep]
   gtC <- pc %>%
     gt() %>%
-    tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
+    tab_header(title = md("**C.** Relative burden within DEGs by intervention")) %>%
     tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
     tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
     cols_label(Context = "Context", `N (survivors/fatal)` = "N (survivors/fatal)",
@@ -252,7 +252,7 @@ if (!is.null(dr)) {
   pd <- pd[keep]
   gtD <- pd %>%
     gt() %>%
-    tab_header(title = md("**Relative burden by genomic region**")) %>%
+    tab_header(title = md("**D.** Relative burden by genomic region")) %>%
     tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
     tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
     cols_label(Region = "Region", `N (survivors/fatal)` = "N (survivors/fatal)",
