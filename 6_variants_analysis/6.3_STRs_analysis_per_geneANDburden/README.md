@@ -48,7 +48,7 @@ qsub 6_outlier_detail_table.pbs  # note: PBS file is named 8_outlier_detail_tabl
 
 # 6.3.3: burden analyses
 cd ../6.3.3_burden_analysis
-Rscript 1_burden_analysis.R
+qsub 1_burden_analysis.pbs
 
 # 6.3.4: IGV visualization
 cd ../../6.3.4_igv_per_variant

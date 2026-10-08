@@ -49,6 +49,8 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 
 ```bash
 cd 6_variants_analysis/6.3_STRs_analysis_per_geneANDburden/6.3.3_burden_analysis
+qsub 1_burden_analysis.pbs          # on the cluster (r_enrich_env)
+# or directly:
 Rscript 1_burden_analysis.R
 ```
 
