@@ -4,7 +4,7 @@ Complementary burden analyses for the association-model reviewer comment (1.10).
 
 ## Objective
 
-Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). P-values are reported as nominal; a Benjamini–Hochberg FDR is added for the multi-test panels (C and D). Four analyses are performed:
+Provide a parsimonious, exploratory set of burden tests that complement the locus-specific Mann-Whitney U tests (6.3.2 step 4). P-values are reported as nominal, with a Benjamini–Hochberg FDR (`p_adj`) for every panel (A: family of one; B: across the non-intercept predictors; C: across DEG contexts; D: across estimable regions). Four analyses are performed:
 
 | # | Context | Test |
 |---|---|---|
@@ -41,8 +41,8 @@ Provide a parsimonious, exploratory set of burden tests that complement the locu
 | File | Description |
 |---|---|
 | `burden_per_sample.csv` | Per-individual absolute and relative burden |
-| `burden_global_mw.csv` | Panel A: global relative burden (Mann-Whitney) |
-| `burden_firth.csv` | Panel B: Firth logistic regression (OR, 95% CI, p) |
+| `burden_global_mw.csv` | Panel A: global relative burden (Mann-Whitney); includes BH FDR (`p_adj`) |
+| `burden_firth.csv` | Panel B: Firth logistic regression (OR, 95% CI, p, `p_adj`) |
 | `burden_deg_mw.csv` | Panel C: relative burden within DEGs (global + per intervention); includes BH FDR (`p_adj`) |
 | `burden_region_mw.csv` | Panel D: relative burden per genomic region; includes BH FDR (`p_adj`) |
 | `tables/burden_analysis.html` | All four panels (gt HTML) |

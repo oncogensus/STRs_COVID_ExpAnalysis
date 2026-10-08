@@ -13,8 +13,10 @@
 #                                                  (global + per intervention)
 #     (4) Relative burden per genomic region    -> Mann-Whitney U
 #   All analyses are exploratory. P-values are nominal; a Benjamini-Hochberg
-#   FDR is added for the multi-test panels (C: contexts, D: regions).
-#   Panels A and B involve a single test, so no FDR is computed.
+#   FDR (p_adj) is reported for every panel:
+#     A: family of one (p_adj equals the nominal p-value);
+#     B: across the non-intercept predictors;
+#     C: across all DEG contexts; D: across estimable genomic regions.
 #
 # INPUTS (command-line arguments; defaults are repo-relative)
 #   --str-catalog   samples/STRs_analysis_dataset.tsv (stage 6.1)
@@ -197,6 +199,8 @@ cat(sprintf("  Samples in burden table: %d | with PC1: %d\n",
 cat("\n[1] Global relative burden - Mann-Whitney U\n")
 global_mw <- mw_summary(burden, "burden_rel")
 global_mw[, context := "Global"]
+# Single test: BH-FDR over a family of one equals the nominal p-value.
+global_mw[, p_adj := p.adjust(p, method = "BH")]
 print(global_mw)
 
 # ==========================================
@@ -233,6 +237,10 @@ if (has_logistf) {
         CI_high   = exp(fit$ci.upper),
         p         = fit$prob
       )
+      # BH-FDR across the non-intercept predictors (the intercept is not a hypothesis).
+      idx <- which(fit_res$predictor != "(Intercept)")
+      fit_res[, p_adj := NA_real_]
+      fit_res[idx, p_adj := p.adjust(p[idx], method = "BH")]
       print(fit_res)
     } else {
       cat("Not estimable: model did not converge.\n")

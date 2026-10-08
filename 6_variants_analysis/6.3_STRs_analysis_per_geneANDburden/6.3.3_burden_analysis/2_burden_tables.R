@@ -4,11 +4,12 @@
 # PURPOSE
 #   Builds publication-ready supplementary tables (gt HTML) from the burden
 #   analysis outputs (step 1_burden_analysis.R). Four panels:
-#     A - Global relative burden (Mann-Whitney; single test)
+#     A - Global relative burden (Mann-Whitney)
 #     B - Firth logistic regression of global relative burden
-#     C - Relative burden within DEGs (global + per intervention; BH-FDR)
-#     D - Relative burden per genomic region (BH-FDR)
-#   Style matches the other supplementary tables (e.g. the Mann-Whitney table).
+#     C - Relative burden within DEGs (global + per intervention)
+#     D - Relative burden per genomic region
+#   Every panel reports nominal P and Benjamini-Hochberg FDR (family of one
+#   for Panel A). Style matches the other supplementary tables.
 #
 # INPUTS (via command-line arguments)
 #   --results-dir   Directory with burden_*.csv (default: results)
@@ -64,6 +65,13 @@ sig_stars <- function(p, p_adj) {
          ifelse(!is.na(p) & p < 0.05, "*", ""))
 }
 
+# Split "median [IQR]" strings into two vectors.
+split_med <- function(s) trimws(sub("\\s*\\[.*$", "", s))
+split_iqr <- function(s) {
+  out <- trimws(sub("^[^[]*", "", s))
+  ifelse(is.na(s) | !grepl("\\[", s), "", out)
+}
+
 read_csv_safe <- function(f) {
   if (file.exists(f)) return(fread(f))
   cat(sprintf("  [WARN] missing: %s\n", f))
@@ -76,6 +84,10 @@ style_gt <- function(g) {
     tab_style(
       style = cell_text(weight = "bold"),
       locations = cells_column_labels()
+    ) %>%
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = cells_column_spanners()
     ) %>%
     tab_options(
       table.font.size = px(13),
@@ -94,58 +106,75 @@ style_gt <- function(g) {
     )
 }
 
+bold_sig <- function(g) {
+  tab_style(
+    g,
+    style = cell_text(weight = "bold", size = px(20)),
+    locations = cells_body(columns = Sig, rows = Sig != "")
+  )
+}
+
 note_sig <- md("Significance: <sup>**</sup> *P* < 0.05 (FDR); <sup>*</sup> *P* < 0.05 (nominal, uncorrected).")
-note_legend <- md("*DEG*, differentially expressed gene; *IQR*, interquartile range; *OR*, odds ratio; *CI*, confidence interval; *PC1*, first ancestry principal component.")
+note_legend <- md("*DEG*, differentially expressed gene; *IQR*, interquartile range; *BH*, Benjamini\u2013Hochberg; *OR*, odds ratio; *CI*, confidence interval; *PC1*, first ancestry principal component.")
 
 cat("--- Supplementary burden tables ---\n")
 
 # ==========================================
-# Panel A - Global relative burden (Mann-Whitney; single test)
+# Panel A - Global relative burden (Mann-Whitney)
 # ==========================================
 gtA <- NULL
 gmw <- read_csv_safe(file.path(results_dir, "burden_global_mw.csv"))
 if (!is.null(gmw)) {
+  p_adj <- if ("p_adj" %in% names(gmw)) gmw$p_adj[1] else gmw$p[1]
+  med <- c(gmw$survivors_median_IQR[1], gmw$fatal_median_IQR[1])
   pa <- data.table(
     Group = c("Survivors", "Fatal COVID-19 cases"),
     N = c(gmw$n_survivors[1], gmw$n_fatal[1]),
-    `Relative burden, median [IQR]` = c(gmw$survivors_median_IQR[1], gmw$fatal_median_IQR[1]),
-    `P (nominal)` = c(fmt_pval(gmw$p[1]), "")
+    Median = split_med(med),
+    IQR = split_iqr(med),
+    Sig = c(sig_stars(gmw$p[1], p_adj), ""),
+    `P (nominal)` = c(fmt_pval(gmw$p[1]), ""),
+    FDR = c(fmt_pval(p_adj), "")
   )
   gtA <- pa %>%
     gt() %>%
     tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
-    cols_label(N = "N",
-               `Relative burden, median [IQR]` = md("Relative burden, median [IQR]"),
-               `P (nominal)` = md("*P* (nominal)")) %>%
+    tab_spanner(label = "Relative burden", columns = c(Median, IQR)) %>%
+    cols_label(Group = "Group", N = "N", Median = "Median", IQR = "IQR", Sig = "",
+               `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U test. Single test; no multiple-testing correction (FDR not applicable).")) %>%
+    bold_sig() %>%
+    tab_source_note(source_note = md("Mann\u2013Whitney U test. Single test: BH-FDR (family of one) equals the nominal *P*-value.")) %>%
     tab_source_note(source_note = note_legend)
 }
 
 # ==========================================
-# Panel B - Firth logistic regression (single model)
+# Panel B - Firth logistic regression
 # ==========================================
 gtB <- NULL
 fb <- read_csv_safe(file.path(results_dir, "burden_firth.csv"))
 if (!is.null(fb)) {
+  p_adj <- if ("p_adj" %in% names(fb)) fb$p_adj else rep(NA_real_, nrow(fb))
   pb <- data.table(
     Predictor = fb$predictor,
     `OR (95% CI)` = fmt_or_ci(fb$OR, fb$CI_low, fb$CI_high),
-    `P (nominal)` = fmt_pval(fb$p)
+    Sig = sig_stars(fb$p, p_adj),
+    `P (nominal)` = fmt_pval(fb$p),
+    FDR = fmt_pval(p_adj)
   )
   gtB <- pb %>%
     gt() %>%
     tab_header(title = md("**Firth logistic regression of global relative burden on COVID-19 fatality**")) %>%
-    cols_label(Predictor = "Predictor",
-               `OR (95% CI)` = md("OR (95% CI)"),
-               `P (nominal)` = md("*P* (nominal)")) %>%
+    cols_label(Predictor = "Predictor", `OR (95% CI)` = md("OR (95% CI)"), Sig = "",
+               `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    tab_source_note(source_note = md("Outcome: fatal COVID-19 (1) vs survivor (0). Relative burden per 1 percentage point; age per year; sex (male vs female); PC1 per standard deviation. Firth's penalized likelihood. Single model; FDR not applicable.")) %>%
+    bold_sig() %>%
+    tab_source_note(source_note = md("Outcome: fatal COVID-19 (1) vs survivor (0). Relative burden per 1 percentage point; age per year; sex (male vs female); PC1 per standard deviation. Firth's penalized likelihood. FDR: BH across the four non-intercept predictors.")) %>%
     tab_source_note(source_note = note_legend)
 }
 
 # ==========================================
-# Panel C - Relative burden within DEGs (BH-FDR)
+# Panel C - Relative burden within DEGs
 # ==========================================
 gtC <- NULL
 dc <- read_csv_safe(file.path(results_dir, "burden_deg_mw.csv"))
@@ -154,8 +183,10 @@ if (!is.null(dc)) {
   pc <- data.table(
     Context = dc$context,
     `N (survivors/fatal)` = paste0(dc$n_survivors, "/", dc$n_fatal),
-    `Survivors, median [IQR]` = dc$survivors_median_IQR,
-    `Fatal, median [IQR]` = dc$fatal_median_IQR,
+    s_med = split_med(dc$survivors_median_IQR),
+    s_iqr = split_iqr(dc$survivors_median_IQR),
+    f_med = split_med(dc$fatal_median_IQR),
+    f_iqr = split_iqr(dc$fatal_median_IQR),
     Sig = sig_stars(dc$p, p_adj),
     `P (nominal)` = ifelse(is.na(dc$p), "Not estimable", fmt_pval(dc$p)),
     FDR = ifelse(is.na(dc$p), "-", fmt_pval(p_adj))
@@ -163,25 +194,19 @@ if (!is.null(dc)) {
   gtC <- pc %>%
     gt() %>%
     tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
-    cols_label(Context = "Context",
-               `N (survivors/fatal)` = "N (survivors/fatal)",
-               `Survivors, median [IQR]` = "Survivors, median [IQR]",
-               `Fatal, median [IQR]` = "Fatal, median [IQR]",
-               Sig = "",
-               `P (nominal)` = md("*P* (nominal)"),
-               FDR = "FDR") %>%
+    tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
+    tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
+    cols_label(Context = "Context", `N (survivors/fatal)` = "N (survivors/fatal)",
+               s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
+               Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    tab_style(
-      style = cell_text(weight = "bold", size = px(20)),
-      locations = cells_body(columns = Sig, rows = Sig != "")
-    ) %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context.")) %>%
-    tab_source_note(source_note = md("FDR: Benjamini\u2013Hochberg across all DEG contexts.")) %>%
+    bold_sig() %>%
+    tab_source_note(source_note = md("Mann\u2013Whitney U per context (all DEGs and each intervention). \u201CNot estimable\u201D = no outlier STRs within that DEG context. FDR: BH across all DEG contexts.")) %>%
     tab_source_note(source_note = note_sig)
 }
 
 # ==========================================
-# Panel D - Relative burden per genomic region (BH-FDR)
+# Panel D - Relative burden per genomic region
 # ==========================================
 gtD <- NULL
 dr <- read_csv_safe(file.path(results_dir, "burden_region_mw.csv"))
@@ -190,8 +215,10 @@ if (!is.null(dr)) {
   pd <- data.table(
     Region = dr$region,
     `N (survivors/fatal)` = paste0(dr$n_survivors, "/", dr$n_fatal),
-    `Survivors, median [IQR]` = dr$survivors_median_IQR,
-    `Fatal, median [IQR]` = dr$fatal_median_IQR,
+    s_med = split_med(dr$survivors_median_IQR),
+    s_iqr = split_iqr(dr$survivors_median_IQR),
+    f_med = split_med(dr$fatal_median_IQR),
+    f_iqr = split_iqr(dr$fatal_median_IQR),
     Sig = ifelse(dr$not_estimable, "", sig_stars(dr$p, p_adj)),
     `P (nominal)` = ifelse(dr$not_estimable, "Not estimable", fmt_pval(dr$p)),
     FDR = ifelse(dr$not_estimable, "-", fmt_pval(p_adj))
@@ -199,20 +226,14 @@ if (!is.null(dr)) {
   gtD <- pd %>%
     gt() %>%
     tab_header(title = md("**Relative burden by genomic region**")) %>%
-    cols_label(Region = "Region",
-               `N (survivors/fatal)` = "N (survivors/fatal)",
-               `Survivors, median [IQR]` = "Survivors, median [IQR]",
-               `Fatal, median [IQR]` = "Fatal, median [IQR]",
-               Sig = "",
-               `P (nominal)` = md("*P* (nominal)"),
-               FDR = "FDR") %>%
+    tab_spanner(label = "Survivors", columns = c(s_med, s_iqr)) %>%
+    tab_spanner(label = "Fatal COVID-19 cases", columns = c(f_med, f_iqr)) %>%
+    cols_label(Region = "Region", `N (survivors/fatal)` = "N (survivors/fatal)",
+               s_med = "Median", s_iqr = "IQR", f_med = "Median", f_iqr = "IQR",
+               Sig = "", `P (nominal)` = md("*P* (nominal)"), FDR = "FDR") %>%
     style_gt() %>%
-    tab_style(
-      style = cell_text(weight = "bold", size = px(20)),
-      locations = cells_body(columns = Sig, rows = Sig != "")
-    ) %>%
-    tab_source_note(source_note = md("Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region.")) %>%
-    tab_source_note(source_note = md("FDR: Benjamini\u2013Hochberg across estimable regions.")) %>%
+    bold_sig() %>%
+    tab_source_note(source_note = md("Mann\u2013Whitney U per genomic region. \u201CNot estimable\u201D = no outlier STRs detected in that region. FDR: BH across estimable regions.")) %>%
     tab_source_note(source_note = note_sig)
 }
 
