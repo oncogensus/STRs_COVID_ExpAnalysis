@@ -149,8 +149,8 @@ merged_dt[, qc_pass := (
   !is.na(n_clusters) & n_clusters > 0 &
   !is.na(noise_ratio) & noise_ratio <= 0.10
 )]
-merged_dt[, is_outlier := qc_pass & !is.na(n_outliers) & n_outliers > 0]
-merged_dt[is.na(is_outlier), is_outlier := FALSE]
+merged_dt[, is_outlier := qc_pass & str_detect(outlier_samples, fixed(sample_id))]
+merged_dt[is.na(is_outlier) | outlier_samples == "", is_outlier := FALSE]
 
 g <- tolower(trimws(as.character(merged_dt$group)))
 g_num <- suppressWarnings(as.integer(g))
