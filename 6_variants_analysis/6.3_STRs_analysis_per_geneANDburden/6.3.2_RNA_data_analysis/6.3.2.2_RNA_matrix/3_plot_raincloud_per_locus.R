@@ -275,7 +275,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
           title    = title,
           subtitle = NULL,
           x        = NULL,
-          y        = "Major-allele length (repeat units)",
+          y        = "Longer-allele length (repeat units)",
           caption  = split_caption
         ) +
         theme_classic(base_size = 11) +
@@ -342,7 +342,7 @@ make_raincloud <- function(dat, intv, gse_tag, title, subtitle) {
           title    = title,
           subtitle = NULL,
           x        = NULL,
-          y        = "Major-allele length (repeat units)"
+          y        = "Longer-allele length (repeat units)"
         ) +
         theme_classic(base_size = 11) +
         theme(

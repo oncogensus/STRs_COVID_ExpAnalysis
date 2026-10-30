@@ -241,7 +241,7 @@ cat(sprintf("  Table: %d tests across %d loci x %d comparisons\n", nrow(tbl), n_
 out_gt <- tbl %>%
   gt(groupname_col = "Comparison") %>%
   tab_header(
-    title = md("**Comparison of Major-allele Size Distributions Between Subgroups in Severe COVID-19**")
+    title = md("**Comparison of Longer-allele Size Distributions Between Subgroups in Severe COVID-19**")
   ) %>%
   tab_spanner(
     label = "Sample Size",

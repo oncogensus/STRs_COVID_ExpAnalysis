@@ -168,7 +168,7 @@ gt_table <- merged %>%
 
   # Title
   tab_header(
-    title = "Descriptive Statistics of Major Allele Size (allele2_est)",
+    title = "Descriptive Statistics of Longer Allele Size (allele2_est)",
     subtitle = "By Genomic Region — Case vs Control"
   ) %>%
 
