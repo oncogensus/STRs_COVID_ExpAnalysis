@@ -258,6 +258,7 @@ dependencies:
   - r-gridgraphics=0.5_1=r44hc72bb7e_4
   - r-gson=0.1.0=r44hc72bb7e_3
   - r-gt
+  - r-openxlsx
   - r-gtable=0.3.6=r44hc72bb7e_1
   - r-haven=2.5.5=r44h6d565e7_1
   - r-highr=0.11=r44hc72bb7e_2

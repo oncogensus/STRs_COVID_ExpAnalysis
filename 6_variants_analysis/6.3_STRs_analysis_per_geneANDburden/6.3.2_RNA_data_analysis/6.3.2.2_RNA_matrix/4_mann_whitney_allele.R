@@ -314,6 +314,7 @@ out_gt <- tbl %>%
 
 out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
 gtsave(out_gt, out_html)
+if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(tbl, sub("\\.html$", "\\.xlsx", out_html)) else cat("[WARN] openxlsx missing; xlsx not written\n")
 cat(sprintf("  Table saved at: %s\n", out_html))
 
 cat("\nDone.\n")

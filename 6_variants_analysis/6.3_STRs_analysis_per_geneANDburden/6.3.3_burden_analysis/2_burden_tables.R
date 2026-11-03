@@ -140,6 +140,7 @@ leg_shared <- "DEG, differentially expressed gene; IQR, interquartile range; BH,
 leg_sig <- "Significance: ** P < 0.05 (FDR); * P < 0.05 (nominal, uncorrected)."
 
 cat("--- Supplementary burden tables ---\n")
+data_list <- list()
 
 # ==========================================
 # Panel A - Global relative burden (Mann-Whitney)
@@ -158,6 +159,7 @@ if (!is.null(gmw)) {
       Sig = c(sig_stars(gmw$p[1], NA_real_), ""),
       `P (nominal)` = c(fmt_pval(gmw$p[1]), "")
     )
+    data_list[["A"]] <- pa
     gtA <- pa %>%
       gt(rowname_col = "Group") %>%
       tab_header(title = md("**Global relative burden of outlier STRs between fatal cases and survivors**")) %>%
@@ -167,7 +169,8 @@ if (!is.null(gmw)) {
                  `P (nominal)` = md("*P* (nominal)")) %>%
       style_gt() %>%
       bold_sig()
-  } else {
+      data_list[["A"]] <- pa
+} else {
     cat("  [WARN] Panel A skipped: no variance in one group.\n")
   }
 }
@@ -186,6 +189,7 @@ if (!is.null(fb)) {
     `P (nominal)` = fmt_pval(fb$p),
     FDR = fmt_pval(p_adj)
   )
+  data_list[["B"]] <- pb
   gtB <- pb %>%
     gt(rowname_col = "Predictor") %>%
     tab_header(title = md("**Firth logistic regression of global relative burden on COVID-19 fatality**")) %>%
@@ -218,6 +222,7 @@ if (!is.null(dc)) {
   keep <- iqr_span(pc$s_iqr) > 0 & iqr_span(pc$f_iqr) > 0
   keep[is.na(keep)] <- FALSE
   pc <- pc[keep]
+  data_list[["C"]] <- pc
   gtC <- pc %>%
     gt(rowname_col = "Context") %>%
     tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
@@ -253,6 +258,7 @@ if (!is.null(dr)) {
   keep <- iqr_span(pd$s_iqr) > 0 & iqr_span(pd$f_iqr) > 0
   keep[is.na(keep)] <- FALSE
   pd <- pd[keep]
+  data_list[["D"]] <- pd
   gtD <- pd %>%
     gt(rowname_col = "Region") %>%
     tab_header(title = md("**Relative burden by genomic region**")) %>%
@@ -281,6 +287,10 @@ for (nm in names(panels)) {
   f <- file.path(out_dir, panels[[nm]]$file)
   gtsave(panels[[nm]]$gt, f)
   cat(sprintf("  Saved: %s\n", f))
+  if (!is.null(data_list[[nm]])) {
+    fx <- sub("\\.html$", "\\.xlsx", f)
+    if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(data_list[[nm]], fx) else cat(sprintf("[WARN] openxlsx missing; %s not written\n", fx))
+  }
 }
 
 # Combined document

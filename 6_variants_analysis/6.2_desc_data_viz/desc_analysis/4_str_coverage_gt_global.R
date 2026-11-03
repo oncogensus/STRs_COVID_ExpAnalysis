@@ -130,6 +130,7 @@ gt_tbl <- tab %>%
   )
 
 gtsave(gt_tbl, file.path(out_dir, "table_coverage_global.html"))
+if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(tab, file.path(out_dir, "table_coverage_global.xlsx")) else cat("[WARN] openxlsx missing; xlsx not written\n")
 fwrite(tab, file.path(out_dir, "table_coverage_global.csv"), sep = "\t")
 
 cat("GT table saved to:", file.path(out_dir, "table_coverage_global.html"), "\n")
