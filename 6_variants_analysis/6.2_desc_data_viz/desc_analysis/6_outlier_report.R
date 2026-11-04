@@ -193,7 +193,6 @@ pub_gt <- df_friendly %>%
 
 out_gt_html <- file.path(out_dir, "Technical_Validation_Table.html")
 gtsave(pub_gt, out_gt_html)
-if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(df_friendly, sub("\\.html$", "\\.xlsx", out_gt_html)) else cat("[WARN] openxlsx missing; xlsx not written\n")
 cat(sprintf("gt HTML table saved to: %s\n", out_gt_html))
 
 # Save raw CSV for the report

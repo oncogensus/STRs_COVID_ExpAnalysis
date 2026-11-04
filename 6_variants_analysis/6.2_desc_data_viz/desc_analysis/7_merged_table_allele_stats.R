@@ -209,7 +209,6 @@ gt_table <- merged %>%
 # 6. Save
 # ==========================================
 gtsave(gt_table, "results/table_allele_stats_merged.html")
-if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(merged, "results/table_allele_stats_merged.xlsx") else cat("[WARN] openxlsx missing; xlsx not written\n")
 write_csv(merged, "results/table_allele_stats_merged.csv")
 
 cat("\n=== Outputs ===\n")

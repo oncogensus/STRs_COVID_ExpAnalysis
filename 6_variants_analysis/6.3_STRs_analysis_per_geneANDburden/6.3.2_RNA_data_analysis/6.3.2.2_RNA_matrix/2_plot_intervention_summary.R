@@ -407,7 +407,6 @@ pub_gt <- pub_tsv %>%
 
 out_gt_html <- file.path(out_dir, "intervention_publication_table.html")
 gtsave(pub_gt, out_gt_html)
-if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(pub_tsv, sub("\\.html$", "\\.xlsx", out_gt_html)) else cat("[WARN] openxlsx missing; xlsx not written\n")
 cat(sprintf("gt table HTML saved at: %s\n", out_gt_html))
 
 cat("\nDone.\n")

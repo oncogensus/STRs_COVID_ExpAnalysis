@@ -299,7 +299,6 @@ out_gt <- tbl %>%
 # ==========================================
 out_html <- file.path(out_dir, "outlier_detail_table.html")
 gtsave(out_gt, out_html)
-if (requireNamespace("openxlsx", quietly = TRUE)) openxlsx::write.xlsx(tbl, sub("\\.html$", "\\.xlsx", out_html)) else cat("[WARN] openxlsx missing; xlsx not written\n")
 cat(sprintf("\nTable saved at: %s\n", out_html))
 
 cat("\nDone.\n")
