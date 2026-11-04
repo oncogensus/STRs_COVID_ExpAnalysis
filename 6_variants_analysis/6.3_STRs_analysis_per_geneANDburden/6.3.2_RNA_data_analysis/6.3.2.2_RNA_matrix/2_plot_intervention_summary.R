@@ -408,5 +408,6 @@ pub_gt <- pub_tsv %>%
 out_gt_html <- file.path(out_dir, "intervention_publication_table.html")
 gtsave(pub_gt, out_gt_html)
 cat(sprintf("gt table HTML saved at: %s\n", out_gt_html))
+write.csv(pub_tsv, sub("\\.html$", "\\.csv", out_gt_html), row.names = FALSE)
 
 cat("\nDone.\n")

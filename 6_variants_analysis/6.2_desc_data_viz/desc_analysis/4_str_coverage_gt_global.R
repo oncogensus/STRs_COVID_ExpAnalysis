@@ -130,7 +130,8 @@ gt_tbl <- tab %>%
   )
 
 gtsave(gt_tbl, file.path(out_dir, "table_coverage_global.html"))
-fwrite(tab, file.path(out_dir, "table_coverage_global.csv"), sep = "\t")
+fwrite(tab, file.path(out_dir, "table_coverage_global.tsv"), sep = "\t")
+write.csv(tab, file.path(out_dir, "table_coverage_global.csv"), row.names = FALSE)
 
 cat("GT table saved to:", file.path(out_dir, "table_coverage_global.html"), "\n")
 cat("Raw data saved to :", file.path(out_dir, "table_coverage_global.csv"), "\n")

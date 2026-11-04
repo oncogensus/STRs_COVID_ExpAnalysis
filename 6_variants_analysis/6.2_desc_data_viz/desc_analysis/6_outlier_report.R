@@ -194,6 +194,7 @@ pub_gt <- df_friendly %>%
 out_gt_html <- file.path(out_dir, "Technical_Validation_Table.html")
 gtsave(pub_gt, out_gt_html)
 cat(sprintf("gt HTML table saved to: %s\n", out_gt_html))
+write.csv(df_friendly, sub("\\.html$", "\\.csv", out_gt_html), row.names = FALSE)
 
 # Save raw CSV for the report
 out_report_csv <- file.path(out_dir, "unified_technical_report.csv")

@@ -276,11 +276,19 @@ panels <- list(
   D = list(gt = gtD, file = "burden_region.html")
 )
 
+data_list <- list()
+if (exists("pa")) data_list[["A"]] <- pa
+if (exists("pb")) data_list[["B"]] <- pb
+if (exists("pc")) data_list[["C"]] <- pc
+if (exists("pd")) data_list[["D"]] <- pd
+
 for (nm in names(panels)) {
   if (is.null(panels[[nm]]$gt)) next
   f <- file.path(out_dir, panels[[nm]]$file)
   gtsave(panels[[nm]]$gt, f)
   cat(sprintf("  Saved: %s\n", f))
+  fx <- sub("\\.html$", "\\.csv", f)
+  if (!is.null(data_list[[nm]])) write.csv(data_list[[nm]], fx, row.names = FALSE)
 }
 
 # Combined document

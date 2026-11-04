@@ -300,5 +300,6 @@ out_gt <- tbl %>%
 out_html <- file.path(out_dir, "outlier_detail_table.html")
 gtsave(out_gt, out_html)
 cat(sprintf("\nTable saved at: %s\n", out_html))
+write.csv(tbl, sub("\\.html$", "\\.csv", out_html), row.names = FALSE)
 
 cat("\nDone.\n")

@@ -315,5 +315,6 @@ out_gt <- tbl %>%
 out_html <- file.path(out_dir, paste0(suffix, "_mann_whitney_table.html"))
 gtsave(out_gt, out_html)
 cat(sprintf("  Table saved at: %s\n", out_html))
+write.csv(tbl, sub("\\.html$", "\\.csv", out_html), row.names = FALSE)
 
 cat("\nDone.\n")
