@@ -214,10 +214,7 @@ if (!is.null(dc)) {
     `P (nominal)` = ifelse(is.na(dc$p), "Not estimable", fmt_pval(dc$p)),
     FDR = ifelse(is.na(dc$p), "-", fmt_pval(p_adj))
   )
-  # Keep only contexts with variance in both groups (IQR span > 0).
-  keep <- iqr_span(pc$s_iqr) > 0 & iqr_span(pc$f_iqr) > 0
-  keep[is.na(keep)] <- FALSE
-  pc <- pc[keep]
+  # Keep all DEG contexts (incl. those without variance in a group); IQR shown blank when missing.
   gtC <- pc %>%
     gt(rowname_col = "Context") %>%
     tab_header(title = md("**Relative burden within DEGs by intervention**")) %>%
