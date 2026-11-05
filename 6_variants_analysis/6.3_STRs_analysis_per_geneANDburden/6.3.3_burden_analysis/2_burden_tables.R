@@ -246,10 +246,7 @@ if (!is.null(dr)) {
     `P (nominal)` = ifelse(dr$not_estimable, "Not estimable", fmt_pval(dr$p)),
     FDR = ifelse(dr$not_estimable, "-", fmt_pval(p_adj))
   )
-  # Keep only regions with variance in both groups (IQR span > 0).
-  keep <- iqr_span(pd$s_iqr) > 0 & iqr_span(pd$f_iqr) > 0
-  keep[is.na(keep)] <- FALSE
-  pd <- pd[keep]
+  # Keep all regions (incl. those without variance in a group); IQR shown blank when missing.
   gtD <- pd %>%
     gt(rowname_col = "Region") %>%
     tab_header(title = md("**Relative burden by genomic region**")) %>%
